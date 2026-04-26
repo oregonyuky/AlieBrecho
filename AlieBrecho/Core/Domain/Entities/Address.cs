@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AlieBrecho.Core.Domain.Entities
 {
-    public class Address
+    public class Address : BaseEntity
     {
-        [Key]
-        public int AddressId { get; set; }
-
         [Required]
         [MaxLength(150)]
         public string Street { get; set; } = string.Empty;

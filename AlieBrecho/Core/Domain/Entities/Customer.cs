@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AlieBrecho.Core.Domain.Entities
 {
-    public class Customer
+    public class Customer : BaseEntity
     {
-        [Key]
-        public int CustomerId { get; set; }
-
         public string FirstName { get; set; } = string.Empty;
 
         public string LastName { get; set; } = string.Empty;

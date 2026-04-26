@@ -2,11 +2,8 @@
 
 namespace AlieBrecho.Core.Domain.Entities
 {
-    public class Order
+    public class Order : BaseEntity
     {
-        [Key]
-        public int OrderId { get; set; }
-
         public int CustomerId { get; set; }
 
         public int? PaymentId { get; set; }

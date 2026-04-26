@@ -1,14 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace AlieBrecho.Core.Domain.Entities
 {
-    public class Wishlist : BaseEntity
+    public class RecentlyViewed : BaseEntity
     {
         public int CustomerId { get; set; }
 
         public int ProductId { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public DateTime ViewDate { get; set; } = DateTime.UtcNow;
+
+        public string? Note { get; set; }
 
         // 🔗 Relacionamentos
         public Customer Customer { get; set; } = null!;
