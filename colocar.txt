@@ -1,0 +1,2 @@
+dotnet nuget locals all --clear
+Integrated Security=True;
