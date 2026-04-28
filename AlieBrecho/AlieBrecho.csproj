@@ -1,10 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Infraestructure\**" />
+    <Content Remove="Infraestructure\**" />
+    <EmbeddedResource Remove="Infraestructure\**" />
+    <None Remove="Infraestructure\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Presentation\ASPNET\wwwroot\css\site.css" />
@@ -81,16 +88,6 @@
     <Folder Include="Core\Application\Features\" />
     <Folder Include="Core\Domain\Common\" />
     <Folder Include="Core\Domain\Enums\" />
-    <Folder Include="Infraestructure\DataAccessManager\Common\" />
-    <Folder Include="Infraestructure\DataAccessManager\Configurations\" />
-    <Folder Include="Infraestructure\DataAccessManager\Contexts\" />
-    <Folder Include="Infraestructure\DataAccessManager\Repositories\" />
-    <Folder Include="Infraestructure\EmailManager\" />
-    <Folder Include="Infraestructure\FileDocumentManager\" />
-    <Folder Include="Infraestructure\FileImageManager\" />
-    <Folder Include="Infraestructure\LogManager\" />
-    <Folder Include="Infraestructure\SeedManager\" />
-    <Folder Include="Infraestructure\SecurityManager\" />
     <Folder Include="Presentation\ASPNET\BackEnd\Common\Base\" />
     <Folder Include="Presentation\ASPNET\BackEnd\Common\Handlers\" />
     <Folder Include="Presentation\ASPNET\BackEnd\Common\Middlewares\" />
