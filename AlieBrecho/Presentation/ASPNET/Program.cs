@@ -1,26 +1,37 @@
+using ASPNET.BackEnd;
+using ASPNET.BackEnd.Common.Middlewares;
+using ASPNET.FrontEnd;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+//>>> Create Logs folder for Serilog
+var logPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app_data", "logs");
+if (!Directory.Exists(logPath))
+{
+    Directory.CreateDirectory(logPath);
+}
+
+builder.Services.AddBackEndServices(builder.Configuration);
+builder.Services.AddFrontEndServices();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.RegisterBackEndBuilder(app.Environment, app, builder.Configuration);
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-
 app.UseRouting();
-
+app.UseCors();
+app.UseMiddleware<GlobalApiExceptionHandlerMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+
+app.MapFrontEndRoutes();
+app.MapBackEndRoutes();
 
 app.Run();

@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Domain.Common;
+
 
 namespace AlieBrecho.Core.Domain.Entities
 {
@@ -11,10 +13,5 @@ namespace AlieBrecho.Core.Domain.Entities
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        // 🔗 Relacionamentos
-        public ICollection<SubCategory> SubCategories { get; set; } = new List<SubCategory>();
-
-        public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }
