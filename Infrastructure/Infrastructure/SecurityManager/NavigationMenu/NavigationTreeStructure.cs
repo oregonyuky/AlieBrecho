@@ -3,11 +3,6 @@ using System.Text.Json;
 
 namespace Infrastructure.SecurityManager.NavigationMenu;
 
-
-
-
-
-
 public class JsonStructureItem
 {
     public string? URL { get; set; }
@@ -18,7 +13,6 @@ public class JsonStructureItem
 
 public static class NavigationTreeStructure
 {
-
     public static readonly string JsonStructure = """
     [
         {
@@ -27,253 +21,7 @@ public static class NavigationTreeStructure
             "IsModule": true,
             "Children": [
                 {
-                    "URL": "/DashboardsC/DefaultDashboard",
-                    "Name": "Default",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Sales",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/CustomerGroups/CustomerGroupList",
-                    "Name": "Customer Group",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/CustomerCategories/CustomerCategoryList",
-                    "Name": "Customer Category",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Customers/CustomerList",
-                    "Name": "Customer",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/CustomerContacts/CustomerContactList",
-                    "Name": "Customer Contact",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/SalesOrders/SalesOrderList",
-                    "Name": "Sales Order",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/SalesReports/SalesReportList",
-                    "Name": "Sales Report",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Purchase",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/VendorGroups/VendorGroupList",
-                    "Name": "Vendor Group",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/VendorCategories/VendorCategoryList",
-                    "Name": "Vendor Category",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Vendors/VendorList",
-                    "Name": "Vendor",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/VendorContacts/VendorContactList",
-                    "Name": "Vendor Contact",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/PurchaseOrders/PurchaseOrderList",
-                    "Name": "Purchase Order",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/PurchaseReports/PurchaseReportList",
-                    "Name": "Purchase Report",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Inventory",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/UnitMeasures/UnitMeasureList",
-                    "Name": "Unit Measure",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/ProductGroups/ProductGroupList",
-                    "Name": "Product Group",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Products/ProductList",
-                    "Name": "Product",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Warehouses/WarehouseList",
-                    "Name": "Warehouse",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/DeliveryOrders/DeliveryOrderList",
-                    "Name": "Delivery Order",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/SalesReturns/SalesReturnList",
-                    "Name": "Sales Return",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/GoodsReceives/GoodsReceiveList",
-                    "Name": "Goods Receive",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/PurchaseReturns/PurchaseReturnList",
-                    "Name": "Purchase Return",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/TransferOuts/TransferOutList",
-                    "Name": "Transfer Out",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/TransferIns/TransferInList",
-                    "Name": "Transfer In",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/PositiveAdjustments/PositiveAdjustmentList",
-                    "Name": "Positive Adjustment",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/NegativeAdjustments/NegativeAdjustmentList",
-                    "Name": "Negative Adjustment",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Scrappings/ScrappingList",
-                    "Name": "Scrapping",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/StockCounts/StockCountList",
-                    "Name": "Stock Count",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/TransactionReports/TransactionReportList",
-                    "Name": "Transaction Report",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/StockReports/StockReportList",
-                    "Name": "Stock Report",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/MovementReports/MovementReportList",
-                    "Name": "Movement Reports",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Utilities",
-            "IsModule": true,
-            "Children": [   
-                {
-                    "URL": "/Todos/TodoList",
-                    "Name": "Todo",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/TodoItems/TodoItemList",
-                    "Name": "Todo Item",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Membership",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/Users/UserList",
-                    "Name": "Users",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Roles/RoleList",
-                    "Name": "Roles",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Profiles",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/Profiles/MyProfile",
-                    "Name": "My Profile",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Settings",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/Companies/MyCompany",
-                    "Name": "My Company",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/Taxs/TaxList",
-                    "Name": "Tax",
-                    "IsModule": false
-                },
-                {
-                    "URL": "/NumberSequences/NumberSequenceList",
-                    "Name": "Number Sequence",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Categorias",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/Categories/Category",
+                    "URL": "/Categories/CategoryList",
                     "Name": "Category",
                     "IsModule": false
                 }
@@ -285,7 +33,6 @@ public static class NavigationTreeStructure
     public static List<MenuNavigationTreeNodeDto> GetCompleteMenuNavigationTreeNode()
     {
         var json = JsonStructure;
-
         var menus = JsonSerializer.Deserialize<List<JsonStructureItem>>(json);
 
         List<MenuNavigationTreeNodeDto> nodes = new List<MenuNavigationTreeNodeDto>();
@@ -369,7 +116,4 @@ public static class NavigationTreeStructure
             }
         }
     }
-
-
 }
-
