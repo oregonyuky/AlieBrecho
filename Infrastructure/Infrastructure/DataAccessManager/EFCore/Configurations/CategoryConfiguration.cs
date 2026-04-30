@@ -1,4 +1,4 @@
-using AlieBrecho.Core.Domain.Entities;
+using Domain.Entities;
 using Infrastructure.DataAccessManager.EFCore.Common;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using static Domain.Common.Constants;
