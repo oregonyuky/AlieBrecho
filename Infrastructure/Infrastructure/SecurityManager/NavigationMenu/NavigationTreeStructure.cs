@@ -21,7 +21,7 @@ public static class NavigationTreeStructure
             "IsModule": true,
             "Children": [
                 {
-                    "URL": "/Categories/CategoryList",
+                    "URL": "/Category/GetCategoryList",
                     "Name": "Category",
                     "IsModule": false
                 }
