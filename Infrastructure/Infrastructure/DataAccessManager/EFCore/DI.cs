@@ -42,24 +42,24 @@ public static class DI
             //    );
             //    break;
 
-            case "SqlServer":
-            default:
-                services.AddDbContext<DataContext>(options =>
-                    options.UseSqlServer(connectionString)
-                    .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
-                );
-                services.AddDbContext<CommandContext>(options =>
-                    options.UseSqlServer(connectionString)
-                    .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
-                );
-                services.AddDbContext<QueryContext>(options =>
-                    options.UseSqlServer(connectionString)
-                    .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
-                );
-                break;
+            // case "SqlServer":
+            // default:
+            //     services.AddDbContext<DataContext>(options =>
+            //         options.UseSqlServer(connectionString)
+            //         .LogTo(Log.Information, LogLevel.Information)
+            //         .EnableSensitiveDataLogging()
+            //     );
+            //     services.AddDbContext<CommandContext>(options =>
+            //         options.UseSqlServer(connectionString)
+            //         .LogTo(Log.Information, LogLevel.Information)
+            //         .EnableSensitiveDataLogging()
+            //     );
+            //     services.AddDbContext<QueryContext>(options =>
+            //         options.UseSqlServer(connectionString)
+            //         .LogTo(Log.Information, LogLevel.Information)
+            //         .EnableSensitiveDataLogging()
+            //     );
+            //     break;
              case "PostgreSQL":
                 services.AddDbContext<DataContext>(options =>
                     options.UseNpgsql(connectionString)
@@ -77,23 +77,23 @@ public static class DI
                     .EnableSensitiveDataLogging()
                 );
                 break;
-            case "Sqlite":
-                services.AddDbContext<DataContext>(options =>
-                    options.UseSqlite(connectionString)
-                    .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
-                );
-                services.AddDbContext<CommandContext>(options =>
-                    options.UseSqlite(connectionString)
-                    .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
-                );
-                services.AddDbContext<QueryContext>(options =>
-                    options.UseSqlite(connectionString)
-                    .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
-                );
-                break;
+            // case "Sqlite":
+            //     services.AddDbContext<DataContext>(options =>
+            //         options.UseSqlite(connectionString)
+            //         .LogTo(Log.Information, LogLevel.Information)
+            //         .EnableSensitiveDataLogging()
+            //     );
+            //     services.AddDbContext<CommandContext>(options =>
+            //         options.UseSqlite(connectionString)
+            //         .LogTo(Log.Information, LogLevel.Information)
+            //         .EnableSensitiveDataLogging()
+            //     );
+            //     services.AddDbContext<QueryContext>(options =>
+            //         options.UseSqlite(connectionString)
+            //         .LogTo(Log.Information, LogLevel.Information)
+            //         .EnableSensitiveDataLogging()
+            //     );
+            //     break;
         }
 
 
