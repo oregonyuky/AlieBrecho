@@ -9,7 +9,8 @@ const App = {
             description: '',
             isActive: true,
             errors: {
-                name: ''
+                name: '',
+                description: ''
             },
             isSubmitting: false
         });
@@ -26,6 +27,17 @@ const App = {
                     throw error;
                 }
             },
+            createMainData: async (name, description, isActive) => {
+                try {
+                    return await AxiosManager.post('/Category/CreateCategory', {
+                        name,
+                        description,
+                        isActive
+                    });
+                } catch (error) {
+                    throw error;
+                }
+            },
             updateMainData: async (id, name, description, isActive) => {
                 try {
                     return await AxiosManager.post('/Category/UpdateCategory', {
@@ -33,6 +45,15 @@ const App = {
                         name,
                         description,
                         isActive
+                    });
+                } catch (error) {
+                    throw error;
+                }
+            },
+            deleteMainData: async (id) => {
+                try {
+                    return await AxiosManager.post('/Category/DeleteCategory', {
+                        id
                     });
                 } catch (error) {
                     throw error;
@@ -49,6 +70,7 @@ const App = {
                     allowFiltering: true,
                     allowSorting: true,
                     allowPaging: true,
+                    allowExcelExport: true,
                     allowSelection: true,
                     filterSettings: { type: 'CheckBox' },
                     pageSettings: { pageSize: 50 },
@@ -62,24 +84,60 @@ const App = {
                         { field: 'createdAt', headerText: 'Created At', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
-                        'Search',
+                        'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' }
+                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
                     },
                     rowSelected: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
                     },
                     rowDeselected: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
                     },
                     toolbarClick: (args) => {
+                        if (args.item.id?.toLowerCase().includes('excelexport')) {
+                            mainGrid.obj.excelExport({ fileName: 'Categories.xlsx' });
+                        }
+
+                        if (args.item.id === 'AddCustom') {
+                            state.deleteMode = false;
+                            state.mainTitle = 'Add Category';
+                            state.id = '';
+                            state.name = '';
+                            state.description = '';
+                            state.isActive = true;
+
+                            mainModal.obj.show();
+                        }
+
                         if (args.item.id === 'EditCustom') {
                             const selected = mainGrid.obj.getSelectedRecords()[0];
                             if (!selected) return;
 
+                            state.deleteMode = false;
+                            state.mainTitle = 'Edit Category';
+                            state.id = selected.id ?? '';
+                            state.name = selected.name ?? '';
+                            state.description = selected.description ?? '';
+                            state.isActive = selected.isActive ?? true;
+
+                            mainModal.obj.show();
+                        }
+
+                        if (args.item.id === 'DeleteCustom') {
+                            const selected = mainGrid.obj.getSelectedRecords()[0];
+                            if (!selected) return;
+
+                            state.deleteMode = true;
+                            state.mainTitle = 'Delete Category';
                             state.id = selected.id ?? '';
                             state.name = selected.name ?? '';
                             state.description = selected.description ?? '';
@@ -142,6 +200,34 @@ const App = {
                     state.isSubmitting = true;
                     await new Promise(r => setTimeout(r, 200));
 
+                    if (state.deleteMode) {
+                        const deleteResponse = await services.deleteMainData(state.id);
+
+                        if (deleteResponse.data.code === 200) {
+                            await methods.populateMainData();
+                            mainGrid.refresh();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Delete Successful',
+                                timer: 1000,
+                                showConfirmButton: false
+                            });
+
+                            setTimeout(() => {
+                                mainModal.obj.hide();
+                            }, 1000);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Delete Failed',
+                                text: deleteResponse.data.message ?? 'Error'
+                            });
+                        }
+
+                        return;
+                    }
+
                     // validation
                     let isValid = true;
                     state.errors.name = '';
@@ -153,12 +239,18 @@ const App = {
 
                     if (!isValid) return;
 
-                    const response = await services.updateMainData(
-                        state.id,
-                        state.name,
-                        state.description,
-                        state.isActive
-                    );
+                    const response = state.id
+                        ? await services.updateMainData(
+                            state.id,
+                            state.name,
+                            state.description,
+                            state.isActive
+                        )
+                        : await services.createMainData(
+                            state.name,
+                            state.description,
+                            state.isActive
+                        );
 
                     if (response.data.code === 200) {
                         await methods.populateMainData();
@@ -173,7 +265,6 @@ const App = {
 
                         setTimeout(() => {
                             mainModal.obj.hide();
-                            location.reload();
                         }, 1000);
                     } else {
                         Swal.fire({
@@ -211,7 +302,9 @@ const App = {
                     state.name = '';
                     state.description = '';
                     state.isActive = true;
-                    state.errors = { name: '' };
+                    state.deleteMode = false;
+                    state.mainTitle = 'Edit Category';
+                    state.errors = { name: '', description: '' };
                 });
 
             } catch (e) {

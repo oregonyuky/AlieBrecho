@@ -12,11 +12,12 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
     public DataContext(DbContextOptions<DataContext> options) : base(options)
     {
     }
-
-    public DbSet<Category> Category { get; set; }
     public DbSet<FileImage> FileImage { get; set; }
     public DbSet<FileDocument> FileDocument { get; set; }
     public DbSet<Token> Token { get; set; }
+    public DbSet<Company> Company { get; set; }
+
+    public DbSet<Category> Category { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,5 +27,6 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new FileImageConfiguration());
         modelBuilder.ApplyConfiguration(new FileDocumentConfiguration());
         modelBuilder.ApplyConfiguration(new TokenConfiguration());
+        modelBuilder.ApplyConfiguration(new CompanyConfiguration());
     }
 }

@@ -16,6 +16,22 @@ public class CategoryController : BaseApiController
     }
 
     [Authorize]
+    [HttpPost("CreateCategory")]
+    public async Task<ActionResult<ApiSuccessResult<CreateCategoryResult>>> CreateCategoryAsync(
+        CreateCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<CreateCategoryResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(CreateCategoryAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
     [HttpPost("UpdateCategory")]
     public async Task<ActionResult<ApiSuccessResult<UpdateCategoryResult>>> UpdateCategoryAsync(
         UpdateCategoryRequest request,
@@ -27,6 +43,22 @@ public class CategoryController : BaseApiController
         {
             Code = StatusCodes.Status200OK,
             Message = $"Success executing {nameof(UpdateCategoryAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpPost("DeleteCategory")]
+    public async Task<ActionResult<ApiSuccessResult<DeleteCategoryResult>>> DeleteCategoryAsync(
+        DeleteCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<DeleteCategoryResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(DeleteCategoryAsync)}",
             Content = response
         });
     }

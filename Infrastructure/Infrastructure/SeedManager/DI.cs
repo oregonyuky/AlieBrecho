@@ -15,7 +15,7 @@ public static class DI
     {
         services.AddScoped<RoleSeeder>();
         services.AddScoped<UserAdminSeeder>();
- 
+        services.AddScoped<CompanySeeder>();
 
         return services;
     }
@@ -27,13 +27,17 @@ public static class DI
         var serviceProvider = scope.ServiceProvider;
 
         var context = serviceProvider.GetRequiredService<DataContext>();
-        if (!context.Roles.Any()) //if empty, thats mean never been seeded before
-        {
-            var roleSeeder = serviceProvider.GetRequiredService<RoleSeeder>();
-            roleSeeder.GenerateDataAsync().Wait();
 
-            var userAdminSeeder = serviceProvider.GetRequiredService<UserAdminSeeder>();
-            userAdminSeeder.GenerateDataAsync().Wait();
+        var roleSeeder = serviceProvider.GetRequiredService<RoleSeeder>();
+        roleSeeder.GenerateDataAsync().Wait();
+
+        var userAdminSeeder = serviceProvider.GetRequiredService<UserAdminSeeder>();
+        userAdminSeeder.GenerateDataAsync().Wait();
+
+        if (!context.Company.Any())
+        {
+            var companySeeder = serviceProvider.GetRequiredService<CompanySeeder>();
+            companySeeder.GenerateDataAsync().Wait();
 
         }
 

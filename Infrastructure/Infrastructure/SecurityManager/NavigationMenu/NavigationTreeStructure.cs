@@ -21,8 +21,32 @@ public static class NavigationTreeStructure
             "IsModule": true,
             "Children": [
                 {
-                    "URL": "/Category/GetCategoryList",
+                    "URL": "/Categories/Category",
                     "Name": "Category",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
+            "Name": "Profiles",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Profiles/MyProfile",
+                    "Name": "My Profile",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
+            "Name": "Settings",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Companies/MyCompany",
+                    "Name": "My Company",
                     "IsModule": false
                 }
             ]

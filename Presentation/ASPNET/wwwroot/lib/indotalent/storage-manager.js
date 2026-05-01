@@ -92,15 +92,17 @@ const StorageManager = {
     removeCompany: () => StorageManager.remove(STORAGE_KEYS.COMPANY),
 
     saveLoginResult: (data) => {
-        StorageManager.saveAccessToken(data?.content?.data?.accessToken);
-        StorageManager.saveRefreshToken(data?.content?.data?.refreshToken);
-        StorageManager.saveFirstName(data?.content?.data?.firstName);
-        StorageManager.saveLastName(data?.content?.data?.lastName);
-        StorageManager.saveEmail(data?.content?.data?.email);
-        StorageManager.saveUserId(data?.content?.data?.userId);
-        StorageManager.saveUserRoles(data?.content?.data?.roles);
-        StorageManager.saveMenuNavigation(data?.content?.data?.menuNavigation);
+        const loginData = data?.content?.data ?? data?.content;
+
+        StorageManager.saveAccessToken(loginData?.accessToken);
+        StorageManager.saveRefreshToken(loginData?.refreshToken);
+        StorageManager.saveFirstName(loginData?.firstName);
+        StorageManager.saveLastName(loginData?.lastName);
+        StorageManager.saveEmail(loginData?.email);
+        StorageManager.saveUserId(loginData?.userId);
+        StorageManager.saveUserRoles(loginData?.roles);
+        StorageManager.saveMenuNavigation(loginData?.menuNavigation);
         StorageManager.saveIsAuthenticated(StorageManager.getUserId() != null);
-        StorageManager.saveAvatar(data?.content?.data?.avatar);
+        StorageManager.saveAvatar(loginData?.avatar);
     }
 };
