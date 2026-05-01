@@ -6,6 +6,14 @@ Este documento descreve a arquitetura e o padrão de organização do sistema, s
 - **Infrastructure**
 - **Presentation**
 
+Comando no NuGet:
+
+```powershell
+dotnet nuget locals all --clear
+dotnet restore
+dotnet clean 
+dotnet build
+```
 ---
 
 # Core
