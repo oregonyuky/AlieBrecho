@@ -7,12 +7,12 @@
                 icon: 'error',
                 title: 'Unauthorized',
                 text: 'You are being redirected...',
-                timer: 100000,
+                timer: 2000,
                 showConfirmButton: false
             });
             setTimeout(() => {
                 window.location.href = '/Accounts/Login';
-            }, 100000);
+            }, 2000);
         }
 
     },
