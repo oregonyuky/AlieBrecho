@@ -1,4 +1,5 @@
 using Application.Common.Repositories;
+using Application.Common.Services.FileImageManager;
 using Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -27,14 +28,17 @@ public class DeleteProductHandler : IRequestHandler<DeleteProductRequest, Delete
 {
     private readonly ICommandRepository<Product> _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFileImageService _fileImageService;
 
     public DeleteProductHandler(
         ICommandRepository<Product> repository,
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork,
+        IFileImageService fileImageService
         )
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _fileImageService = fileImageService;
     }
 
     public async Task<DeleteProductResult> Handle(DeleteProductRequest request, CancellationToken cancellationToken)
@@ -44,6 +48,23 @@ public class DeleteProductHandler : IRequestHandler<DeleteProductRequest, Delete
         if (entity == null)
         {
             throw new Exception($"Entity not found: {request.Id}");
+        }
+
+        var imageNames = new[]
+        {
+            entity.MainImageURL,
+            entity.Picture1,
+            entity.Picture2,
+            entity.Picture3,
+            entity.Picture4
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Select(x => x!.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var imageName in imageNames)
+        {
+            await _fileImageService.DeleteAsync(imageName, cancellationToken);
         }
 
         _repository.Delete(entity);

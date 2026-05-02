@@ -10,4 +10,5 @@ public interface IFileImageService
         string? createdById = "",
         CancellationToken cancellationToken = default);
     Task<byte[]> GetFileAsync(string fileName, CancellationToken cancellationToken = default);
+    Task DeleteAsync(string? fileName, CancellationToken cancellationToken = default);
 }

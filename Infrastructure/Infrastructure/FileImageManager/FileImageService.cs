@@ -1,4 +1,5 @@
-﻿using Application.Common.Repositories;
+﻿using System.Linq;
+using Application.Common.Repositories;
 using Application.Common.Services.FileImageManager;
 using Domain.Entities;
 using Microsoft.Extensions.Options;
@@ -89,4 +90,27 @@ public class FileImageService : IFileImageService
         return result;
     }
 
+    public async Task DeleteAsync(string? fileName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return;
+        }
+
+        var filePath = Path.Combine(_folderPath, fileName);
+
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+
+        var image = _docRepository.GetQuery()
+            .FirstOrDefault(x => x.GeneratedName == fileName || x.Name == fileName);
+
+        if (image != null)
+        {
+            _docRepository.Delete(image);
+            await _unitOfWork.SaveAsync(cancellationToken);
+        }
+    }
 }
