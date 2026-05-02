@@ -51,6 +51,7 @@ public static class DI
     public static IServiceCollection RegisterDemoSeedManager(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<CategorySeeder>();
+        services.AddScoped<ProductSeeder>();
         return services;
     }
     public static IHost SeedDemoData(this IHost host)
@@ -65,6 +66,13 @@ public static class DI
             categorySeeder.GenerateDataAsync().Wait();
 
         }
+
+        if (!context.Product.Any())
+        {
+            var productSeeder = serviceProvider.GetRequiredService<ProductSeeder>();
+            productSeeder.GenerateDataAsync().Wait();
+        }
+
         return host;
     }
 }

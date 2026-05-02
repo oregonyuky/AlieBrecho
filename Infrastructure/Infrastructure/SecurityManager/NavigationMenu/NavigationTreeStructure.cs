@@ -29,6 +29,18 @@ public static class NavigationTreeStructure
         },
         {
             "URL": "#",
+            "Name": "Produtos",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Products/Product",
+                    "Name": "Produtos",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
             "Name": "Membership",
             "IsModule": true,
             "Children": [

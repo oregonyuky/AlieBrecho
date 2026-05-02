@@ -1,0 +1,351 @@
+@page
+@{
+    ViewData["Title"] = "Product";
+}
+
+<div id="app" v-cloak>
+    <div class="row">
+        <div class="col-12">
+            <div class="grid-container">
+                <div ref="mainGridRef"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ state.mainTitle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" v-model="state.id" />
+
+                    <form id="MainForm">
+                        <div class="row mb-2">
+                            <div class="col-md-8">
+                                <label>Name</label>
+                                <input ref="nameRef"
+                                       v-model="state.name"
+                                       type="text"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.name }}</label>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label>Category</label>
+                                <select v-model="state.categoryID"
+                                        class="form-control"
+                                        v-bind:disabled="state.deleteMode">
+                                    <option value="">Select Category</option>
+                                    <option v-for="category in state.categories"
+                                            v-bind:key="category.id"
+                                            v-bind:value="category.id">
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-3">
+                                <label>Unit Price</label>
+                                <input v-model.number="state.unitPrice"
+                                       type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Old Price</label>
+                                <input v-model.number="state.oldPrice"
+                                       type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Unit Weight</label>
+                                <input v-model.number="state.unitWeight"
+                                       type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Discount Percent</label>
+                                <input v-model.number="state.discountPercent"
+                                       type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label>Main Image</label>
+                                <input ref="mainImageFileRef"
+                                       type="file"
+                                       accept="image/*"
+                                       class="form-control"
+                                       v-on:change="handler.handleMainImageChange"
+                                       v-bind:disabled="state.deleteMode">
+                                <small class="text-muted" v-if="state.mainImageURL">
+                                    {{ state.mainImageURL }}
+                                </small>
+                                <div class="mt-2" v-if="state.mainImagePreviewURL">
+                                    <img v-bind:src="state.mainImagePreviewURL"
+                                         alt="Product image preview"
+                                         class="img-thumbnail"
+                                         style="max-height: 120px;">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label>Alt Text</label>
+                                <input v-model="state.altText"
+                                       type="text"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label>Short Description</label>
+                                <textarea v-model="state.shortDescription"
+                                          class="form-control"
+                                          rows="2"
+                                          v-bind:disabled="state.deleteMode"></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label>Long Description</label>
+                                <textarea v-model="state.longDescription"
+                                          class="form-control"
+                                          rows="2"
+                                          v-bind:disabled="state.deleteMode"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-3">
+                                <label>Picture 1</label>
+                                <input ref="picture1FileRef"
+                                       type="file"
+                                       accept="image/*"
+                                       class="form-control"
+                                       v-on:change="handler.handlePictureImageChange('picture1', $event)"
+                                       v-bind:disabled="state.deleteMode">
+                                <small class="text-muted d-block" v-if="state.picture1">
+                                    {{ state.picture1 }}
+                                </small>
+                                <div class="mt-2" v-if="state.picture1PreviewURL">
+                                    <img v-bind:src="state.picture1PreviewURL"
+                                         alt="Picture 1 preview"
+                                         class="img-thumbnail"
+                                         style="max-height: 100px;">
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Picture 2</label>
+                                <input ref="picture2FileRef"
+                                       type="file"
+                                       accept="image/*"
+                                       class="form-control"
+                                       v-on:change="handler.handlePictureImageChange('picture2', $event)"
+                                       v-bind:disabled="state.deleteMode">
+                                <small class="text-muted d-block" v-if="state.picture2">
+                                    {{ state.picture2 }}
+                                </small>
+                                <div class="mt-2" v-if="state.picture2PreviewURL">
+                                    <img v-bind:src="state.picture2PreviewURL"
+                                         alt="Picture 2 preview"
+                                         class="img-thumbnail"
+                                         style="max-height: 100px;">
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Picture 3</label>
+                                <input ref="picture3FileRef"
+                                       type="file"
+                                       accept="image/*"
+                                       class="form-control"
+                                       v-on:change="handler.handlePictureImageChange('picture3', $event)"
+                                       v-bind:disabled="state.deleteMode">
+                                <small class="text-muted d-block" v-if="state.picture3">
+                                    {{ state.picture3 }}
+                                </small>
+                                <div class="mt-2" v-if="state.picture3PreviewURL">
+                                    <img v-bind:src="state.picture3PreviewURL"
+                                         alt="Picture 3 preview"
+                                         class="img-thumbnail"
+                                         style="max-height: 100px;">
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Picture 4</label>
+                                <input ref="picture4FileRef"
+                                       type="file"
+                                       accept="image/*"
+                                       class="form-control"
+                                       v-on:change="handler.handlePictureImageChange('picture4', $event)"
+                                       v-bind:disabled="state.deleteMode">
+                                <small class="text-muted d-block" v-if="state.picture4">
+                                    {{ state.picture4 }}
+                                </small>
+                                <div class="mt-2" v-if="state.picture4PreviewURL">
+                                    <img v-bind:src="state.picture4PreviewURL"
+                                         alt="Picture 4 preview"
+                                         class="img-thumbnail"
+                                         style="max-height: 100px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-3 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="ProductAvailable"
+                                       v-model="state.productAvailable"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="form-check-label" for="ProductAvailable">Available</label>
+                            </div>
+
+                            <div class="col-md-3 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="AddBadge"
+                                       v-model="state.addBadge"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="form-check-label" for="AddBadge">Add Badge</label>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-12">
+                                <label>Note</label>
+                                <textarea v-model="state.note"
+                                          class="form-control"
+                                          rows="2"
+                                          v-bind:disabled="state.deleteMode"></textarea>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="row mb-2">
+                            <div class="col-12 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Sizes</h6>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        v-on:click="handler.addSize"
+                                        v-bind:disabled="state.deleteMode">
+                                    Add Size
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Size</th>
+                                        <th>Bust</th>
+                                        <th>Sleeve</th>
+                                        <th>Length</th>
+                                        <th style="width: 80px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(size, index) in state.sizes" v-bind:key="index">
+                                        <td>
+                                            <input v-model="size.size"
+                                                   type="text"
+                                                   class="form-control form-control-sm"
+                                                   v-bind:disabled="state.deleteMode">
+                                        </td>
+                                        <td>
+                                            <input v-model.number="size.bust"
+                                                   type="number"
+                                                   step="0.01"
+                                                   class="form-control form-control-sm"
+                                                   v-bind:disabled="state.deleteMode">
+                                        </td>
+                                        <td>
+                                            <input v-model.number="size.sleeve"
+                                                   type="number"
+                                                   step="0.01"
+                                                   class="form-control form-control-sm"
+                                                   v-bind:disabled="state.deleteMode">
+                                        </td>
+                                        <td>
+                                            <input v-model.number="size.length"
+                                                   type="number"
+                                                   step="0.01"
+                                                   class="form-control form-control-sm"
+                                                   v-bind:disabled="state.deleteMode">
+                                        </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    v-on:click="handler.removeSize(index)"
+                                                    v-bind:disabled="state.deleteMode">
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="state.sizes.length === 0">
+                                        <td colspan="5" class="text-center text-muted">No sizes</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+
+                    <button type="button"
+                            id="MainSaveButton"
+                            class="btn"
+                            v-bind:class="state.deleteMode ? 'btn-danger' : 'btn-primary'"
+                            v-on:click="handler.handleSubmit"
+                            v-bind:disabled="state.isSubmitting">
+
+                        <span class="spinner-border spinner-border-sm me-2"
+                              v-if="state.isSubmitting"></span>
+
+                        <span v-if="!state.isSubmitting">
+                            {{ state.deleteMode ? 'Delete' : 'Save' }}
+                        </span>
+
+                        <span v-else>
+                            {{ state.deleteMode ? 'Deleting...' : 'Saving...' }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/FrontEnd/Pages/Products/Product.cshtml.js"></script>
+}
