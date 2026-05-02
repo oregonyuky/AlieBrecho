@@ -22,7 +22,24 @@ public static class NavigationTreeStructure
             "Children": [
                 {
                     "URL": "/Categories/Category",
-                    "Name": "Category",
+                    "Name": "Categorias",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
+            "Name": "Membership",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Users/UserList",
+                    "Name": "Usuarios",
+                    "IsModule": false
+                },
+                {
+                    "URL": "/Roles/RoleList",
+                    "Name": "Roles",
                     "IsModule": false
                 }
             ]
