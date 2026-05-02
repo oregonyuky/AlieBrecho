@@ -251,8 +251,14 @@ const App = {
             }),
             populateMainData: async () => {
                 const response = await services.getMainData();
+                const data = response?.data?.content?.data ?? [];
 
-                state.mainData = response?.data?.content?.data ?? [];
+                state.mainData = data.map(item => ({
+                    ...item,
+                    imageURL: item?.mainImageURL
+                        ? '/api/FileImage/GetImage?imageName=' + item.mainImageURL
+                        : '/noimage.png'
+                }));
             },
             populateCategoryData: async () => {
                 const response = await services.getCategoryData();
@@ -315,7 +321,11 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'name', headerText: 'Name', width: 200 },
+                        {
+                            headerText: 'Name',
+                            width: 260,
+                            template: '<div class="product-name-cell"><img src="${imageURL}" alt="Product" /><span>${name}</span></div>'
+                        },
                         { field: 'unitPrice', headerText: 'Unit Price', width: 130, format: 'N2', textAlign: 'Right' },
                         { field: 'oldPrice', headerText: 'Old Price', width: 130, format: 'N2', textAlign: 'Right' },
                         { field: 'discountPercent', headerText: 'Discount %', width: 130, format: 'N2', textAlign: 'Right' },

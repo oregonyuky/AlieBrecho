@@ -3,6 +3,22 @@
     ViewData["Title"] = "Product";
 }
 
+<style>
+    .product-name-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .product-name-cell img {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+</style>
+
 <div id="app" v-cloak>
     <div class="row">
         <div class="col-12">

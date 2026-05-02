@@ -56,7 +56,7 @@ public class FileImageController : BaseApiController
     }
 
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("GetImage")]
     public async Task<IActionResult> GetImageAsync(
         [FromQuery] string imageName,
