@@ -11,5 +11,6 @@ public interface IEntityDbSet
     public DbSet<FileDocument> FileDocument { get; set; }
 
     public DbSet<Category> Category { get; set; }
+    public DbSet<Customer> Customer { get; set; }
 
 }

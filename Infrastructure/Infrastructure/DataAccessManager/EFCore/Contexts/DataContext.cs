@@ -16,6 +16,7 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
     public DbSet<FileDocument> FileDocument { get; set; }
     public DbSet<Token> Token { get; set; }
     public DbSet<Company> Company { get; set; }
+    public DbSet<Customer> Customer { get; set; }
 
     public DbSet<Category> Category { get; set; }
 
@@ -28,5 +29,6 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new FileDocumentConfiguration());
         modelBuilder.ApplyConfiguration(new TokenConfiguration());
         modelBuilder.ApplyConfiguration(new CompanyConfiguration());
+        modelBuilder.ApplyConfiguration(new CustomerConfiguration());
     }
 }

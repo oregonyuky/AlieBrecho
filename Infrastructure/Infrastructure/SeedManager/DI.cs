@@ -51,6 +51,7 @@ public static class DI
     public static IServiceCollection RegisterDemoSeedManager(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<CategorySeeder>();
+        services.AddScoped<CustomerSeeder>();
         return services;
     }
     public static IHost SeedDemoData(this IHost host)
@@ -65,7 +66,12 @@ public static class DI
             categorySeeder.GenerateDataAsync().Wait();
 
         }
+
+        if (!context.Customer.Any()) //if empty, thats mean never been seeded before
+        {
+            var customerSeeder = serviceProvider.GetRequiredService<CustomerSeeder>();
+            customerSeeder.GenerateDataAsync().Wait();
+        }
         return host;
     }
 }
-

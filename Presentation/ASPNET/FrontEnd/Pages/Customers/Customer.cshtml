@@ -1,0 +1,159 @@
+@page
+@{
+    ViewData["Title"] = "Customer";
+}
+
+<div id="app" v-cloak>
+    <div class="row">
+        <div class="col-12">
+            <div class="grid-container">
+                <div ref="mainGridRef"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ state.mainTitle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" v-model="state.id" />
+
+                    <form id="MainForm">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label>Name</label>
+                                <input v-model="state.name" type="text" class="form-control" :disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.name }}</label>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Status</label>
+                                <select v-model="state.customerStatus" class="form-control" :disabled="state.deleteMode">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label>CPF</label>
+                                <input v-model="state.cpf" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Phone Number</label>
+                                <input v-model="state.phoneNumber" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label>Email Address</label>
+                                <input v-model="state.emailAddress" type="email" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Website</label>
+                                <input v-model="state.website" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-12">
+                                <label>Description</label>
+                                <textarea v-model="state.description" class="form-control" rows="2" :disabled="state.deleteMode"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label>Street</label>
+                                <input v-model="state.street" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-2">
+                                <label>Number</label>
+                                <input v-model="state.number" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Neighborhood</label>
+                                <input v-model="state.neighborhood" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-4">
+                                <label>Complement</label>
+                                <input v-model="state.complement" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-3">
+                                <label>City</label>
+                                <input v-model="state.city" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-2">
+                                <label>State</label>
+                                <input v-model="state.stateRegion" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-3">
+                                <label>Postal Code</label>
+                                <input v-model="state.postalCode" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-4">
+                                <label>Country</label>
+                                <input v-model="state.country" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Instagram</label>
+                                <input v-model="state.instagram" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Twitter/X</label>
+                                <input v-model="state.twitterX" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-4">
+                                <label>TikTok</label>
+                                <input v-model="state.tikTok" type="text" class="form-control" :disabled="state.deleteMode">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Close
+                    </button>
+
+                    <button type="button"
+                            id="MainSaveButton"
+                            class="btn"
+                            :class="state.deleteMode ? 'btn-danger' : 'btn-primary'"
+                            v-on:click="handler.handleSubmit"
+                            :disabled="state.isSubmitting">
+
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
+
+                        <span v-if="!state.isSubmitting">
+                            {{ state.deleteMode ? 'Delete' : 'Save' }}
+                        </span>
+
+                        <span v-else>
+                            {{ state.deleteMode ? 'Deleting...' : 'Saving...' }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/FrontEnd/Pages/Customers/Customer.cshtml.js"></script>
+}
