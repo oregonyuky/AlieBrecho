@@ -322,6 +322,7 @@ const App = {
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
                         {
+                            field: 'name',
                             headerText: 'Name',
                             width: 260,
                             template: '<div class="product-name-cell"><img src="${imageURL}" alt="Product" /><span>${name}</span></div>'
