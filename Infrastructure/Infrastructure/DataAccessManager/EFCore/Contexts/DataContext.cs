@@ -21,6 +21,7 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
     public DbSet<Category> Category { get; set; }
     public DbSet<Product> Product { get; set; }
     public DbSet<ProductSize> ProductSize { get; set; }
+    public DbSet<PaymentType> PaymentType { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,5 +35,6 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new ProductConfiguration());
         modelBuilder.ApplyConfiguration(new ProductSizeConfiguration());
         modelBuilder.ApplyConfiguration(new CustomerConfiguration());
+        modelBuilder.ApplyConfiguration(new PaymentTypeConfiguration());
     }
 }

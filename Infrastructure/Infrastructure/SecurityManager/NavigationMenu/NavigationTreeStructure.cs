@@ -17,12 +17,12 @@ public static class NavigationTreeStructure
     [
         {
             "URL": "#",
-            "Name": "Categorias",
+            "Name": "Pagamentos",
             "IsModule": true,
             "Children": [
                 {
-                    "URL": "/Categories/Category",
-                    "Name": "Categorias",
+                    "URL": "/PaymentTypes/PaymentType",
+                    "Name": "Formas de Pagamento",
                     "IsModule": false
                 }
             ]
@@ -33,8 +33,25 @@ public static class NavigationTreeStructure
             "IsModule": true,
             "Children": [
                 {
+                    "URL": "/Categories/Category",
+                    "Name": "Categorias de Produtos",
+                    "IsModule": false
+                },
+                {
                     "URL": "/Products/Product",
                     "Name": "Produtos",
+                    "IsModule": false
+                }
+            ]
+        },
+                {
+            "URL": "#",
+            "Name": "Clientes",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Customers/Customer",
+                    "Name": "Customer",
                     "IsModule": false
                 }
             ]
@@ -52,18 +69,6 @@ public static class NavigationTreeStructure
                 {
                     "URL": "/Roles/RoleList",
                     "Name": "Roles",
-                    "IsModule": false
-                }
-            ]
-        },
-        {
-            "URL": "#",
-            "Name": "Clientes",
-            "IsModule": true,
-            "Children": [
-                {
-                    "URL": "/Customers/Customer",
-                    "Name": "Customer",
                     "IsModule": false
                 }
             ]

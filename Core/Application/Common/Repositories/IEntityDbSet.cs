@@ -14,5 +14,6 @@ public interface IEntityDbSet
     public DbSet<Customer> Customer { get; set; }
     public DbSet<Product> Product { get; set; }
     public DbSet<ProductSize> ProductSize { get; set; }
+    public DbSet<PaymentType> PaymentType { get; set; }
 
 }
