@@ -58,6 +58,18 @@ public static class NavigationTreeStructure
         },
         {
             "URL": "#",
+            "Name": "Clientes",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Customers/Customer",
+                    "Name": "Customer",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
             "Name": "Profiles",
             "IsModule": true,
             "Children": [
