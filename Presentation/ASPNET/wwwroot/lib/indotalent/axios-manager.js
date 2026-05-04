@@ -63,12 +63,13 @@
         }
     );
 
-    const request = async (method, url, data = {}, customHeaders = {}, responseType = 'json') => {
+    const request = async (method, url, data = {}, customHeaders = {}, responseType = 'json', params = {}) => {
         try {
             const response = await axiosInstance({
                 method,
                 url,
                 data,
+                params,
                 headers: {
                     ...customHeaders,
                 },
@@ -82,9 +83,9 @@
 
     return {
         request,
-        get: (url, config = {}) => request('get', url, {}, config.headers, config.responseType),
-        post: (url, data, config = {}) => request('post', url, data, config.headers, config.responseType),
-        put: (url, data, config = {}) => request('put', url, data, config.headers, config.responseType),
-        delete: (url, config = {}) => request('delete', url, {}, config.headers, config.responseType),
+        get: (url, config = {}) => request('get', url, {}, config.headers, config.responseType, config.params),
+        post: (url, data, config = {}) => request('post', url, data, config.headers, config.responseType, config.params),
+        put: (url, data, config = {}) => request('put', url, data, config.headers, config.responseType, config.params),
+        delete: (url, config = {}) => request('delete', url, {}, config.headers, config.responseType, config.params),
     };
 })();

@@ -1,0 +1,67 @@
+using Application.Features.OrderManager.Commands;
+using Application.Features.OrderManager.Queries;
+using ASPNET.BackEnd.Common.Base;
+using ASPNET.BackEnd.Common.Models;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ASPNET.BackEnd.Controllers;
+
+[Route("api/[controller]")]
+public class OrderController : BaseApiController
+{
+    public OrderController(ISender sender) : base(sender)
+    {
+    }
+
+    [Authorize]
+    [HttpGet("GetOrderList")]
+    public async Task<ActionResult<ApiSuccessResult<GetOrderListResult>>> GetOrderListAsync(
+        CancellationToken cancellationToken,
+        [FromQuery] bool isDeleted = false)
+    {
+        var request = new GetOrderListRequest { IsDeleted = isDeleted };
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<GetOrderListResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GetOrderListAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpGet("GetOrderSingle")]
+    public async Task<ActionResult<ApiSuccessResult<GetOrderSingleResult>>> GetOrderSingleAsync(
+        CancellationToken cancellationToken,
+        [FromQuery] string id)
+    {
+        var request = new GetOrderSingleRequest { Id = id };
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<GetOrderSingleResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GetOrderSingleAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpPost("UpdateOrder")]
+    public async Task<ActionResult<ApiSuccessResult<UpdateOrderResult>>> UpdateOrderAsync(
+        UpdateOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<UpdateOrderResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(UpdateOrderAsync)}",
+            Content = response
+        });
+    }
+}

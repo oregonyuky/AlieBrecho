@@ -1,0 +1,179 @@
+@page
+@{
+    ViewData["Title"] = "Orders";
+}
+
+<div id="app" v-cloak>
+    <div class="row">
+        <div class="col-12">
+            <div class="grid-container">
+                <div ref="mainGridRef"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ state.mainTitle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" v-model="state.id" />
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Status</label>
+                            <select class="form-select" v-model="state.status">
+                                <option v-for="item in state.orderStatuses" :value="item">{{ item }}</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label>Order Date</label>
+                            <input type="text" class="form-control" :value="formatDate(state.orderDate)" disabled />
+                        </div>
+                        <div class="col-4">
+                            <label>Total Amount</label>
+                            <input type="number" class="form-control" v-model.number="state.totalAmount" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Discount</label>
+                            <input type="number" class="form-control" v-model.number="state.discount" />
+                        </div>
+                        <div class="col-4">
+                            <label>Taxes</label>
+                            <input type="number" class="form-control" v-model.number="state.taxes" />
+                        </div>
+                        <div class="col-4">
+                            <label>Notes</label>
+                            <textarea class="form-control" v-model="state.notes" rows="1"></textarea>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Payment Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Payment Status</label>
+                            <select class="form-select" v-model="state.payment.status">
+                                <option v-for="item in state.paymentStatuses" :value="item">{{ item }}</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label>Payment Type</label>
+                            <select class="form-select" v-model="state.payment.paymentTypeId">
+                                <option value="">Select</option>
+                                <option v-for="item in state.paymentTypes" :value="item.id">{{ item.typeName }}</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label>Amount</label>
+                            <input type="number" class="form-control" v-model.number="state.payment.amount" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Payment Date</label>
+                            <input type="datetime-local" class="form-control" v-model="state.payment.paymentDateTime" />
+                        </div>
+                        <div class="col-4">
+                            <label>Transaction ID</label>
+                            <input type="text" class="form-control" v-model="state.payment.transactionId" />
+                        </div>
+                        <div class="col-4">
+                            <label>Authorization Code</label>
+                            <input type="text" class="form-control" v-model="state.payment.authorizationCode" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Payment Method</label>
+                            <input type="text" class="form-control" v-model="state.payment.paymentMethod" />
+                        </div>
+                        <div class="col-4">
+                            <label>Cardholder Name</label>
+                            <input type="text" class="form-control" v-model="state.payment.cardHolderName" />
+                        </div>
+                        <div class="col-4">
+                            <label>Card Last 4</label>
+                            <input type="text" class="form-control" v-model="state.payment.cardLast4" />
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Shipping Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-3">
+                            <label>First Name</label>
+                            <input type="text" class="form-control" v-model="state.shipping.firstName" />
+                        </div>
+                        <div class="col-3">
+                            <label>Last Name</label>
+                            <input type="text" class="form-control" v-model="state.shipping.lastName" />
+                        </div>
+                        <div class="col-3">
+                            <label>Email</label>
+                            <input type="email" class="form-control" v-model="state.shipping.email" />
+                        </div>
+                        <div class="col-3">
+                            <label>Phone</label>
+                            <input type="text" class="form-control" v-model="state.shipping.phoneNumber" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Street</label>
+                            <input type="text" class="form-control" v-model="state.shipping.street" />
+                        </div>
+                        <div class="col-2">
+                            <label>Number</label>
+                            <input type="text" class="form-control" v-model="state.shipping.number" />
+                        </div>
+                        <div class="col-3">
+                            <label>Neighborhood</label>
+                            <input type="text" class="form-control" v-model="state.shipping.neighborhood" />
+                        </div>
+                        <div class="col-3">
+                            <label>Complement</label>
+                            <input type="text" class="form-control" v-model="state.shipping.complement" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-3">
+                            <label>City</label>
+                            <input type="text" class="form-control" v-model="state.shipping.city" />
+                        </div>
+                        <div class="col-3">
+                            <label>State</label>
+                            <input type="text" class="form-control" v-model="state.shipping.state" />
+                        </div>
+                        <div class="col-3">
+                            <label>Postal Code</label>
+                            <input type="text" class="form-control" v-model="state.shipping.postCode" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" id="MainSaveButton" class="btn btn-primary" v-on:click="handler.handleSubmit" v-bind:disabled="state.isSubmitting">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
+                        <span v-if="!state.isSubmitting">Save</span>
+                        <span v-else>Saving...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/FrontEnd/Pages/Orders/Order.cshtml.js"></script>
+}

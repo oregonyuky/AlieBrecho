@@ -17,12 +17,12 @@ public static class NavigationTreeStructure
     [
         {
             "URL": "#",
-            "Name": "Pagamentos",
+            "Name": "Pedidos",
             "IsModule": true,
             "Children": [
                 {
-                    "URL": "/PaymentTypes/PaymentType",
-                    "Name": "Formas de Pagamento",
+                    "URL": "/Orders/Order",
+                    "Name": "Orders",
                     "IsModule": false
                 }
             ]
