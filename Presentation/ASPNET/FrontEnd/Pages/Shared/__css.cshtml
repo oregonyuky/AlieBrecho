@@ -43,4 +43,27 @@
 
 
 
+    /* Syncfusion grid: show separator only in the header */
+    .e-grid .e-gridcontent .e-rowcell,
+    .e-grid .e-gridcontent .e-row {
+        border-bottom: none !important;
+        border-right: none !important;
+        background: transparent !important;
+    }
+
+    .e-grid .e-gridheader {
+        background-color: #f8f9fa;
+        border-bottom: none;
+    }
+
+    .e-grid .e-gridheader .e-headercell {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        border-right: 1px solid rgba(0, 0, 0, 0.12);
+        background-color: transparent;
+    }
+
+    .e-grid .e-gridheader .e-headercell:last-child {
+        border-right: none;
+    }
+
 </style>

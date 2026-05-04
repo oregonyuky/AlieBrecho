@@ -85,24 +85,27 @@ const App = {
                     height: '240px',
                     dataSource: dataSource,
                     allowFiltering: true,
-                    filterSettings: { type: 'CheckBox' },
+                    showColumnMenu: true,
+                    gridLines: 'None',
+                    filterSettings: { type: 'Menu' },
                     allowSorting: true,
                     allowPaging: true,
                     allowSelection: true,
+                    allowResizing: true,
                     pageSettings: { pageSize: 30 },
-                    selectionSettings: { type: 'Single' },
+                    selectionSettings: { type: 'Single', mode: 'Row' },
                     columns: [
+                        { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
                         { field: 'customerName', headerText: 'Customer', width: 180 },
                         { field: 'status', headerText: 'Status', width: 120 },
                         { field: 'totalAmount', headerText: 'Total', width: 120, format: 'C2' },
-                        { field: 'paymentStatus', headerText: 'Payment', width: 130 },
-                        { field: 'shippingCity', headerText: 'City', width: 140 },
+                        { field: 'paymentTypeName', headerText: 'Payment Method', width: 140 },
+                        { field: 'shippingPostCode', headerText: 'Post Code', width: 140 },
                         {
                             headerText: 'Items', width: 120, textAlign: 'Center', template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Show order items"><i class="fa fa-list"></i></button>'
                         },
-                        { field: 'orderDate', headerText: 'Order Date', width: 180, format: 'yyyy-MM-dd HH:mm' },
-                        { field: 'createdAt', headerText: 'Created At', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'orderDate', headerText: 'Order Date', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'Search',
@@ -125,6 +128,24 @@ const App = {
                                 event.stopPropagation();
                                 await methods.showOrderDetails(args.data.id);
                             });
+                        }
+
+                        const statusValue = args.data?.status;
+                        const statusCell = statusValue
+                            ? Array.from(args.row.cells).find(cell => cell.textContent.trim() === statusValue)
+                            : null;
+
+                        if (statusCell && statusValue) {
+                            const statusClass = {
+                                Pending: 'bg-warning text-dark',
+                                Paid: 'bg-success',
+                                Dispatched: 'bg-info text-dark',
+                                Shipped: 'bg-primary',
+                                Delivered: 'bg-success',
+                                Cancelled: 'bg-danger'
+                            }[statusValue] || 'bg-secondary';
+
+                            statusCell.innerHTML = `<span class="badge ${statusClass}">${statusValue}</span>`;
                         }
                     },
                     toolbarClick: async (args) => {
@@ -225,8 +246,8 @@ const App = {
                         return `
                         <tr>
                             <td>
-                                <div class="d-flex align-items-center">
-                                    ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Product'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:0.5rem;" />` : `<span class="badge bg-secondary">No Image</span>`}
+                                <div class="d-flex align-items-center gap-3">
+                                    ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Product'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:1rem;" />` : `<span class="badge bg-secondary">No Image</span>`}
                                     <span>${item.productName || 'Unknown'}</span>
                                 </div>
                             </td>

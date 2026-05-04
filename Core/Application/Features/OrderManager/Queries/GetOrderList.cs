@@ -19,6 +19,7 @@ public record GetOrderListDto
     public string? PaymentTypeName { get; init; }
     public string? ShippingCity { get; init; }
     public string? ShippingState { get; init; }
+    public string? ShippingPostCode { get; init; }
     public DateTime OrderDate { get; init; }
     public DateTime CreatedAt { get; init; }
 }
@@ -33,7 +34,8 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.Payment != null && src.Payment.Status != null ? src.Payment.Status.ToString() : null))
             .ForMember(dest => dest.PaymentTypeName, opt => opt.MapFrom(src => src.Payment != null && src.Payment.PaymentType != null ? src.Payment.PaymentType.TypeName : null))
             .ForMember(dest => dest.ShippingCity, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.City : null))
-            .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.State : null));
+            .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.State : null))
+            .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null));
     }
 }
 
