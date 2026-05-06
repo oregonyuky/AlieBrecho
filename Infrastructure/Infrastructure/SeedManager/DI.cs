@@ -55,6 +55,7 @@ public static class DI
         services.AddScoped<CustomerSeeder>();
         services.AddScoped<PaymentTypeSeeder>();
         services.AddScoped<OrderSeeder>();
+        services.AddScoped<BagSeeder>();
         return services;
     }
     public static IHost SeedDemoData(this IHost host)
@@ -92,6 +93,12 @@ public static class DI
         {
             var orderSeeder = serviceProvider.GetRequiredService<OrderSeeder>();
             orderSeeder.GenerateDataAsync().Wait();
+        }
+
+        if (!context.Bag.Any() || !context.BagItem.Any())
+        {
+            var bagSeeder = serviceProvider.GetRequiredService<BagSeeder>();
+            bagSeeder.GenerateDataAsync().Wait();
         }
 
         return host;

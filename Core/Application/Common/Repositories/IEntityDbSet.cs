@@ -20,5 +20,7 @@ public interface IEntityDbSet
     public DbSet<PaymentDetail> PaymentDetail { get; set; }
     public DbSet<ShippingDetail> ShippingDetail { get; set; }
     public DbSet<OrderDetail> OrderDetail { get; set; }
+    public DbSet<Bag> Bag { get; set; }
+    public DbSet<BagItem> BagItem { get; set; }
 
 }
