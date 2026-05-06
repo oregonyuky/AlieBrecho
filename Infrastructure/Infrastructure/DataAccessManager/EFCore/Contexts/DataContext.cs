@@ -27,6 +27,8 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
     public DbSet<PaymentDetail> PaymentDetail { get; set; }
     public DbSet<ShippingDetail> ShippingDetail { get; set; }
     public DbSet<OrderDetail> OrderDetail { get; set; }
+    public DbSet<Bag> Bag { get; set; }
+    public DbSet<BagItem> BagItem { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,5 +43,7 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new ProductSizeConfiguration());
         modelBuilder.ApplyConfiguration(new CustomerConfiguration());
         modelBuilder.ApplyConfiguration(new PaymentTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new BagConfiguration());
+        modelBuilder.ApplyConfiguration(new BagItemConfiguration());
     }
 }

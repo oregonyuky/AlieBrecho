@@ -1,0 +1,96 @@
+@page
+@{
+    ViewData["Title"] = "Bags";
+}
+
+<div id="app" v-cloak>
+    <div class="row">
+        <div class="col-12">
+            <div class="grid-container">
+                <div ref="mainGridRef"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ state.mainTitle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" v-model="state.id" />
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label>Status</label>
+                            <select class="form-select" v-model="state.status">
+                                <option v-for="item in state.bagStatuses" :value="item">{{ item }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label>Customer</label>
+                            <input type="text" class="form-control" :value="state.customerName" disabled />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Total Items Value</label>
+                            <input type="number" class="form-control" v-model.number="state.totalItemsValue" />
+                        </div>
+                        <div class="col-4">
+                            <label>Shipping Cost</label>
+                            <input type="number" class="form-control" v-model.number="state.shippingCost" />
+                        </div>
+                        <div class="col-4">
+                            <label>Total Weight</label>
+                            <input type="number" class="form-control" v-model.number="state.totalWeight" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Expiration Date</label>
+                            <input type="datetime-local" class="form-control" v-model="state.expirationDate" />
+                        </div>
+                        <div class="col-4">
+                            <label>Last Interaction</label>
+                            <input type="datetime-local" class="form-control" v-model="state.lastInteractionAt" />
+                        </div>
+                        <div class="col-4">
+                            <label>Closed At</label>
+                            <input type="datetime-local" class="form-control" v-model="state.closedAt" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4 d-flex align-items-center pt-4">
+                            <input id="allItemsPaid" class="form-check-input me-2" type="checkbox" v-model="state.allItemsPaid" />
+                            <label for="allItemsPaid" class="mb-0">All Items Paid</label>
+                        </div>
+                        <div class="col-8">
+                            <label>Notes</label>
+                            <textarea class="form-control" v-model="state.notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" id="MainSaveButton" class="btn btn-primary" v-on:click="handler.handleSubmit" v-bind:disabled="state.isSubmitting">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
+                        <span v-if="!state.isSubmitting">Save</span>
+                        <span v-else>Saving...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/FrontEnd/Pages/Bags/Bag.cshtml.js"></script>
+}

@@ -24,6 +24,11 @@ public static class NavigationTreeStructure
                     "URL": "/Orders/Order",
                     "Name": "Orders",
                     "IsModule": false
+                },
+                {
+                    "URL": "/Bags/Bag",
+                    "Name": "Bags",
+                    "IsModule": false
                 }
             ]
         },
