@@ -2,6 +2,9 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Application.Common.Services.MelhorEnvioManager;
+
+namespace Infrastructure.MelhorEnvioManager;
 
 public class MelhorEnvioService : IMelhorEnvioService
 {
@@ -34,6 +37,30 @@ public class MelhorEnvioService : IMelhorEnvioService
 
         var response = await _httpClient.PostAsync(
             $"{_settings.BaseUrl}v2/me/shipment/calculate",
+            content
+        );
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception(error);
+        }
+
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    public async Task<string> CriarEtiquetaAsync(object request)
+    {
+        AddAuth();
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await _httpClient.PostAsync(
+            $"{_settings.BaseUrl}v2/me/shipment",
             content
         );
 
