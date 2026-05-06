@@ -12,7 +12,56 @@
         </div>
     </div>
 
-    <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal fade" ref="packageModalRef" id="PackageModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Package Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label>Height (cm)</label>
+                            <input type="number" class="form-control" v-model.number="state.package.height" />
+                        </div>
+                        <div class="col-6">
+                            <label>Width (cm)</label>
+                            <input type="number" class="form-control" v-model.number="state.package.width" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label>Length (cm)</label>
+                            <input type="number" class="form-control" v-model.number="state.package.length" />
+                        </div>
+                        <div class="col-6">
+                            <label>Weight (kg)</label>
+                            <input type="number" class="form-control" v-model.number="state.package.weight" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label>Insurance Cost</label>
+                            <input type="number" class="form-control" v-model.number="state.package.insuranceCost" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="PackageSaveButton" class="btn btn-primary" v-on:click="handler.handleSubmitPackage">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
+                        <span v-if="!state.isSubmitting">Gerar Etiqueta</span>
+                        <span v-else>Generating...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
         <div class="modal-dialog modal-dialog-scrollable modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -52,6 +101,13 @@
                         <div class="col-4">
                             <label>Notes</label>
                             <textarea class="form-control" v-model="state.notes" rows="1"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-4">
+                            <label>Shipping Cost</label>
+                            <input type="number" class="form-control" v-model.number="state.shippingCost" />
                         </div>
                     </div>
 
@@ -162,6 +218,7 @@
                 </div>
 
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary me-auto" v-on:click="handler.handleGenerateLabel">Gerar Etiqueta</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" id="MainSaveButton" class="btn btn-primary" v-on:click="handler.handleSubmit" v-bind:disabled="state.isSubmitting">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>

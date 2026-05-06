@@ -13,6 +13,12 @@ public class Order : BaseEntity
     public decimal? Discount { get; set; }
     public decimal? Taxes { get; set; }
     public decimal? TotalAmount { get; set; }
+    public decimal? ShippingCost { get; set; }
+    public decimal? Height { get; set; }
+    public decimal? Width { get; set; }
+    public decimal? Length { get; set; }
+    public decimal? Weight { get; set; }
+    public decimal? Insurance_cost { get; set;}
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
     public DateTime? DispatchedDate { get; set; }

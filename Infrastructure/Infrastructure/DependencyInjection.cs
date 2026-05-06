@@ -3,6 +3,7 @@ using Infrastructure.EmailManager;
 using Infrastructure.FileDocumentManager;
 using Infrastructure.FileImageManager;
 using Infrastructure.LogManager.Serilogs;
+using Infrastructure.MelhorEnvioManager;
 using Infrastructure.SecurityManager.AspNetIdentity;
 using Infrastructure.SecurityManager.Tokens;
 using Infrastructure.SeedManager;
@@ -42,6 +43,9 @@ public static class DependencyInjection
 
         //>>> FileImageManager
         services.RegisterFileImageManager(configuration);
+
+        //>>> Melhor Envio Manager
+        services.RegisterMelhorEnvioManager(configuration);
 
         return services;
     }

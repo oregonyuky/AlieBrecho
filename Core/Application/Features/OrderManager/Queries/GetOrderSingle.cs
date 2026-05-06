@@ -66,6 +66,12 @@ public record GetOrderSingleDto
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }
     public decimal? TotalAmount { get; init; }
+    public decimal? ShippingCost { get; init; }
+    public decimal? Height { get; init; }
+    public decimal? Width { get; init; }
+    public decimal? Length { get; init; }
+    public decimal? Weight { get; init; }
+    public decimal? InsuranceCost { get; init; }
     public string? Notes { get; init; }
     public DateTime OrderDate { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -90,7 +96,8 @@ public class GetOrderSingleProfile : Profile
 
         CreateMap<Order, GetOrderSingleDto>()
             .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.InsuranceCost, opt => opt.MapFrom(src => src.Insurance_cost));
     }
 }
 

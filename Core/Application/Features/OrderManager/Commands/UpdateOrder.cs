@@ -52,6 +52,12 @@ public class UpdateOrderRequest : IRequest<UpdateOrderResult>
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }
     public decimal? TotalAmount { get; init; }
+    public decimal? ShippingCost { get; init; }
+    public decimal? Height { get; init; }
+    public decimal? Width { get; init; }
+    public decimal? Length { get; init; }
+    public decimal? Weight { get; init; }
+    public decimal? InsuranceCost { get; init; }
     public string? Notes { get; init; }
     public PaymentEditDto? Payment { get; init; }
     public ShippingDetailEditDto? ShippingDetail { get; init; }
@@ -96,6 +102,12 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             entity.Status = status;
         }
 
+        entity.Height = request.Height;
+        entity.Width = request.Width;
+        entity.Length = request.Length;
+        entity.Weight = request.Weight;
+        entity.Insurance_cost = request.InsuranceCost;
+        entity.ShippingCost = request.ShippingCost;
         entity.Discount = request.Discount;
         entity.Taxes = request.Taxes;
         entity.TotalAmount = request.TotalAmount;

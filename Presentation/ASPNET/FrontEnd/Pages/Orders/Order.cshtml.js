@@ -9,6 +9,7 @@ const App = {
             discount: 0,
             taxes: 0,
             totalAmount: 0,
+            shippingCost: 0,
             notes: '',
             payment: {
                 id: '',
@@ -41,6 +42,13 @@ const App = {
             paymentTypes: [],
             paymentStatuses: ['Pending', 'Paid', 'Cancelled'],
             orderStatuses: ['Pending', 'Paid', 'Dispatched', 'Shipped', 'Delivered', 'Cancelled'],
+            package: {
+                height: 0,
+                width: 0,
+                length: 0,
+                weight: 0,
+                insuranceCost: 0
+            },
             isSubmitting: false
         });
 
@@ -50,7 +58,7 @@ const App = {
         const services = {
             getMainData: async () => {
                 try {
-                    return await AxiosManager.get('/Order/GetOrderList', {});
+                    return await AxiosManager.get('/Order/GetOrderList', { params: { status: 'Paid' } });
                 } catch (error) {
                     throw error;
                 }
@@ -72,6 +80,13 @@ const App = {
             getPaymentTypes: async () => {
                 try {
                     return await AxiosManager.get('/PaymentType/GetPaymentTypeList', {});
+                } catch (error) {
+                    throw error;
+                }
+            },
+            generateLabel: async (request) => {
+                try {
+                    return await AxiosManager.post('/Order/GenerateShippingLabel', request);
                 } catch (error) {
                     throw error;
                 }
@@ -176,6 +191,16 @@ const App = {
             }
         };
 
+        const packageModal = {
+            obj: null,
+            create: () => {
+                packageModal.obj = new bootstrap.Modal(packageModalRef.value, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }
+        };
+
         const methods = {
             populateMainData: async () => {
                 const response = await services.getMainData();
@@ -200,7 +225,13 @@ const App = {
                 state.discount = order.discount ?? 0;
                 state.taxes = order.taxes ?? 0;
                 state.totalAmount = order.totalAmount ?? 0;
+                state.shippingCost = order.shippingCost ?? 0;
                 state.notes = order.notes ?? '';
+                state.package.height = order.height ?? 0;
+                state.package.width = order.width ?? 0;
+                state.package.length = order.length ?? 0;
+                state.package.weight = order.weight ?? 0;
+                state.package.insuranceCost = order.insuranceCost ?? 0;
 
                 state.payment.id = order.payment?.id ?? '';
                 state.payment.name = order.payment?.name ?? '';
@@ -296,6 +327,12 @@ const App = {
                         discount: state.discount,
                         taxes: state.taxes,
                         totalAmount: state.totalAmount,
+                        shippingCost: state.shippingCost,
+                        height: state.package.height,
+                        width: state.package.width,
+                        length: state.package.length,
+                        weight: state.package.weight,
+                        insuranceCost: state.package.insuranceCost,
                         notes: state.notes,
                         payment: {
                             id: state.payment.id,
@@ -341,7 +378,64 @@ const App = {
                 } finally {
                     state.isSubmitting = false;
                 }
-            }
+            },
+            handleGenerateLabel: () => {
+                if (!state.id) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Order not loaded' });
+                    return;
+                }
+
+                state.package.height = 0;
+                state.package.width = 0;
+                state.package.length = 0;
+                state.package.weight = 0;
+                state.package.insuranceCost = 0;
+
+                packageModal.obj.show();
+            },
+            handleSubmitPackage: async () => {
+                try {
+                    state.isSubmitting = true;
+                    await new Promise(r => setTimeout(r, 150));
+
+                    if (!state.package.height || !state.package.width || !state.package.length || !state.package.weight) {
+                        Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please fill all package dimensions' });
+                        return;
+                    }
+
+                    const request = {
+                        id: state.id,
+                        height: state.package.height,
+                        width: state.package.width,
+                        length: state.package.length,
+                        weight: state.package.weight,
+                        insuranceCost: state.package.insuranceCost || 0
+                    };
+
+                    const response = await services.generateLabel(request);
+
+                    if (response.data.code === 200) {
+                        state.shippingCost = response.data.content?.shippingCost ?? 0;
+
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Label Generated',
+                            html: `
+                                <div class="text-start">
+                                    <p><strong>Shipping Cost:</strong> R$ ${state.shippingCost?.toFixed(2)}</p>
+                                    <p><small class="text-muted">The shipping cost has been updated in the order.</small></p>
+                                </div>
+                            `,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+
+                        packageModal.obj.hide();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Generation Failed', text: response.data.message ?? 'Error' });
+                    }
+                } catch (error) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: error.response?.data?.message ?? 'Unexpected error' });
         };
 
         const formatDateTimeValue = (value) => {
@@ -367,6 +461,7 @@ const App = {
                 await methods.loadPaymentTypes();
                 await mainGrid.create(state.mainData);
                 mainModal.create();
+                packageModal.create();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
                     state.id = '';
@@ -375,7 +470,15 @@ const App = {
                     state.discount = 0;
                     state.taxes = 0;
                     state.totalAmount = 0;
+                    state.shippingCost = 0;
                     state.notes = '';
+                    state.package = {
+                        height: 0,
+                        width: 0,
+                        length: 0,
+                        weight: 0,
+                        insuranceCost: 0
+                    };
                     state.payment = {
                         id: '',
                         name: '',
@@ -414,7 +517,9 @@ const App = {
             state,
             mainGridRef,
             mainModalRef,
+            packageModalRef,
             handler,
+            methods,
             formatDate
         };
     }

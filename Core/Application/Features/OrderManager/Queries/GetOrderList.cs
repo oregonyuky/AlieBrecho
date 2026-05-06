@@ -2,6 +2,7 @@ using Application.Common.CQS.Queries;
 using Application.Common.Extensions;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,7 @@ public class GetOrderListResult
 public class GetOrderListRequest : IRequest<GetOrderListResult>
 {
     public bool IsDeleted { get; init; } = false;
+    public string? Status { get; init; }
 }
 
 public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrderListResult>
@@ -72,12 +74,8 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
             .ApplyIsDeletedFilter(request.IsDeleted)
             .AsQueryable();
 
-        var entities = await query.ToListAsync(cancellationToken);
-        var dtos = _mapper.Map<List<GetOrderListDto>>(entities);
+            if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<OrderStatus>(request.Status, true, out var status))
+            {
+                query = query.Where(x => x.Status == status);
+            }
 
-        return new GetOrderListResult
-        {
-            Data = dtos
-        };
-    }
-}
