@@ -17,6 +17,18 @@ public static class NavigationTreeStructure
     [
         {
             "URL": "#",
+            "Name": "Caixa de Papelão",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/ShippingBoxes/ShippingBox",
+                    "Name": "Caixas de Envio",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
             "Name": "Pedidos",
             "IsModule": true,
             "Children": [

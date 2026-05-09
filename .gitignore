@@ -3,3 +3,5 @@ obj/
 **/bin/
 *.csproj.lscache
 Migrations/
+*.Development.json
+appsettings.Development.json

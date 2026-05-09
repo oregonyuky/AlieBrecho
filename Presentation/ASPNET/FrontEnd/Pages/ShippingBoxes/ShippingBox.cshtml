@@ -1,0 +1,128 @@
+@page
+@{
+    ViewData["Title"] = "ShippingBox";
+}
+
+<div id="app" v-cloak>
+    <div class="row">
+        <div class="col-12">
+            <div class="grid-container">
+                <div ref="mainGridRef"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ state.mainTitle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" v-model="state.id" />
+
+                    <form id="MainForm">
+
+                        <div class="row mb-2">
+                            <div class="col-4">
+                                <label>Width (cm)</label>
+                                <input v-model="state.width"
+                                       type="number"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.width }}</label>
+                            </div>
+
+                            <div class="col-4">
+                                <label>Length (cm)</label>
+                                <input v-model="state.length"
+                                       type="number"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.length }}</label>
+                            </div>
+
+                            <div class="col-4">
+                                <label>Height (cm)</label>
+                                <input v-model="state.height"
+                                       type="number"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.height }}</label>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <label>Weight (kg)</label>
+                                <input v-model="state.weight"
+                                       type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.weight }}</label>
+                            </div>
+
+                            <div class="col-6">
+                                <label>Insurance Value</label>
+                                <input v-model="state.insuranceValue"
+                                       type="number"
+                                       step="0.01"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.insuranceValue }}</label>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-12 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="IsActive"
+                                       v-model="state.isActive"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="form-check-label" for="IsActive">
+                                    Is Active
+                                </label>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+
+                    <button type="button"
+                            id="MainSaveButton"
+                            class="btn"
+                            v-bind:class="state.deleteMode ? 'btn-danger' : 'btn-primary'"
+                            v-on:click="handler.handleSubmit"
+                            v-bind:disabled="state.isSubmitting">
+
+                        <span class="spinner-border spinner-border-sm me-2"
+                              v-if="state.isSubmitting"></span>
+
+                        <span v-if="!state.isSubmitting">
+                            {{ state.deleteMode ? 'Delete' : 'Save' }}
+                        </span>
+
+                        <span v-else>
+                            {{ state.deleteMode ? 'Deleting...' : 'Saving...' }}
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/FrontEnd/Pages/ShippingBoxes/ShippingBox.cshtml.js"></script>
+}
