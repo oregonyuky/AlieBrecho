@@ -90,6 +90,12 @@ public static class DI
             paymentTypeSeeder.GenerateDataAsync().Wait();
         }
 
+        if(!context.ShippingBox.Any())
+        {
+            var shippingBoxSeeder = serviceProvider.GetRequiredService<ShippingBoxSeeder>();
+            shippingBoxSeeder.GenerateDataAsync().Wait();
+        }
+
         if (!context.Order.Any())
         {
             var orderSeeder = serviceProvider.GetRequiredService<OrderSeeder>();
@@ -100,11 +106,6 @@ public static class DI
         {
             var bagSeeder = serviceProvider.GetRequiredService<BagSeeder>();
             bagSeeder.GenerateDataAsync().Wait();
-        }
-        if(!context.ShippingBox.Any())
-        {
-            var shippingBoxSeeder = serviceProvider.GetRequiredService<ShippingBoxSeeder>();
-            shippingBoxSeeder.GenerateDataAsync().Wait();
         }
         return host;
     }

@@ -113,11 +113,16 @@ public class GetOrderSingleHandler : IRequestHandler<GetOrderSingleRequest, GetO
 {
     private readonly IMapper _mapper;
     private readonly IQueryContext _context;
+    private readonly IShippingCostService _shippingCostService;
 
-    public GetOrderSingleHandler(IMapper mapper, IQueryContext context)
+    public GetOrderSingleHandler(
+        IMapper mapper,
+        IQueryContext context,
+        IShippingCostService shippingCostService)
     {
         _mapper = mapper;
         _context = context;
+        _shippingCostService = shippingCostService;
     }
 
     public async Task<GetOrderSingleResult> Handle(GetOrderSingleRequest request, CancellationToken cancellationToken)
@@ -142,6 +147,15 @@ public class GetOrderSingleHandler : IRequestHandler<GetOrderSingleRequest, GetO
             .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         var dto = entity == null ? null : _mapper.Map<GetOrderSingleDto>(entity);
+        if (entity != null && dto != null)
+        {
+            var shippingCost = await _shippingCostService.CalculateAsync(
+                entity.ShippingBox,
+                entity.ShippingDetail?.PostCode,
+                cancellationToken);
+
+            dto = dto with { ShippingCost = shippingCost };
+        }
 
         return new GetOrderSingleResult
         {

@@ -15,9 +15,11 @@ public record GetOrderListDto
     public string? CustomerName { get; init; }
     public string? Status { get; init; }
     public decimal? TotalAmount { get; init; }
+    public decimal? TotalWithShipping { get; init; }
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }
     public decimal? ShippingCost { get; init; }
+    public string? ShippingBoxData { get; init; }
     public string? PaymentStatus { get; init; }
     public string? PaymentTypeName { get; init; }
     public string? ShippingCity { get; init; }
@@ -37,9 +39,21 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.Payment != null && src.Payment.Status != null ? src.Payment.Status.ToString() : null))
             .ForMember(dest => dest.PaymentTypeName, opt => opt.MapFrom(src => src.Payment != null && src.Payment.PaymentType != null ? src.Payment.PaymentType.TypeName : null))
             .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))
+            .ForMember(dest => dest.TotalWithShipping, opt => opt.MapFrom(src => (src.TotalAmount ?? 0m) + ShippingCostCalculator.Calculate(src.ShippingBox)))
+            .ForMember(dest => dest.ShippingBoxData, opt => opt.MapFrom(src => FormatShippingBoxData(src.ShippingBox)))
             .ForMember(dest => dest.ShippingCity, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.City : null))
             .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.State : null))
             .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null));
+    }
+
+    private static string? FormatShippingBoxData(ShippingBox? shippingBox)
+    {
+        if (shippingBox == null)
+        {
+            return null;
+        }
+
+        return $"{shippingBox.Width:0.##}cm x {shippingBox.Length:0.##}cm x {shippingBox.Height:0.##}cm {shippingBox.Weight:0.##}kg";
     }
 }
 
@@ -57,11 +71,16 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
 {
     private readonly IMapper _mapper;
     private readonly IQueryContext _context;
+    private readonly IShippingCostService _shippingCostService;
 
-    public GetOrderListHandler(IMapper mapper, IQueryContext context)
+    public GetOrderListHandler(
+        IMapper mapper,
+        IQueryContext context,
+        IShippingCostService shippingCostService)
     {
         _mapper = mapper;
         _context = context;
+        _shippingCostService = shippingCostService;
     }
 
     public async Task<GetOrderListResult> Handle(GetOrderListRequest request, CancellationToken cancellationToken)
@@ -79,6 +98,20 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
 
         var entities = await query.ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GetOrderListDto>>(entities);
+
+        for (var i = 0; i < entities.Count; i++)
+        {
+            var shippingCost = await _shippingCostService.CalculateAsync(
+                entities[i].ShippingBox,
+                entities[i].ShippingDetail?.PostCode,
+                cancellationToken);
+
+            dtos[i] = dtos[i] with
+            {
+                ShippingCost = shippingCost,
+                TotalWithShipping = (entities[i].TotalAmount ?? 0m) + shippingCost
+            };
+        }
 
         return new GetOrderListResult
         {

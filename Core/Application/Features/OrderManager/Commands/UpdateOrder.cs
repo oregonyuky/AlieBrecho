@@ -86,17 +86,20 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
     private readonly ICommandRepository<OrderDetail> _orderDetailRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryContext _context;
+    private readonly IShippingCostService _shippingCostService;
 
     public UpdateOrderHandler(
         ICommandRepository<Order> repository,
         ICommandRepository<OrderDetail> orderDetailRepository,
         IUnitOfWork unitOfWork,
-        IQueryContext context)
+        IQueryContext context,
+        IShippingCostService shippingCostService)
     {
         _repository = repository;
         _orderDetailRepository = orderDetailRepository;
         _unitOfWork = unitOfWork;
         _context = context;
+        _shippingCostService = shippingCostService;
     }
 
     public async Task<UpdateOrderResult> Handle(UpdateOrderRequest request, CancellationToken cancellationToken)
@@ -252,7 +255,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             }
         }
 
-        entity.TotalAmount = CalculateTotal(entity, shippingBox);
+        entity.TotalAmount = await CalculateTotalAsync(entity, shippingBox, cancellationToken);
 
         _repository.Update(entity);
         await _unitOfWork.SaveAsync(cancellationToken);
@@ -263,15 +266,22 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         };
     }
 
-    private static decimal CalculateTotal(Order entity, ShippingBox? shippingBox)
+    private async Task<decimal> CalculateTotalAsync(
+        Order entity,
+        ShippingBox? shippingBox,
+        CancellationToken cancellationToken)
     {
         var itemsTotal = entity.OrderDetails
             .Where(x => !x.IsDeleted)
             .Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity));
+        var shippingCost = await _shippingCostService.CalculateAsync(
+            shippingBox,
+            entity.ShippingDetail?.PostCode,
+            cancellationToken);
 
         return itemsTotal
             - (entity.Discount ?? 0m)
             + (entity.Taxes ?? 0m)
-            + ShippingCostCalculator.Calculate(shippingBox);
+            + shippingCost;
     }
 }

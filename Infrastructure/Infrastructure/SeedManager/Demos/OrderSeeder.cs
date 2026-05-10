@@ -1,4 +1,5 @@
 using Application.Common.Repositories;
+using Application.Common.Services;
 using Domain.Entities;
 using Domain.Enums;
 
@@ -10,6 +11,7 @@ public class OrderSeeder
     private readonly ICommandRepository<Customer> _customerRepository;
     private readonly ICommandRepository<Product> _productRepository;
     private readonly ICommandRepository<PaymentType> _paymentTypeRepository;
+    private readonly ICommandRepository<ShippingBox> _shippingBoxRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public OrderSeeder(
@@ -17,12 +19,14 @@ public class OrderSeeder
         ICommandRepository<Customer> customerRepository,
         ICommandRepository<Product> productRepository,
         ICommandRepository<PaymentType> paymentTypeRepository,
+        ICommandRepository<ShippingBox> shippingBoxRepository,
         IUnitOfWork unitOfWork)
     {
         _orderRepository = orderRepository;
         _customerRepository = customerRepository;
         _productRepository = productRepository;
         _paymentTypeRepository = paymentTypeRepository;
+        _shippingBoxRepository = shippingBoxRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -31,19 +35,24 @@ public class OrderSeeder
         var customers = _customerRepository.GetQuery().ToList();
         var paymentTypes = _paymentTypeRepository.GetQuery().ToList();
         var products = _productRepository.GetQuery().ToList();
+        var shippingBoxes = _shippingBoxRepository.GetQuery().ToList();
 
-        if (!customers.Any() || !paymentTypes.Any() || !products.Any())
+        if (!customers.Any() || !paymentTypes.Any() || !products.Any() || !shippingBoxes.Any())
         {
             return;
         }
 
         var customer = customers.First();
         var paymentType = paymentTypes.First();
+        var shippingBox1 = shippingBoxes.First();
+        var shippingBox2 = shippingBoxes.Count > 1 ? shippingBoxes[1] : shippingBox1;
 
         var order1 = new Order
         {
             CustomerId = customer.Id,
             Customer = customer,
+            ShippingBoxId = shippingBox1.Id,
+            ShippingBox = shippingBox1,
             Status = OrderStatus.Paid,
             OrderDate = DateTime.UtcNow.AddDays(-3),
             Discount = 10m,
@@ -108,13 +117,18 @@ public class OrderSeeder
             });
         }
 
-        order1.TotalAmount = order1.OrderDetails.Sum(x => x.TotalPrice ?? 0m) - (order1.Discount ?? 0m) + (order1.Taxes ?? 0m);
+        order1.TotalAmount = order1.OrderDetails.Sum(x => x.TotalPrice ?? 0m)
+            - (order1.Discount ?? 0m)
+            + (order1.Taxes ?? 0m)
+            + ShippingCostCalculator.Calculate(order1.ShippingBox);
         order1.ShippingDetail.OrderId = order1.Id;
 
         var order2 = new Order
         {
             CustomerId = customers.Count > 1 ? customers[1].Id : customer.Id,
             Customer = customers.Count > 1 ? customers[1] : customer,
+            ShippingBoxId = shippingBox2.Id,
+            ShippingBox = shippingBox2,
             Status = OrderStatus.Shipped,
             OrderDate = DateTime.UtcNow.AddDays(-1),
             Discount = 0m,
@@ -166,7 +180,10 @@ public class OrderSeeder
             TotalPrice = thirdProduct.UnitPrice
         });
 
-        order2.TotalAmount = order2.OrderDetails.Sum(x => x.TotalPrice ?? 0m) - (order2.Discount ?? 0m) + (order2.Taxes ?? 0m);
+        order2.TotalAmount = order2.OrderDetails.Sum(x => x.TotalPrice ?? 0m)
+            - (order2.Discount ?? 0m)
+            + (order2.Taxes ?? 0m)
+            + ShippingCostCalculator.Calculate(order2.ShippingBox);
         order2.ShippingDetail.OrderId = order2.Id;
 
         await _orderRepository.CreateAsync(order1);

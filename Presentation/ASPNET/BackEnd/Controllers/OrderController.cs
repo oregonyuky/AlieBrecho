@@ -66,6 +66,28 @@ public class OrderController : BaseApiController
     }
 
     [Authorize]
+    [HttpGet("CalculateShippingCost")]
+    public async Task<ActionResult<ApiSuccessResult<CalculateOrderShippingCostResult>>> CalculateShippingCostAsync(
+        CancellationToken cancellationToken,
+        [FromQuery] string? shippingBoxId,
+        [FromQuery] string? destinationPostCode)
+    {
+        var request = new CalculateOrderShippingCostRequest
+        {
+            ShippingBoxId = shippingBoxId,
+            DestinationPostCode = destinationPostCode
+        };
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<CalculateOrderShippingCostResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(CalculateShippingCostAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
     [HttpPost("UpdateOrder")]
     public async Task<ActionResult<ApiSuccessResult<UpdateOrderResult>>> UpdateOrderAsync(
         UpdateOrderRequest request,

@@ -1,4 +1,5 @@
 ﻿using Application.Common.Services.SecurityManager;
+using Application.Common.Services;
 using Infrastructure.DataAccessManager.EFCore.Contexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -45,6 +46,7 @@ public static class DI
             .AddEntityFrameworkStores<DataContext>();
 
         services.AddScoped<ISecurityService, SecurityService>();
+        services.AddScoped<IShippingOriginProvider, DefaultAdminShippingOriginProvider>();
 
         return services;
     }

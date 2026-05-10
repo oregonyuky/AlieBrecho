@@ -74,7 +74,10 @@ const App = {
             getCustomers: async () => AxiosManager.get('/Customer/GetCustomerList', {}),
             getProducts: async () => AxiosManager.get('/Product/GetProductList', {}),
             getShippingBoxes: async () => AxiosManager.get('/ShippingBox/GetShippingBoxList', {}),
-            getPaymentTypes: async () => AxiosManager.get('/PaymentType/GetPaymentTypeList', {})
+            getPaymentTypes: async () => AxiosManager.get('/PaymentType/GetPaymentTypeList', {}),
+            calculateShippingCost: async (shippingBoxId, destinationPostCode) => AxiosManager.get('/Order/CalculateShippingCost', {
+                params: { shippingBoxId, destinationPostCode }
+            })
         };
 
         const calculateItemsTotal = () => state.orderDetails.reduce((total, item) => {
@@ -134,8 +137,21 @@ const App = {
         const formatNumber = (value, decimals = 2) =>
             Number(value || 0).toFixed(decimals);
 
-        const recalculateTotal = () => {
-            state.shippingCost = calculateShippingCost();
+        const formatCompactNumber = (value) =>
+            parseFloat(Number(value || 0).toFixed(2)).toString();
+
+        const formatShippingBoxData = (shippingBox) => {
+            if (!shippingBox) return '';
+
+            return `${formatCompactNumber(shippingBox.width)}cm x ${formatCompactNumber(shippingBox.length)}cm x ${formatCompactNumber(shippingBox.height)}cm ${formatCompactNumber(shippingBox.weight)}kg`;
+        };
+
+        const recalculateTotal = (shippingCost = state.shippingCost) => {
+            if (!shippingCost && state.shippingBoxId) {
+                shippingCost = calculateShippingCost();
+            }
+
+            state.shippingCost = shippingCost;
             state.totalAmount = calculateItemsTotal()
                 - Number(state.discount || 0)
                 + Number(state.taxes || 0)
@@ -198,7 +214,7 @@ const App = {
                 unitPrice: item.unitPrice ?? 0
             }));
 
-            recalculateTotal();
+            recalculateTotal(state.shippingCost);
         };
 
         const buildPayload = () => ({
@@ -267,12 +283,14 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'customerName', headerText: 'Customer', width: 180 },
-                        { field: 'status', headerText: 'Status', width: 120 },
+                        { field: 'customerName', headerText: 'Nome do cliente', width: 180 },
+                        { field: 'status', headerText: 'estado', width: 120 },
                         { field: 'totalAmount', headerText: 'Total', width: 120, format: 'C2' },
-                        { field: 'shippingCost', headerText: 'Shipping', width: 120, format: 'C2' },
-                        { field: 'paymentTypeName', headerText: 'Payment Method', width: 150 },
-                        { field: 'shippingPostCode', headerText: 'Post Code', width: 140 },
+                        { field: 'shippingCost', headerText: 'Frete', width: 120, format: 'C2' },
+                        { field: 'shippingBoxData', headerText: 'Caixa de Papelão', width: 360 },
+                        { field: 'totalWithShipping', headerText: 'Total + Frete', width: 150, format: 'C2' },
+                        { field: 'paymentTypeName', headerText: 'Formas de Pagamento', width: 150 },
+                        { field: 'shippingPostCode', headerText: 'CEP', width: 140 },
                         {
                             headerText: 'Items',
                             width: 120,
@@ -416,8 +434,23 @@ const App = {
                 item.unitPrice = product?.unitPrice ?? 0;
                 recalculateTotal();
             },
-            handleShippingBoxChange: () => {
-                recalculateTotal();
+            refreshShippingCost: async () => {
+                recalculateTotal(calculateShippingCost());
+
+                if (!state.shippingBoxId || !state.shipping.postCode) {
+                    return;
+                }
+
+                try {
+                    const response = await services.calculateShippingCost(state.shippingBoxId, state.shipping.postCode);
+                    const shippingCost = Number(response?.data?.content?.data ?? state.shippingCost);
+                    recalculateTotal(shippingCost);
+                } catch {
+                    recalculateTotal();
+                }
+            },
+            handleShippingBoxChange: async () => {
+                await methods.refreshShippingCost();
             },
             showShippingBoxInfo: () => {
                 const shippingBox = getSelectedShippingBox();
@@ -538,7 +571,7 @@ const App = {
                         return;
                     }
 
-                    recalculateTotal();
+                    await methods.refreshShippingCost();
                     const request = buildPayload();
                     const response = state.id
                         ? await services.updateMainData(request)
@@ -632,7 +665,8 @@ const App = {
             getItemShippingCost,
             getItemTotal,
             formatCurrency,
-            formatNumber
+            formatNumber,
+            formatShippingBoxData
         };
     }
 };

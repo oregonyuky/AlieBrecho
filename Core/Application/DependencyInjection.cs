@@ -1,4 +1,5 @@
 ﻿using Application.Common.Behaviors;
+using Application.Common.Services;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,8 @@ public static class DependencyInjection
             x.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehaviour<,>));
             x.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
         });
+
+        services.AddScoped<IShippingCostService, ShippingCostService>();
 
         //>>> Register services in Application.Features 
         var assembly = Assembly.GetExecutingAssembly();

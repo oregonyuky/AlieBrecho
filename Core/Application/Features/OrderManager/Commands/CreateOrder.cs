@@ -43,15 +43,18 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
     private readonly ICommandRepository<Order> _repository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryContext _context;
+    private readonly IShippingCostService _shippingCostService;
 
     public CreateOrderHandler(
         ICommandRepository<Order> repository,
         IUnitOfWork unitOfWork,
-        IQueryContext context)
+        IQueryContext context,
+        IShippingCostService shippingCostService)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _context = context;
+        _shippingCostService = shippingCostService;
     }
 
     public async Task<CreateOrderResult> Handle(CreateOrderRequest request, CancellationToken cancellationToken)
@@ -181,7 +184,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             });
         }
 
-        entity.TotalAmount = CalculateTotal(entity, shippingBox);
+        entity.TotalAmount = await CalculateTotalAsync(entity, shippingBox, cancellationToken);
 
         await _repository.CreateAsync(entity, cancellationToken);
         await _unitOfWork.SaveAsync(cancellationToken);
@@ -192,13 +195,20 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
         };
     }
 
-    private static decimal CalculateTotal(Order entity, ShippingBox? shippingBox)
+    private async Task<decimal> CalculateTotalAsync(
+        Order entity,
+        ShippingBox? shippingBox,
+        CancellationToken cancellationToken)
     {
         var itemsTotal = entity.OrderDetails.Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity));
+        var shippingCost = await _shippingCostService.CalculateAsync(
+            shippingBox,
+            entity.ShippingDetail?.PostCode,
+            cancellationToken);
 
         return itemsTotal
             - (entity.Discount ?? 0m)
             + (entity.Taxes ?? 0m)
-            + ShippingCostCalculator.Calculate(shippingBox);
+            + shippingCost;
     }
 }

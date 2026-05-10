@@ -38,6 +38,7 @@ public class IdentitySettings
     {
         public string Email { get; init; } = null!;
         public string Password { get; init; } = null!;
+        public string? PostCode { get; init; }
     }
 }
 
