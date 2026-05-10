@@ -18,28 +18,20 @@ public static class DependencyInjection
     {
         //>>> DataAccess
         services.RegisterDataAccess(configuration);
-
         //>>> Serilog
         services.RegisterSerilog(configuration);
-
         //>>> Token Manager
         services.RegisterToken(configuration);
-
         //>>> Security Manager
         services.RegisterSecurityManager(configuration);
-
         //>>> System Seed Manager
         services.RegisterSystemSeedManager(configuration);
-
         //>>> Demo Seed Manager
         services.RegisterDemoSeedManager(configuration);
-
         //>>> DeletedById Manager
         services.RegisterEmailManager(configuration);
-
         //>>> FileDocumentManager
         services.RegisterFileDocumentManager(configuration);
-
         //>>> FileImageManager
         services.RegisterFileImageManager(configuration);
 

@@ -9,6 +9,8 @@ public class Order : BaseEntity
     public Customer? Customer { get; set; }
     public string? PaymentId { get; set; }
     public Payment? Payment { get; set; }
+    public string? ShippingBoxId { get; set; }
+    public ShippingBox? ShippingBox { get; set; }
     public ShippingDetail? ShippingDetail { get; set; }
     public decimal? Discount { get; set; }
     public decimal? Taxes { get; set; }

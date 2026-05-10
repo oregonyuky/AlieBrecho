@@ -1,4 +1,5 @@
 using Application.Common.CQS.Queries;
+using Application.Common.Services;
 using AutoMapper;
 using Domain.Entities;
 using MediatR;
@@ -49,6 +50,7 @@ public record ShippingDetailDto
 
 public record OrderDetailDto
 {
+    public string? Id { get; init; }
     public string? ProductId { get; init; }
     public string? ProductName { get; init; }
     public string? ProductImageUrl { get; init; }
@@ -62,10 +64,12 @@ public record GetOrderSingleDto
     public string? Id { get; init; }
     public string? CustomerId { get; init; }
     public string? CustomerName { get; init; }
+    public string? ShippingBoxId { get; init; }
     public string? Status { get; init; }
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }
     public decimal? TotalAmount { get; init; }
+    public decimal? ShippingCost { get; init; }
     public string? Notes { get; init; }
     public DateTime OrderDate { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -90,6 +94,7 @@ public class GetOrderSingleProfile : Profile
 
         CreateMap<Order, GetOrderSingleDto>()
             .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
+            .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
     }
 }
@@ -130,8 +135,9 @@ public class GetOrderSingleHandler : IRequestHandler<GetOrderSingleRequest, GetO
                 .ThenInclude(x => x!.PaymentType)
             .Include(x => x.Payment)
                 .ThenInclude(x => x!.PaymentDetail)
+            .Include(x => x.ShippingBox)
             .Include(x => x.ShippingDetail)
-            .Include(x => x.OrderDetails)
+            .Include(x => x.OrderDetails.Where(item => !item.IsDeleted))
                 .ThenInclude(x => x.Product)
             .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 

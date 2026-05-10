@@ -1,5 +1,6 @@
 using Application.Common.CQS.Queries;
 using Application.Common.Extensions;
+using Application.Common.Services;
 using AutoMapper;
 using Domain.Entities;
 using MediatR;
@@ -10,11 +11,13 @@ namespace Application.Features.OrderManager.Queries;
 public record GetOrderListDto
 {
     public string? Id { get; init; }
+    public string? CustomerId { get; init; }
     public string? CustomerName { get; init; }
     public string? Status { get; init; }
     public decimal? TotalAmount { get; init; }
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }
+    public decimal? ShippingCost { get; init; }
     public string? PaymentStatus { get; init; }
     public string? PaymentTypeName { get; init; }
     public string? ShippingCity { get; init; }
@@ -33,6 +36,7 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.Payment != null && src.Payment.Status != null ? src.Payment.Status.ToString() : null))
             .ForMember(dest => dest.PaymentTypeName, opt => opt.MapFrom(src => src.Payment != null && src.Payment.PaymentType != null ? src.Payment.PaymentType.TypeName : null))
+            .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))
             .ForMember(dest => dest.ShippingCity, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.City : null))
             .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.State : null))
             .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null));
@@ -68,6 +72,7 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
             .Include(x => x.Customer)
             .Include(x => x.Payment)
                 .ThenInclude(x => x!.PaymentType)
+            .Include(x => x.ShippingBox)
             .Include(x => x.ShippingDetail)
             .ApplyIsDeletedFilter(request.IsDeleted)
             .AsQueryable();

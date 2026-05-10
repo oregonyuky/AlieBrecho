@@ -1,4 +1,6 @@
 using Application.Common.Repositories;
+using Application.Common.CQS.Queries;
+using Application.Common.Services;
 using Domain.Entities;
 using Domain.Enums;
 using FluentValidation;
@@ -40,6 +42,14 @@ public record ShippingDetailEditDto
     public string? PostCode { get; init; }
 }
 
+public record OrderDetailEditDto
+{
+    public string? Id { get; init; }
+    public string? ProductId { get; init; }
+    public int Quantity { get; init; } = 1;
+    public decimal? UnitPrice { get; init; }
+}
+
 public class UpdateOrderResult
 {
     public Order? Data { get; set; }
@@ -48,13 +58,18 @@ public class UpdateOrderResult
 public class UpdateOrderRequest : IRequest<UpdateOrderResult>
 {
     public string? Id { get; init; }
+    public string? CustomerId { get; init; }
     public string? Status { get; init; }
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }
     public decimal? TotalAmount { get; init; }
+    public decimal? ShippingCost { get; init; }
     public string? Notes { get; init; }
+    public string? ShippingBoxId { get; init; }
+
     public PaymentEditDto? Payment { get; init; }
     public ShippingDetailEditDto? ShippingDetail { get; init; }
+    public List<OrderDetailEditDto>? OrderDetails { get; init; }
 }
 
 public class UpdateOrderValidator : AbstractValidator<UpdateOrderRequest>
@@ -68,14 +83,20 @@ public class UpdateOrderValidator : AbstractValidator<UpdateOrderRequest>
 public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrderResult>
 {
     private readonly ICommandRepository<Order> _repository;
+    private readonly ICommandRepository<OrderDetail> _orderDetailRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IQueryContext _context;
 
     public UpdateOrderHandler(
         ICommandRepository<Order> repository,
-        IUnitOfWork unitOfWork)
+        ICommandRepository<OrderDetail> orderDetailRepository,
+        IUnitOfWork unitOfWork,
+        IQueryContext context)
     {
         _repository = repository;
+        _orderDetailRepository = orderDetailRepository;
         _unitOfWork = unitOfWork;
+        _context = context;
     }
 
     public async Task<UpdateOrderResult> Handle(UpdateOrderRequest request, CancellationToken cancellationToken)
@@ -84,6 +105,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             .Include(x => x.Payment)
                 .ThenInclude(x => x!.PaymentDetail)
             .Include(x => x.ShippingDetail)
+            .Include(x => x.OrderDetails)
             .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
@@ -91,24 +113,63 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             throw new Exception($"Order not found: {request.Id}");
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<OrderStatus>(request.Status, out var status))
+        // Status
+        if (!string.IsNullOrWhiteSpace(request.Status) &&
+            Enum.TryParse<OrderStatus>(request.Status, out var status))
         {
             entity.Status = status;
         }
 
+        // Basic fields
+        if (!string.IsNullOrWhiteSpace(request.CustomerId))
+        {
+            var customerExists = await _context.Customer
+                .AnyAsync(x => x.Id == request.CustomerId, cancellationToken);
+
+            if (!customerExists)
+            {
+                throw new Exception($"Customer not found: {request.CustomerId}");
+            }
+
+            entity.CustomerId = request.CustomerId;
+        }
+
         entity.Discount = request.Discount;
         entity.Taxes = request.Taxes;
-        entity.TotalAmount = request.TotalAmount;
         entity.Notes = request.Notes;
 
+        // ShippingBox validation
+        ShippingBox? shippingBox = null;
+
+        if (!string.IsNullOrWhiteSpace(request.ShippingBoxId))
+        {
+            shippingBox = await _context.ShippingBox
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == request.ShippingBoxId, cancellationToken);
+
+            if (shippingBox == null)
+            {
+                throw new Exception($"ShippingBox not found: {request.ShippingBoxId}");
+            }
+        }
+
+        // Set ShippingBox (permite null também)
+        entity.ShippingBoxId = request.ShippingBoxId;
+
+        // Payment
         if (request.Payment != null)
         {
             var payment = entity.Payment ?? new Payment();
+
             payment.Name = request.Payment.Name;
             payment.Description = request.Payment.Description;
-            payment.Status = !string.IsNullOrWhiteSpace(request.Payment.Status) && Enum.TryParse<PaymentStatus>(request.Payment.Status, out var paymentStatus)
-                ? paymentStatus
-                : payment.Status;
+
+            if (!string.IsNullOrWhiteSpace(request.Payment.Status) &&
+                Enum.TryParse<PaymentStatus>(request.Payment.Status, out var paymentStatus))
+            {
+                payment.Status = paymentStatus;
+            }
+
             payment.PaymentDateTime = request.Payment.PaymentDateTime;
             payment.Amount = request.Payment.Amount;
             payment.PaymentTypeId = request.Payment.PaymentTypeId;
@@ -119,10 +180,6 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
                 {
                     PaymentId = payment.Id
                 };
-            }
-            else if (string.IsNullOrWhiteSpace(payment.PaymentDetail.PaymentId))
-            {
-                payment.PaymentDetail.PaymentId = payment.Id;
             }
 
             payment.PaymentDetail.PaymentMethod = request.Payment.PaymentMethod;
@@ -139,9 +196,11 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             }
         }
 
+        // ShippingDetail
         if (request.ShippingDetail != null)
         {
             var shipping = entity.ShippingDetail ?? new ShippingDetail();
+
             shipping.FirstName = request.ShippingDetail.FirstName;
             shipping.LastName = request.ShippingDetail.LastName;
             shipping.Email = request.ShippingDetail.Email;
@@ -161,6 +220,40 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             }
         }
 
+        if (request.OrderDetails != null)
+        {
+            foreach (var currentItem in entity.OrderDetails.Where(x => !x.IsDeleted).ToList())
+            {
+                _orderDetailRepository.Delete(currentItem);
+            }
+
+            foreach (var item in request.OrderDetails.Where(x => !string.IsNullOrWhiteSpace(x.ProductId)))
+            {
+                var product = await _context.Product
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == item.ProductId, cancellationToken);
+
+                if (product == null)
+                {
+                    throw new Exception($"Product not found: {item.ProductId}");
+                }
+
+                var quantity = item.Quantity < 1 ? 1 : item.Quantity;
+                var unitPrice = item.UnitPrice ?? product.UnitPrice ?? 0m;
+
+                entity.OrderDetails.Add(new OrderDetail
+                {
+                    OrderId = entity.Id,
+                    ProductId = item.ProductId,
+                    Quantity = quantity,
+                    UnitPrice = unitPrice,
+                    TotalPrice = unitPrice * quantity
+                });
+            }
+        }
+
+        entity.TotalAmount = CalculateTotal(entity, shippingBox);
+
         _repository.Update(entity);
         await _unitOfWork.SaveAsync(cancellationToken);
 
@@ -168,5 +261,17 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         {
             Data = entity
         };
+    }
+
+    private static decimal CalculateTotal(Order entity, ShippingBox? shippingBox)
+    {
+        var itemsTotal = entity.OrderDetails
+            .Where(x => !x.IsDeleted)
+            .Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity));
+
+        return itemsTotal
+            - (entity.Discount ?? 0m)
+            + (entity.Taxes ?? 0m)
+            + ShippingCostCalculator.Calculate(shippingBox);
     }
 }

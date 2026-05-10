@@ -23,10 +23,22 @@
                 <div class="modal-body">
                     <input type="hidden" v-model="state.id" />
 
+                    <div class="alert alert-danger" v-if="state.deleteMode">
+                        Confirm deletion of this order.
+                    </div>
+
                     <div class="row mb-3">
                         <div class="col-4">
+                            <label>Customer</label>
+                            <select class="form-select" v-model="state.customerId" v-bind:disabled="state.deleteMode">
+                                <option value="">Select</option>
+                                <option v-for="item in state.customers" :value="item.id">{{ item.name }}</option>
+                            </select>
+                            <small class="text-danger" v-if="state.errors.customerId">{{ state.errors.customerId }}</small>
+                        </div>
+                        <div class="col-4">
                             <label>Status</label>
-                            <select class="form-select" v-model="state.status">
+                            <select class="form-select" v-model="state.status" v-bind:disabled="state.deleteMode">
                                 <option v-for="item in state.orderStatuses" :value="item">{{ item }}</option>
                             </select>
                         </div>
@@ -34,75 +46,177 @@
                             <label>Order Date</label>
                             <input type="text" class="form-control" :value="formatDate(state.orderDate)" disabled />
                         </div>
-                        <div class="col-4">
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-3">
+                            <label>Discount</label>
+                            <input type="number" class="form-control" v-model.number="state.discount" v-on:input="handler.recalculateTotal" v-bind:disabled="state.deleteMode" />
+                        </div>
+                        <div class="col-3">
+                            <label>Taxes</label>
+                            <input type="number" class="form-control" v-model.number="state.taxes" v-on:input="handler.recalculateTotal" v-bind:disabled="state.deleteMode" />
+                        </div>
+                        <div class="col-3">
+                            <label>Shipping Cost</label>
+                            <input type="number" class="form-control" v-model.number="state.shippingCost" disabled />
+                        </div>
+                        <div class="col-3">
                             <label>Total Amount</label>
-                            <input type="number" class="form-control" v-model.number="state.totalAmount" />
+                            <input type="number" class="form-control" v-model.number="state.totalAmount" disabled />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-4">
-                            <label>Discount</label>
-                            <input type="number" class="form-control" v-model.number="state.discount" />
+                            <label>Shipping Box</label>
+                            <div class="input-group">
+                                <select class="form-select" v-model="state.shippingBoxId" v-on:change="methods.handleShippingBoxChange" v-bind:disabled="state.deleteMode">
+                                    <option value="">Select</option>
+                                    <option v-for="item in state.shippingBoxes" :value="item.id">
+                                        {{ item.width }} x {{ item.length }} x {{ item.height }} - {{ item.weight }}kg
+                                    </option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" v-on:click="methods.showShippingBoxInfo" v-bind:disabled="!state.shippingBoxId">
+                                    <i class="fa fa-info-circle"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-4">
-                            <label>Taxes</label>
-                            <input type="number" class="form-control" v-model.number="state.taxes" />
-                        </div>
-                        <div class="col-4">
+                        <div class="col-8">
                             <label>Notes</label>
-                            <textarea class="form-control" v-model="state.notes" rows="1"></textarea>
+                            <textarea class="form-control" v-model="state.notes" rows="1" v-bind:disabled="state.deleteMode"></textarea>
                         </div>
+                    </div>
+
+                    <div class="row mb-3" v-if="state.shippingBoxId">
+                        <div class="col-12">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="row g-3">
+                                    <div class="col-2">
+                                        <small class="text-muted d-block">Width</small>
+                                        <strong>{{ formatNumber(getSelectedShippingBox()?.width) }} cm</strong>
+                                    </div>
+                                    <div class="col-2">
+                                        <small class="text-muted d-block">Length</small>
+                                        <strong>{{ formatNumber(getSelectedShippingBox()?.length) }} cm</strong>
+                                    </div>
+                                    <div class="col-2">
+                                        <small class="text-muted d-block">Height</small>
+                                        <strong>{{ formatNumber(getSelectedShippingBox()?.height) }} cm</strong>
+                                    </div>
+                                    <div class="col-2">
+                                        <small class="text-muted d-block">Weight</small>
+                                        <strong>{{ formatNumber(getSelectedShippingBox()?.weight) }} kg</strong>
+                                    </div>
+                                    <div class="col-2">
+                                        <small class="text-muted d-block">Charged Weight</small>
+                                        <strong>{{ formatNumber(calculateChargedWeight(getSelectedShippingBox())) }} kg</strong>
+                                    </div>
+                                    <div class="col-2">
+                                        <small class="text-muted d-block">Shipping</small>
+                                        <strong>{{ formatCurrency(state.shippingCost) }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">Order Items</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th style="width: 120px;">Qty</th>
+                                    <th style="width: 160px;">Unit Price</th>
+                                    <th style="width: 140px;">Product Total</th>
+                                    <th style="width: 140px;">Product Shipping</th>
+                                    <th style="width: 70px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, index) in state.orderDetails" :key="index">
+                                    <td>
+                                        <select class="form-select" v-model="item.productId" v-on:change="methods.handleProductChange(item)" v-bind:disabled="state.deleteMode">
+                                            <option value="">Select</option>
+                                            <option v-for="product in state.products" :value="product.id">{{ product.name }}</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" min="1" class="form-control" v-model.number="item.quantity" v-on:input="handler.recalculateTotal" v-bind:disabled="state.deleteMode" />
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control" v-model.number="item.unitPrice" v-on:input="handler.recalculateTotal" v-bind:disabled="state.deleteMode" />
+                                    </td>
+                                    <td>{{ formatCurrency(getItemTotal(item)) }}</td>
+                                    <td>{{ formatCurrency(getItemShippingCost(item)) }}</td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" v-on:click="methods.removeOrderItem(index)" v-bind:disabled="state.deleteMode">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="!state.orderDetails.length">
+                                    <td colspan="6" class="text-muted text-center">No items added.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-danger" v-if="state.errors.orderDetails">{{ state.errors.orderDetails }}</small>
+                        <button type="button" class="btn btn-sm btn-outline-primary ms-auto" v-on:click="methods.addOrderItem" v-bind:disabled="state.deleteMode">
+                            <i class="fa fa-plus"></i> Add Item
+                        </button>
                     </div>
 
                     <h5 class="mt-4">Payment Details</h5>
                     <div class="row mb-3">
                         <div class="col-4">
                             <label>Payment Status</label>
-                            <select class="form-select" v-model="state.payment.status">
+                            <select class="form-select" v-model="state.payment.status" v-bind:disabled="state.deleteMode">
                                 <option v-for="item in state.paymentStatuses" :value="item">{{ item }}</option>
                             </select>
                         </div>
                         <div class="col-4">
                             <label>Payment Type</label>
-                            <select class="form-select" v-model="state.payment.paymentTypeId">
+                            <select class="form-select" v-model="state.payment.paymentTypeId" v-bind:disabled="state.deleteMode">
                                 <option value="">Select</option>
                                 <option v-for="item in state.paymentTypes" :value="item.id">{{ item.typeName }}</option>
                             </select>
                         </div>
                         <div class="col-4">
                             <label>Amount</label>
-                            <input type="number" class="form-control" v-model.number="state.payment.amount" />
+                            <input type="number" class="form-control" v-model.number="state.payment.amount" v-bind:disabled="state.deleteMode" />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-4">
                             <label>Payment Date</label>
-                            <input type="datetime-local" class="form-control" v-model="state.payment.paymentDateTime" />
+                            <input type="datetime-local" class="form-control" v-model="state.payment.paymentDateTime" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-4">
                             <label>Transaction ID</label>
-                            <input type="text" class="form-control" v-model="state.payment.transactionId" />
+                            <input type="text" class="form-control" v-model="state.payment.transactionId" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-4">
                             <label>Authorization Code</label>
-                            <input type="text" class="form-control" v-model="state.payment.authorizationCode" />
+                            <input type="text" class="form-control" v-model="state.payment.authorizationCode" v-bind:disabled="state.deleteMode" />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-4">
                             <label>Payment Method</label>
-                            <input type="text" class="form-control" v-model="state.payment.paymentMethod" />
+                            <input type="text" class="form-control" v-model="state.payment.paymentMethod" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-4">
                             <label>Cardholder Name</label>
-                            <input type="text" class="form-control" v-model="state.payment.cardHolderName" />
+                            <input type="text" class="form-control" v-model="state.payment.cardHolderName" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-4">
                             <label>Card Last 4</label>
-                            <input type="text" class="form-control" v-model="state.payment.cardLast4" />
+                            <input type="text" class="form-control" v-model="state.payment.cardLast4" v-bind:disabled="state.deleteMode" />
                         </div>
                     </div>
 
@@ -110,63 +224,63 @@
                     <div class="row mb-3">
                         <div class="col-3">
                             <label>First Name</label>
-                            <input type="text" class="form-control" v-model="state.shipping.firstName" />
+                            <input type="text" class="form-control" v-model="state.shipping.firstName" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>Last Name</label>
-                            <input type="text" class="form-control" v-model="state.shipping.lastName" />
+                            <input type="text" class="form-control" v-model="state.shipping.lastName" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>Email</label>
-                            <input type="email" class="form-control" v-model="state.shipping.email" />
+                            <input type="email" class="form-control" v-model="state.shipping.email" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>Phone</label>
-                            <input type="text" class="form-control" v-model="state.shipping.phoneNumber" />
+                            <input type="text" class="form-control" v-model="state.shipping.phoneNumber" v-bind:disabled="state.deleteMode" />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-4">
                             <label>Street</label>
-                            <input type="text" class="form-control" v-model="state.shipping.street" />
+                            <input type="text" class="form-control" v-model="state.shipping.street" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-2">
                             <label>Number</label>
-                            <input type="text" class="form-control" v-model="state.shipping.number" />
+                            <input type="text" class="form-control" v-model="state.shipping.number" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>Neighborhood</label>
-                            <input type="text" class="form-control" v-model="state.shipping.neighborhood" />
+                            <input type="text" class="form-control" v-model="state.shipping.neighborhood" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>Complement</label>
-                            <input type="text" class="form-control" v-model="state.shipping.complement" />
+                            <input type="text" class="form-control" v-model="state.shipping.complement" v-bind:disabled="state.deleteMode" />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-3">
                             <label>City</label>
-                            <input type="text" class="form-control" v-model="state.shipping.city" />
+                            <input type="text" class="form-control" v-model="state.shipping.city" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>State</label>
-                            <input type="text" class="form-control" v-model="state.shipping.state" />
+                            <input type="text" class="form-control" v-model="state.shipping.state" v-bind:disabled="state.deleteMode" />
                         </div>
                         <div class="col-3">
                             <label>Postal Code</label>
-                            <input type="text" class="form-control" v-model="state.shipping.postCode" />
+                            <input type="text" class="form-control" v-model="state.shipping.postCode" v-bind:disabled="state.deleteMode" />
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" id="MainSaveButton" class="btn btn-primary" v-on:click="handler.handleSubmit" v-bind:disabled="state.isSubmitting">
+                    <button type="button" id="MainSaveButton" v-bind:class="state.deleteMode ? 'btn btn-danger' : 'btn btn-primary'" v-on:click="handler.handleSubmit" v-bind:disabled="state.isSubmitting">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
-                        <span v-if="!state.isSubmitting">Save</span>
-                        <span v-else>Saving...</span>
+                        <span v-if="!state.isSubmitting">{{ state.deleteMode ? 'Delete' : 'Save' }}</span>
+                        <span v-else>{{ state.deleteMode ? 'Deleting...' : 'Saving...' }}</span>
                     </button>
                 </div>
             </div>
@@ -175,5 +289,5 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/Orders/Order.cshtml.js"></script>
+    <script src="~/FrontEnd/Pages/Orders/Order.cshtml.js" asp-append-version="true"></script>
 }

@@ -1,88 +1,257 @@
 const App = {
     setup() {
-        const state = Vue.reactive({
+        const emptyPayment = () => ({
+            id: '',
+            name: '',
+            description: '',
+            status: 'Pending',
+            paymentDateTime: '',
+            amount: 0,
+            paymentTypeId: '',
+            paymentMethod: '',
+            transactionId: '',
+            authorizationCode: '',
+            referenceNumber: '',
+            cardHolderName: '',
+            cardLast4: ''
+        });
+
+        const emptyShipping = () => ({
+            firstName: '',
+            lastName: '',
+            email: '',
+            phoneNumber: '',
+            street: '',
+            number: '',
+            neighborhood: '',
+            complement: '',
+            city: '',
+            state: '',
+            postCode: ''
+        });
+
+        const emptyState = () => ({
             mainData: [],
+            deleteMode: false,
             mainTitle: 'Edit Order',
             id: '',
+            customerId: '',
             status: 'Pending',
             orderDate: new Date().toISOString(),
             discount: 0,
             taxes: 0,
+            shippingCost: 0,
             totalAmount: 0,
             notes: '',
-            payment: {
-                id: '',
-                name: '',
-                description: '',
-                status: 'Pending',
-                paymentDateTime: '',
-                amount: 0,
-                paymentTypeId: '',
-                paymentMethod: '',
-                transactionId: '',
-                authorizationCode: '',
-                referenceNumber: '',
-                cardHolderName: '',
-                cardLast4: ''
-            },
-            shipping: {
-                firstName: '',
-                lastName: '',
-                email: '',
-                phoneNumber: '',
-                street: '',
-                number: '',
-                neighborhood: '',
-                complement: '',
-                city: '',
-                state: '',
-                postCode: ''
-            },
+            shippingBoxId: '',
+            payment: emptyPayment(),
+            shipping: emptyShipping(),
+            orderDetails: [],
+            customers: [],
+            products: [],
+            shippingBoxes: [],
             paymentTypes: [],
             paymentStatuses: ['Pending', 'Paid', 'Cancelled'],
             orderStatuses: ['Pending', 'Paid', 'Dispatched', 'Shipped', 'Delivered', 'Cancelled'],
+            errors: {
+                customerId: '',
+                orderDetails: ''
+            },
             isSubmitting: false
         });
+
+        const state = Vue.reactive(emptyState());
 
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
 
         const services = {
-            getMainData: async () => {
-                try {
-                    return await AxiosManager.get('/Order/GetOrderList', {});
-                } catch (error) {
-                    throw error;
-                }
-            },
-            getSingleData: async (id) => {
-                try {
-                    return await AxiosManager.get('/Order/GetOrderSingle', { params: { id } });
-                } catch (error) {
-                    throw error;
-                }
-            },
-            updateMainData: async (request) => {
-                try {
-                    return await AxiosManager.post('/Order/UpdateOrder', request);
-                } catch (error) {
-                    throw error;
-                }
-            },
-            getPaymentTypes: async () => {
-                try {
-                    return await AxiosManager.get('/PaymentType/GetPaymentTypeList', {});
-                } catch (error) {
-                    throw error;
-                }
-            }
+            getMainData: async () => AxiosManager.get('/Order/GetOrderList', {}),
+            getSingleData: async (id) => AxiosManager.get('/Order/GetOrderSingle', { params: { id } }),
+            createMainData: async (request) => AxiosManager.post('/Order/CreateOrder', request),
+            updateMainData: async (request) => AxiosManager.post('/Order/UpdateOrder', request),
+            deleteMainData: async (id) => AxiosManager.post('/Order/DeleteOrder', { id }),
+            getCustomers: async () => AxiosManager.get('/Customer/GetCustomerList', {}),
+            getProducts: async () => AxiosManager.get('/Product/GetProductList', {}),
+            getShippingBoxes: async () => AxiosManager.get('/ShippingBox/GetShippingBoxList', {}),
+            getPaymentTypes: async () => AxiosManager.get('/PaymentType/GetPaymentTypeList', {})
         };
+
+        const calculateItemsTotal = () => state.orderDetails.reduce((total, item) => {
+            const quantity = Number(item.quantity || 0);
+            const unitPrice = Number(item.unitPrice || 0);
+            return total + (quantity * unitPrice);
+        }, 0);
+
+        const getSelectedShippingBox = () =>
+            state.shippingBoxes.find(x => x.id === state.shippingBoxId) ?? null;
+
+        const calculateCubicWeight = (shippingBox) => {
+            if (!shippingBox) return 0;
+
+            return (
+                Number(shippingBox.width || 0) *
+                Number(shippingBox.length || 0) *
+                Number(shippingBox.height || 0)
+            ) / 6000;
+        };
+
+        const calculateChargedWeight = (shippingBox) => {
+            if (!shippingBox) return 0;
+
+            return Math.max(
+                Number(shippingBox.weight || 0),
+                calculateCubicWeight(shippingBox)
+            );
+        };
+
+        const calculateShippingCost = () => {
+            const shippingBox = getSelectedShippingBox();
+            if (!shippingBox) return 0;
+
+            const chargedWeight = calculateChargedWeight(shippingBox);
+            const insurance = Number(shippingBox.insuranceValue || 0) * 0.01;
+
+            return Number(((chargedWeight * 10) + insurance).toFixed(2));
+        };
+
+        const getItemTotal = (item) =>
+            Number(item.quantity || 0) * Number(item.unitPrice || 0);
+
+        const getItemShippingCost = (item) => {
+            const itemsTotal = calculateItemsTotal();
+            if (!itemsTotal || !state.shippingCost) return 0;
+
+            return Number(((getItemTotal(item) / itemsTotal) * state.shippingCost).toFixed(2));
+        };
+
+        const formatCurrency = (value) =>
+            Number(value || 0).toLocaleString(undefined, {
+                style: 'currency',
+                currency: 'BRL'
+            });
+
+        const formatNumber = (value, decimals = 2) =>
+            Number(value || 0).toFixed(decimals);
+
+        const recalculateTotal = () => {
+            state.shippingCost = calculateShippingCost();
+            state.totalAmount = calculateItemsTotal()
+                - Number(state.discount || 0)
+                + Number(state.taxes || 0)
+                + Number(state.shippingCost || 0);
+            state.payment.amount = state.totalAmount;
+        };
+
+        const resetForm = () => {
+            const initial = emptyState();
+            Object.keys(initial).forEach((key) => {
+                if (['mainData', 'customers', 'products', 'shippingBoxes', 'paymentTypes'].includes(key)) {
+                    return;
+                }
+                state[key] = initial[key];
+            });
+        };
+
+        const fillOrder = (order) => {
+            state.id = order.id ?? '';
+            state.customerId = order.customerId ?? '';
+            state.status = order.status ?? 'Pending';
+            state.orderDate = order.orderDate ?? new Date().toISOString();
+            state.discount = order.discount ?? 0;
+            state.taxes = order.taxes ?? 0;
+            state.shippingCost = order.shippingCost ?? 0;
+            state.totalAmount = order.totalAmount ?? 0;
+            state.notes = order.notes ?? '';
+            state.shippingBoxId = order.shippingBoxId ?? '';
+
+            state.payment.id = order.payment?.id ?? '';
+            state.payment.name = order.payment?.name ?? '';
+            state.payment.description = order.payment?.description ?? '';
+            state.payment.status = order.payment?.status ?? 'Pending';
+            state.payment.paymentDateTime = order.payment?.paymentDateTime ? formatDateTimeValue(order.payment.paymentDateTime) : '';
+                state.payment.amount = order.payment?.amount ?? state.totalAmount;
+            state.payment.paymentTypeId = order.payment?.paymentTypeId ?? '';
+            state.payment.paymentMethod = order.payment?.paymentDetail?.paymentMethod ?? '';
+            state.payment.transactionId = order.payment?.paymentDetail?.transactionId ?? '';
+            state.payment.authorizationCode = order.payment?.paymentDetail?.authorizationCode ?? '';
+            state.payment.referenceNumber = order.payment?.paymentDetail?.referenceNumber ?? '';
+            state.payment.cardHolderName = order.payment?.paymentDetail?.cardHolderName ?? '';
+            state.payment.cardLast4 = order.payment?.paymentDetail?.cardLast4 ?? '';
+
+            state.shipping.firstName = order.shippingDetail?.firstName ?? '';
+            state.shipping.lastName = order.shippingDetail?.lastName ?? '';
+            state.shipping.email = order.shippingDetail?.email ?? '';
+            state.shipping.phoneNumber = order.shippingDetail?.phoneNumber ?? '';
+            state.shipping.street = order.shippingDetail?.street ?? '';
+            state.shipping.number = order.shippingDetail?.number ?? '';
+            state.shipping.neighborhood = order.shippingDetail?.neighborhood ?? '';
+            state.shipping.complement = order.shippingDetail?.complement ?? '';
+            state.shipping.city = order.shippingDetail?.city ?? '';
+            state.shipping.state = order.shippingDetail?.state ?? '';
+            state.shipping.postCode = order.shippingDetail?.postCode ?? '';
+
+            state.orderDetails = (order.orderDetails ?? []).map((item) => ({
+                id: item.id ?? '',
+                productId: item.productId ?? '',
+                quantity: item.quantity ?? 1,
+                unitPrice: item.unitPrice ?? 0
+            }));
+
+            recalculateTotal();
+        };
+
+        const buildPayload = () => ({
+            id: state.id,
+            customerId: state.customerId,
+            status: state.status,
+            discount: state.discount,
+            taxes: state.taxes,
+            shippingCost: state.shippingCost,
+            totalAmount: state.totalAmount,
+            notes: state.notes,
+            shippingBoxId: state.shippingBoxId || null,
+            payment: {
+                id: state.payment.id,
+                name: state.payment.name,
+                description: state.payment.description,
+                status: state.payment.status,
+                paymentDateTime: state.payment.paymentDateTime ? new Date(state.payment.paymentDateTime) : null,
+                amount: state.payment.amount,
+                paymentTypeId: state.payment.paymentTypeId || null,
+                paymentMethod: state.payment.paymentMethod,
+                transactionId: state.payment.transactionId,
+                authorizationCode: state.payment.authorizationCode,
+                referenceNumber: state.payment.referenceNumber,
+                cardHolderName: state.payment.cardHolderName,
+                cardLast4: state.payment.cardLast4
+            },
+            shippingDetail: {
+                firstName: state.shipping.firstName,
+                lastName: state.shipping.lastName,
+                email: state.shipping.email,
+                phoneNumber: state.shipping.phoneNumber,
+                street: state.shipping.street,
+                number: state.shipping.number,
+                neighborhood: state.shipping.neighborhood,
+                complement: state.shipping.complement,
+                city: state.shipping.city,
+                state: state.shipping.state,
+                postCode: state.shipping.postCode
+            },
+            orderDetails: state.orderDetails.map((item) => ({
+                id: item.id,
+                productId: item.productId,
+                quantity: Number(item.quantity || 1),
+                unitPrice: Number(item.unitPrice || 0)
+            }))
+        });
 
         const mainGrid = {
             obj: null,
             create: async (dataSource) => {
                 mainGrid.obj = new ej.grids.Grid({
-                    height: '240px',
+                    height: '360px',
                     dataSource: dataSource,
                     allowFiltering: true,
                     showColumnMenu: true,
@@ -90,6 +259,7 @@ const App = {
                     filterSettings: { type: 'Menu' },
                     allowSorting: true,
                     allowPaging: true,
+                    allowExcelExport: true,
                     allowSelection: true,
                     allowResizing: true,
                     pageSettings: { pageSize: 30 },
@@ -100,26 +270,35 @@ const App = {
                         { field: 'customerName', headerText: 'Customer', width: 180 },
                         { field: 'status', headerText: 'Status', width: 120 },
                         { field: 'totalAmount', headerText: 'Total', width: 120, format: 'C2' },
-                        { field: 'paymentTypeName', headerText: 'Payment Method', width: 140 },
+                        { field: 'shippingCost', headerText: 'Shipping', width: 120, format: 'C2' },
+                        { field: 'paymentTypeName', headerText: 'Payment Method', width: 150 },
                         { field: 'shippingPostCode', headerText: 'Post Code', width: 140 },
                         {
-                            headerText: 'Items', width: 120, textAlign: 'Center', template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Show order items"><i class="fa fa-list"></i></button>'
+                            headerText: 'Items',
+                            width: 120,
+                            textAlign: 'Center',
+                            template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Show order items"><i class="fa fa-list"></i></button>'
                         },
                         { field: 'orderDate', headerText: 'Order Date', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
-                        'Search',
+                        'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' }
+                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
                     },
                     rowSelected: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
                     },
                     rowDeselected: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
                     },
                     rowDataBound: (args) => {
                         const button = args.row.querySelector('.order-detail-btn');
@@ -149,11 +328,25 @@ const App = {
                         }
                     },
                     toolbarClick: async (args) => {
-                        if (args.item.id === 'EditCustom') {
+                        if (args.item.id?.toLowerCase().includes('excelexport')) {
+                            mainGrid.obj.excelExport({ fileName: 'Orders.xlsx' });
+                        }
+
+                        if (args.item.id === 'AddCustom') {
+                            resetForm();
+                            state.deleteMode = false;
+                            state.mainTitle = 'Add Order';
+                            methods.addOrderItem();
+                            mainModal.obj.show();
+                        }
+
+                        if (args.item.id === 'EditCustom' || args.item.id === 'DeleteCustom') {
                             const selected = mainGrid.obj.getSelectedRecords()[0];
                             if (!selected) return;
 
                             await methods.loadOrder(selected.id);
+                            state.deleteMode = args.item.id === 'DeleteCustom';
+                            state.mainTitle = state.deleteMode ? 'Delete Order' : 'Edit Order';
                             mainModal.obj.show();
                         }
                     }
@@ -179,54 +372,85 @@ const App = {
         const methods = {
             populateMainData: async () => {
                 const response = await services.getMainData();
-                state.mainData = response?.data?.content?.data.map(item => ({
+                state.mainData = (response?.data?.content?.data ?? []).map(item => ({
                     ...item,
                     orderDate: new Date(item.orderDate),
                     createdAt: new Date(item.createdAt)
                 }));
             },
-            loadPaymentTypes: async () => {
-                const response = await services.getPaymentTypes();
-                state.paymentTypes = response?.data?.content?.data ?? [];
+            loadLookups: async () => {
+                const [customers, products, shippingBoxes, paymentTypes] = await Promise.all([
+                    services.getCustomers(),
+                    services.getProducts(),
+                    services.getShippingBoxes(),
+                    services.getPaymentTypes()
+                ]);
+
+                state.customers = customers?.data?.content?.data ?? [];
+                state.products = products?.data?.content?.data ?? [];
+                state.shippingBoxes = shippingBoxes?.data?.content?.data ?? [];
+                state.paymentTypes = paymentTypes?.data?.content?.data ?? [];
             },
             loadOrder: async (id) => {
                 const response = await services.getSingleData(id);
                 const order = response?.data?.content?.data;
                 if (!order) return;
 
-                state.id = order.id ?? '';
-                state.status = order.status ?? 'Pending';
-                state.orderDate = order.orderDate ?? new Date().toISOString();
-                state.discount = order.discount ?? 0;
-                state.taxes = order.taxes ?? 0;
-                state.totalAmount = order.totalAmount ?? 0;
-                state.notes = order.notes ?? '';
+                resetForm();
+                fillOrder(order);
+            },
+            addOrderItem: () => {
+                state.orderDetails.push({
+                    id: '',
+                    productId: '',
+                    quantity: 1,
+                    unitPrice: 0
+                });
+            },
+            removeOrderItem: (index) => {
+                state.orderDetails.splice(index, 1);
+                recalculateTotal();
+            },
+            handleProductChange: (item) => {
+                const product = state.products.find(x => x.id === item.productId);
+                item.unitPrice = product?.unitPrice ?? 0;
+                recalculateTotal();
+            },
+            handleShippingBoxChange: () => {
+                recalculateTotal();
+            },
+            showShippingBoxInfo: () => {
+                const shippingBox = getSelectedShippingBox();
+                if (!shippingBox) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Shipping Box',
+                        text: 'Select a shipping box first.'
+                    });
+                    return;
+                }
 
-                state.payment.id = order.payment?.id ?? '';
-                state.payment.name = order.payment?.name ?? '';
-                state.payment.description = order.payment?.description ?? '';
-                state.payment.status = order.payment?.status ?? 'Pending';
-                state.payment.paymentDateTime = order.payment?.paymentDateTime ? formatDateTimeValue(order.payment.paymentDateTime) : '';
-                state.payment.amount = order.payment?.amount ?? 0;
-                state.payment.paymentTypeId = order.payment?.paymentTypeId ?? '';
-                state.payment.paymentMethod = order.payment?.paymentDetail?.paymentMethod ?? '';
-                state.payment.transactionId = order.payment?.paymentDetail?.transactionId ?? '';
-                state.payment.authorizationCode = order.payment?.paymentDetail?.authorizationCode ?? '';
-                state.payment.referenceNumber = order.payment?.paymentDetail?.referenceNumber ?? '';
-                state.payment.cardHolderName = order.payment?.paymentDetail?.cardHolderName ?? '';
-                state.payment.cardLast4 = order.payment?.paymentDetail?.cardLast4 ?? '';
-
-                state.shipping.firstName = order.shippingDetail?.firstName ?? '';
-                state.shipping.lastName = order.shippingDetail?.lastName ?? '';
-                state.shipping.email = order.shippingDetail?.email ?? '';
-                state.shipping.phoneNumber = order.shippingDetail?.phoneNumber ?? '';
-                state.shipping.street = order.shippingDetail?.street ?? '';
-                state.shipping.number = order.shippingDetail?.number ?? '';
-                state.shipping.neighborhood = order.shippingDetail?.neighborhood ?? '';
-                state.shipping.complement = order.shippingDetail?.complement ?? '';
-                state.shipping.city = order.shippingDetail?.city ?? '';
-                state.shipping.state = order.shippingDetail?.state ?? '';
-                state.shipping.postCode = order.shippingDetail?.postCode ?? '';
+                Swal.fire({
+                    title: 'Shipping Box',
+                    html: `
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered text-start">
+                                <tbody>
+                                    <tr><th>Width</th><td>${formatNumber(shippingBox.width)} cm</td></tr>
+                                    <tr><th>Length</th><td>${formatNumber(shippingBox.length)} cm</td></tr>
+                                    <tr><th>Height</th><td>${formatNumber(shippingBox.height)} cm</td></tr>
+                                    <tr><th>Weight</th><td>${formatNumber(shippingBox.weight)} kg</td></tr>
+                                    <tr><th>Cubic Weight</th><td>${formatNumber(calculateCubicWeight(shippingBox))} kg</td></tr>
+                                    <tr><th>Charged Weight</th><td>${formatNumber(calculateChargedWeight(shippingBox))} kg</td></tr>
+                                    <tr><th>Insurance Value</th><td>${formatCurrency(shippingBox.insuranceValue)}</td></tr>
+                                    <tr><th>Shipping Cost</th><td>${formatCurrency(state.shippingCost)}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `,
+                    width: 560,
+                    confirmButtonText: 'Close'
+                });
             },
             showOrderDetails: async (id) => {
                 try {
@@ -244,18 +468,18 @@ const App = {
                             : null;
 
                         return `
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Product'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:1rem;" />` : `<span class="badge bg-secondary">No Image</span>`}
-                                    <span>${item.productName || 'Unknown'}</span>
-                                </div>
-                            </td>
-                            <td class="text-end">${item.quantity}</td>
-                            <td class="text-end">${item.unitPrice != null ? Number(item.unitPrice).toFixed(2) : '0.00'}</td>
-                            <td class="text-end">${item.totalPrice != null ? Number(item.totalPrice).toFixed(2) : '0.00'}</td>
-                        </tr>
-                    `;
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Product'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:1rem;" />` : `<span class="badge bg-secondary">No Image</span>`}
+                                        <span>${item.productName || 'Unknown'}</span>
+                                    </div>
+                                </td>
+                                <td class="text-end">${item.quantity}</td>
+                                <td class="text-end">${item.unitPrice != null ? Number(item.unitPrice).toFixed(2) : '0.00'}</td>
+                                <td class="text-end">${item.totalPrice != null ? Number(item.totalPrice).toFixed(2) : '0.00'}</td>
+                            </tr>
+                        `;
                     }).join('');
 
                     await Swal.fire({
@@ -288,44 +512,37 @@ const App = {
             handleSubmit: async () => {
                 try {
                     state.isSubmitting = true;
-                    await new Promise(r => setTimeout(r, 150));
+                    state.errors.customerId = '';
+                    state.errors.orderDetails = '';
 
-                    const request = {
-                        id: state.id,
-                        status: state.status,
-                        discount: state.discount,
-                        taxes: state.taxes,
-                        totalAmount: state.totalAmount,
-                        notes: state.notes,
-                        payment: {
-                            id: state.payment.id,
-                            status: state.payment.status,
-                            paymentDateTime: state.payment.paymentDateTime ? new Date(state.payment.paymentDateTime) : null,
-                            amount: state.payment.amount,
-                            paymentTypeId: state.payment.paymentTypeId,
-                            paymentMethod: state.payment.paymentMethod,
-                            transactionId: state.payment.transactionId,
-                            authorizationCode: state.payment.authorizationCode,
-                            referenceNumber: state.payment.referenceNumber,
-                            cardHolderName: state.payment.cardHolderName,
-                            cardLast4: state.payment.cardLast4
-                        },
-                        shippingDetail: {
-                            firstName: state.shipping.firstName,
-                            lastName: state.shipping.lastName,
-                            email: state.shipping.email,
-                            phoneNumber: state.shipping.phoneNumber,
-                            street: state.shipping.street,
-                            number: state.shipping.number,
-                            neighborhood: state.shipping.neighborhood,
-                            complement: state.shipping.complement,
-                            city: state.shipping.city,
-                            state: state.shipping.state,
-                            postCode: state.shipping.postCode
+                    if (state.deleteMode) {
+                        const deleteResponse = await services.deleteMainData(state.id);
+
+                        if (deleteResponse.data.code === 200) {
+                            await methods.populateMainData();
+                            mainGrid.refresh();
+                            Swal.fire({ icon: 'success', title: 'Delete Successful', timer: 1000, showConfirmButton: false });
+                            setTimeout(() => mainModal.obj.hide(), 1000);
                         }
-                    };
 
-                    const response = await services.updateMainData(request);
+                        return;
+                    }
+
+                    if (!state.customerId) {
+                        state.errors.customerId = 'Customer is required.';
+                        return;
+                    }
+
+                    if (!state.orderDetails.length || state.orderDetails.some(x => !x.productId)) {
+                        state.errors.orderDetails = 'Add at least one product.';
+                        return;
+                    }
+
+                    recalculateTotal();
+                    const request = buildPayload();
+                    const response = state.id
+                        ? await services.updateMainData(request)
+                        : await services.createMainData(request);
 
                     if (response.data.code === 200) {
                         await methods.populateMainData();
@@ -341,7 +558,8 @@ const App = {
                 } finally {
                     state.isSubmitting = false;
                 }
-            }
+            },
+            recalculateTotal
         };
 
         const formatDateTimeValue = (value) => {
@@ -363,50 +581,40 @@ const App = {
                 await SecurityManager.authorizePage(['Orders']);
                 await SecurityManager.validateToken();
 
-                await methods.populateMainData();
-                await methods.loadPaymentTypes();
                 await mainGrid.create(state.mainData);
                 mainModal.create();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
-                    state.id = '';
-                    state.status = 'Pending';
-                    state.orderDate = new Date().toISOString();
-                    state.discount = 0;
-                    state.taxes = 0;
-                    state.totalAmount = 0;
-                    state.notes = '';
-                    state.payment = {
-                        id: '',
-                        name: '',
-                        description: '',
-                        status: 'Pending',
-                        paymentDateTime: '',
-                        amount: 0,
-                        paymentTypeId: '',
-                        paymentMethod: '',
-                        transactionId: '',
-                        authorizationCode: '',
-                        referenceNumber: '',
-                        cardHolderName: '',
-                        cardLast4: ''
-                    };
-                    state.shipping = {
-                        firstName: '',
-                        lastName: '',
-                        email: '',
-                        phoneNumber: '',
-                        street: '',
-                        number: '',
-                        neighborhood: '',
-                        complement: '',
-                        city: '',
-                        state: '',
-                        postCode: ''
-                    };
+                    resetForm();
                 });
+
+                try {
+                    await methods.populateMainData();
+                    mainGrid.refresh();
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Orders',
+                        text: error.response?.data?.message ?? 'Unable to load orders.'
+                    });
+                }
+
+                try {
+                    await methods.loadLookups();
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Order Lookups',
+                        text: error.response?.data?.message ?? 'Unable to load customers, products, shipping boxes or payment types.'
+                    });
+                }
             } catch (e) {
                 console.error(e);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Orders',
+                    text: e.response?.data?.message ?? e.message ?? 'Unable to open Orders page.'
+                });
             }
         });
 
@@ -415,7 +623,16 @@ const App = {
             mainGridRef,
             mainModalRef,
             handler,
-            formatDate
+            methods,
+            formatDate,
+            calculateItemsTotal,
+            calculateCubicWeight,
+            calculateChargedWeight,
+            getSelectedShippingBox,
+            getItemShippingCost,
+            getItemTotal,
+            formatCurrency,
+            formatNumber
         };
     }
 };

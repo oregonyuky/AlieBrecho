@@ -16,6 +16,22 @@ public class OrderController : BaseApiController
     }
 
     [Authorize]
+    [HttpPost("CreateOrder")]
+    public async Task<ActionResult<ApiSuccessResult<CreateOrderResult>>> CreateOrderAsync(
+        CreateOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<CreateOrderResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(CreateOrderAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
     [HttpGet("GetOrderList")]
     public async Task<ActionResult<ApiSuccessResult<GetOrderListResult>>> GetOrderListAsync(
         CancellationToken cancellationToken,
@@ -61,6 +77,22 @@ public class OrderController : BaseApiController
         {
             Code = StatusCodes.Status200OK,
             Message = $"Success executing {nameof(UpdateOrderAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpPost("DeleteOrder")]
+    public async Task<ActionResult<ApiSuccessResult<DeleteOrderResult>>> DeleteOrderAsync(
+        DeleteOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<DeleteOrderResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(DeleteOrderAsync)}",
             Content = response
         });
     }

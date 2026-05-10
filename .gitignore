@@ -2,6 +2,7 @@
 obj/
 **/bin/
 *.csproj.lscache
-Migrations/
 *.Development.json
+*.env
+Migrations/
 appsettings.Development.json
