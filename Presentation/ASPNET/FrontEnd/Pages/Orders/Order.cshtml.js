@@ -524,7 +524,7 @@ const App = {
                 resetLabel();
 
                 state.label.orderId = order.id ?? '';
-                state.label.recipientName = order.shippingRecipientName || order.customerName || '';
+                state.label.recipientName = order.customerName || order.shippingRecipientName || '';
                 state.label.postCode = order.shippingPostCode || '';
                 state.label.city = order.shippingCity || '';
                 state.label.state = order.shippingState || '';
@@ -707,7 +707,7 @@ const App = {
                     }
 
                     if (!state.label.labelId) {
-                        state.label.error = 'Etiqueta enviada ao carrinho, mas o Melhor Envio nao retornou um codigo para baixar o PDF.';
+                        state.label.error = 'Etiqueta criada, mas o Melhor Envio nao retornou um codigo para baixar o PDF.';
                     }
                 } catch (error) {
                     state.label.error = getApiErrorMessage(error, 'Nao foi possivel gerar a etiqueta.');

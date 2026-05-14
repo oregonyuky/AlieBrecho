@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Application.Common.CQS.Queries;
 using Application.Common.Services;
@@ -79,18 +80,42 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
             .AsNoTracking()
             .FirstOrDefaultAsync(x => !x.IsDeleted, cancellationToken);
 
+        var serviceId = request.ServiceId ?? await GetAvailableServiceIdAsync(
+            order,
+            company,
+            originPostCode,
+            cancellationToken);
+
         var payload = BuildCartPayload(
             order,
             company,
             originPostCode,
-            request.ServiceId ?? 1,
+            serviceId,
             request.AgencyId);
 
         var rawResponse = await _melhorEnvioService.AdicionarEtiquetaAoCarrinhoAsync(payload, cancellationToken);
+        var labelId = ExtractLabelId(rawResponse);
+
+        if (string.IsNullOrWhiteSpace(labelId))
+        {
+            return new GenerateShippingLabelResult
+            {
+                LabelId = null,
+                RawResponse = rawResponse
+            };
+        }
+
+        var ordersPayload = new
+        {
+            orders = new[] { labelId }
+        };
+
+        await _melhorEnvioService.ComprarFretesAsync(ordersPayload, cancellationToken);
+        await _melhorEnvioService.GerarEtiquetasAsync(ordersPayload, cancellationToken);
 
         return new GenerateShippingLabelResult
         {
-            LabelId = ExtractLabelId(rawResponse),
+            LabelId = labelId,
             RawResponse = rawResponse
         };
     }
@@ -105,12 +130,31 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
         var shipping = order.ShippingDetail!;
         var box = order.ShippingBox!;
         var senderPostCode = OnlyDigits(company?.ZipCode) ?? OnlyDigits(originPostCode);
-        var recipientName = JoinName(shipping.FirstName, shipping.LastName);
+        var recipientName = !string.IsNullOrWhiteSpace(order.Customer?.Name)
+            ? order.Customer.Name
+            : JoinName(shipping.FirstName, shipping.LastName);
         var insuranceValue = box.InsuranceValue ?? order.TotalAmount ?? GetProductsTotal(order);
+        var senderState = NormalizeState(company?.State);
+        var recipientState = NormalizeState(shipping.State);
+        var senderPhone = OnlyDigits(company?.PhoneNumber);
+        var recipientPhone = OnlyDigits(shipping.PhoneNumber);
+        var recipientDocument = OnlyDigits(order.Customer?.Cpf);
 
         ValidateRequired(senderPostCode, "CEP de origem nao configurado.");
+        ValidateRequired(senderState, "Estado de origem invalido. Informe a UF da empresa, por exemplo SP.");
+        ValidateRequired(company?.Name, "Nome da empresa nao informado.");
+        ValidateRequired(company?.Street, "Endereco de origem nao informado.");
+        ValidateRequired(company?.City, "Cidade de origem nao informada.");
+        ValidateRequired(senderPhone, "Telefone de origem nao informado.");
         ValidateRequired(shipping.PostCode, "CEP do destinatario nao informado.");
+        ValidateRequired(recipientState, "Estado do destinatario invalido. Informe a UF, por exemplo SP.");
         ValidateRequired(recipientName, "Nome do destinatario nao informado.");
+        ValidateRequired(recipientDocument, "CPF do cliente nao informado.");
+        ValidateRequired(shipping.Street, "Endereco do destinatario nao informado.");
+        ValidateRequired(shipping.Number, "Numero do destinatario nao informado.");
+        ValidateRequired(shipping.Neighborhood, "Bairro do destinatario nao informado.");
+        ValidateRequired(shipping.City, "Cidade do destinatario nao informada.");
+        ValidateRequired(recipientPhone, "Telefone do destinatario nao informado.");
         ValidateRequired(box.Width, "Largura da caixa nao informada.");
         ValidateRequired(box.Length, "Comprimento da caixa nao informado.");
         ValidateRequired(box.Height, "Altura da caixa nao informada.");
@@ -122,29 +166,30 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
             agency = agencyId,
             from = new
             {
-                name = company?.Name ?? "AlieBrecho",
-                phone = OnlyDigits(company?.PhoneNumber),
+                name = company?.Name,
+                phone = senderPhone,
                 email = company?.EmailAddress,
                 address = company?.Street,
                 complement = string.Empty,
-                number = "0",
-                district = string.Empty,
+                number = "S/N",
+                district = "Centro",
                 city = company?.City,
-                state_abbr = NormalizeState(company?.State),
+                state_abbr = senderState,
                 postal_code = senderPostCode,
                 country_id = "BR"
             },
             to = new
             {
                 name = recipientName,
-                phone = OnlyDigits(shipping.PhoneNumber),
+                phone = recipientPhone,
                 email = shipping.Email,
+                document = recipientDocument,
                 address = shipping.Street,
                 complement = shipping.Complement,
                 number = shipping.Number,
                 district = shipping.Neighborhood,
                 city = shipping.City,
-                state_abbr = NormalizeState(shipping.State),
+                state_abbr = recipientState,
                 postal_code = OnlyDigits(shipping.PostCode),
                 country_id = "BR"
             },
@@ -176,6 +221,100 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
                 non_commercial = true
             }
         };
+    }
+
+    private async Task<int> GetAvailableServiceIdAsync(
+        Domain.Entities.Order order,
+        Domain.Entities.Company? company,
+        string? originPostCode,
+        CancellationToken cancellationToken)
+    {
+        var shipping = order.ShippingDetail!;
+        var box = order.ShippingBox!;
+        var senderPostCode = OnlyDigits(company?.ZipCode) ?? OnlyDigits(originPostCode);
+        var destinationPostCode = OnlyDigits(shipping.PostCode);
+
+        ValidateRequired(senderPostCode, "CEP de origem nao configurado.");
+        ValidateRequired(destinationPostCode, "CEP do destinatario nao informado.");
+        ValidateRequired(box.Width, "Largura da caixa nao informada.");
+        ValidateRequired(box.Length, "Comprimento da caixa nao informado.");
+        ValidateRequired(box.Height, "Altura da caixa nao informada.");
+        ValidateRequired(box.Weight, "Peso da caixa nao informado.");
+
+        var calculatePayload = new
+        {
+            from = new
+            {
+                postal_code = senderPostCode
+            },
+            to = new
+            {
+                postal_code = destinationPostCode
+            },
+            products = new[]
+            {
+                new
+                {
+                    id = box.Id,
+                    width = box.Width ?? 0m,
+                    height = box.Height ?? 0m,
+                    length = box.Length ?? 0m,
+                    weight = box.Weight ?? 0m,
+                    insurance_value = box.InsuranceValue ?? order.TotalAmount ?? GetProductsTotal(order),
+                    quantity = 1
+                }
+            },
+            options = new
+            {
+                receipt = false,
+                own_hand = false
+            }
+        };
+
+        var rawResponse = await _melhorEnvioService.CalcularFreteAsync(calculatePayload);
+        return ExtractAvailableServiceId(rawResponse);
+    }
+
+    private static int ExtractAvailableServiceId(string rawResponse)
+    {
+        if (string.IsNullOrWhiteSpace(rawResponse))
+        {
+            throw new Exception("Melhor Envio nao retornou opcoes de frete para este trecho.");
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(rawResponse);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                throw new Exception("Melhor Envio retornou uma resposta invalida ao calcular o frete.");
+            }
+
+            var services = document.RootElement
+                .EnumerateArray()
+                .Select(item => new
+                {
+                    Id = TryGetInt(item, "id"),
+                    Price = GetDecimal(item, "custom_price") ?? GetDecimal(item, "price"),
+                    HasError = item.TryGetProperty("error", out var error) &&
+                        error.ValueKind != JsonValueKind.Null &&
+                        !string.IsNullOrWhiteSpace(error.ToString())
+                })
+                .Where(item => item.Id != null && item.Price != null && item.Price > 0m && !item.HasError)
+                .OrderBy(item => item.Price)
+                .FirstOrDefault();
+
+            if (services?.Id == null)
+            {
+                throw new Exception("Nenhuma transportadora atende este trecho para a caixa e CEP informados.");
+            }
+
+            return services.Id.Value;
+        }
+        catch (JsonException)
+        {
+            throw new Exception("Melhor Envio retornou uma resposta invalida ao calcular o frete.");
+        }
     }
 
     private static decimal GetProductsTotal(Domain.Entities.Order order)
@@ -227,6 +366,38 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
         };
     }
 
+    private static int? TryGetInt(JsonElement element, string propertyName)
+    {
+        if (element.ValueKind != JsonValueKind.Object ||
+            !element.TryGetProperty(propertyName, out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind switch
+        {
+            JsonValueKind.Number when property.TryGetInt32(out var number) => number,
+            JsonValueKind.String when int.TryParse(property.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) => number,
+            _ => null
+        };
+    }
+
+    private static decimal? GetDecimal(JsonElement element, string propertyName)
+    {
+        if (element.ValueKind != JsonValueKind.Object ||
+            !element.TryGetProperty(propertyName, out var property))
+        {
+            return null;
+        }
+
+        return property.ValueKind switch
+        {
+            JsonValueKind.Number when property.TryGetDecimal(out var number) => number,
+            JsonValueKind.String when decimal.TryParse(property.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var number) => number,
+            _ => null
+        };
+    }
+
     private static void ValidateRequired(string? value, string message)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -266,10 +437,67 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
             return null;
         }
 
-        return value.Trim().Length > 2
-            ? value.Trim()[..2].ToUpper(CultureInfo.InvariantCulture)
-            : value.Trim().ToUpper(CultureInfo.InvariantCulture);
+        var normalized = RemoveDiacritics(value)
+            .Trim()
+            .Replace(".", string.Empty)
+            .ToUpper(CultureInfo.InvariantCulture);
+
+        if (BrazilianStates.Contains(normalized))
+        {
+            return normalized;
+        }
+
+        return BrazilianStateNames.TryGetValue(normalized, out var stateAbbr)
+            ? stateAbbr
+            : null;
     }
+
+    private static string RemoveDiacritics(string value)
+    {
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var chars = normalized
+            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+            .ToArray();
+
+        return new string(chars).Normalize(NormalizationForm.FormC);
+    }
+
+    private static readonly HashSet<string> BrazilianStates = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+        "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    };
+
+    private static readonly Dictionary<string, string> BrazilianStateNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ACRE"] = "AC",
+        ["ALAGOAS"] = "AL",
+        ["AMAPA"] = "AP",
+        ["AMAZONAS"] = "AM",
+        ["BAHIA"] = "BA",
+        ["CEARA"] = "CE",
+        ["DISTRITO FEDERAL"] = "DF",
+        ["ESPIRITO SANTO"] = "ES",
+        ["GOIAS"] = "GO",
+        ["MARANHAO"] = "MA",
+        ["MATO GROSSO"] = "MT",
+        ["MATO GROSSO DO SUL"] = "MS",
+        ["MINAS GERAIS"] = "MG",
+        ["PARA"] = "PA",
+        ["PARAIBA"] = "PB",
+        ["PARANA"] = "PR",
+        ["PERNAMBUCO"] = "PE",
+        ["PIAUI"] = "PI",
+        ["RIO DE JANEIRO"] = "RJ",
+        ["RIO GRANDE DO NORTE"] = "RN",
+        ["RIO GRANDE DO SUL"] = "RS",
+        ["RONDONIA"] = "RO",
+        ["RORAIMA"] = "RR",
+        ["SANTA CATARINA"] = "SC",
+        ["SAO PAULO"] = "SP",
+        ["SERGIPE"] = "SE",
+        ["TOCANTINS"] = "TO"
+    };
 }
 
 public class DownloadShippingLabelResult

@@ -105,14 +105,19 @@ public class MelhorEnvioService : IMelhorEnvioService
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
-    public async Task<byte[]> BaixarEtiquetaPdfAsync(string labelId, CancellationToken cancellationToken = default)
+    public async Task<string> ComprarFretesAsync(object request, CancellationToken cancellationToken = default)
     {
         AddAuth();
-        _httpClient.DefaultRequestHeaders.Accept.Clear();
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/pdf"));
 
-        var response = await _httpClient.GetAsync(
-            $"{ConfigurationPlaceholderResolver.Resolve(_settings.BaseUrl)}v2/me/imprimir/pdf/{Uri.EscapeDataString(labelId)}",
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await _httpClient.PostAsync(
+            $"{ConfigurationPlaceholderResolver.Resolve(_settings.BaseUrl)}v2/me/shipment/checkout",
+            content,
             cancellationToken
         );
 
@@ -122,7 +127,67 @@ public class MelhorEnvioService : IMelhorEnvioService
             throw new Exception(GetApiErrorMessage(error));
         }
 
-        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    public async Task<string> GerarEtiquetasAsync(object request, CancellationToken cancellationToken = default)
+    {
+        AddAuth();
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await _httpClient.PostAsync(
+            $"{ConfigurationPlaceholderResolver.Resolve(_settings.BaseUrl)}v2/me/shipment/generate",
+            content,
+            cancellationToken
+        );
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception(GetApiErrorMessage(error));
+        }
+
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    public async Task<byte[]> BaixarEtiquetaPdfAsync(string labelId, CancellationToken cancellationToken = default)
+    {
+        const int maxAttempts = 6;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            AddAuth();
+            _httpClient.DefaultRequestHeaders.Accept.Clear();
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/pdf"));
+
+            var response = await _httpClient.GetAsync(
+                $"{ConfigurationPlaceholderResolver.Resolve(_settings.BaseUrl)}v2/me/imprimir/pdf/{Uri.EscapeDataString(labelId)}",
+                cancellationToken
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            }
+
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            var message = GetApiErrorMessage(error);
+
+            if (attempt < maxAttempts && IsPdfProcessingMessage(message))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                continue;
+            }
+
+            throw new Exception(message);
+        }
+
+        throw new Exception("Etiqueta pdf nao processada.");
     }
 
     public async Task<decimal?> CalculateShippingCostAsync(
@@ -279,6 +344,13 @@ public class MelhorEnvioService : IMelhorEnvioService
         }
 
         return responseBody;
+    }
+
+    private static bool IsPdfProcessingMessage(string message)
+    {
+        return message.Contains("E-PRT-0007", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("pdf nao processada", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("pdf não processada", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void CollectErrorMessages(JsonElement element, List<string> messages)

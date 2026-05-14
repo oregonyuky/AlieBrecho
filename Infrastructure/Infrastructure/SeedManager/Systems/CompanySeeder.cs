@@ -21,17 +21,17 @@ public class CompanySeeder
         {
             CreatedAtUtc = DateTime.UtcNow,
             IsDeleted = false,
-            Name = "Acme Corp",
-            Currency = "USD",
-            Street = "123 Main St",
-            City = "Metropolis",
-            State = "New York",
-            ZipCode = "10001",
-            Country = "USA",
-            PhoneNumber = "+1-212-555-1234",
-            FaxNumber = "+1-212-555-5678",
-            EmailAddress = "info@acmecorp.com",
-            Website = "https://www.acmecorp.com"
+            Name = "AlieBrecho",
+            Currency = "BRL",
+            Street = "Rua das Flores",
+            City = "Sao Paulo",
+            State = "SP",
+            ZipCode = "01001000",
+            Country = "Brasil",
+            PhoneNumber = "11999999999",
+            FaxNumber = "",
+            EmailAddress = "contato@aliebrecho.com",
+            Website = "https://www.aliebrecho.com"
         };
 
         await _repository.CreateAsync(entity);
