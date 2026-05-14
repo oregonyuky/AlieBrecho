@@ -1,6 +1,6 @@
 ﻿@page
 @{
-    ViewData["Title"] = "Logout";
+    ViewData["Title"] = "Sair";
 }
 
 <div class="container-fluid" id="app" v-cloak>
@@ -15,8 +15,8 @@
                 <div class="col-md-12">
                     <form v-on:submit.prevent="handleSubmit">
                         <div class="form-group mb-2 text-center">
-                            <p>Are you sure you want to log out?</p>
-                            <p>Click the button below to confirm and log out completely.</p>
+                            <p>Você tem certeza que deseja sair?</p>
+                            <p>Clique no botão abaixo para confirmar e sair completamente.</p>
                         </div>
                         <button type="submit"
                                 v-bind:disabled="state.isSubmitting"
@@ -25,7 +25,7 @@
                                   v-if="state.isSubmitting"
                                   role="status"
                                   aria-hidden="true"></span>
-                            <span>{{ state.isSubmitting ? '...' : 'Log Out' }}</span>
+                            <span>{{ state.isSubmitting ? '...' : 'Sair' }}</span>
                         </button>
                     </form>
                 </div>

@@ -1,6 +1,6 @@
 ﻿@page
 @{
-    ViewData["Title"] = "My Profile";
+    ViewData["Title"] = "Meu Perfil";
 }
 
 <div id="app" v-cloak>
@@ -26,24 +26,24 @@
                             <div class="col-md-12">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h5>Main Info</h5>
+                                        <h5>Informações Principais</h5>
                                     </div>
                                     <div class="card-body">
                                         <div class="row mb-0">
                                             <div class="col-md-6">
-                                                <label for="FirstName">First Name</label>
+                                                <label for="FirstName">Primeiro Nome</label>
                                                 <input ref="firstNameRef" v-model="state.firstName" type="text" class="form-control" placeholder="">
                                                 <label class="text-danger">{{ state.errors.firstName }}</label>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="LastName">Last Name</label>
+                                                <label for="LastName">Sobrenome</label>
                                                 <input ref="lastNameRef" v-model="state.lastName" type="text" class="form-control" placeholder="">
                                                 <label class="text-danger">{{ state.errors.lastName }}</label>
                                             </div>
                                         </div>
                                         <div class="row mb-0">
                                             <div class="col-12">
-                                                <label for="CompanyName">Company Name</label>
+                                                <label for="CompanyName">Nome da Empresa</label>
                                                 <textarea ref="companyNameRef" v-model="state.companyName" class="form-control" rows="3"></textarea>
                                             </div>
                                         </div>
@@ -54,7 +54,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button"
                             id="MainSaveButton"
                             class="btn"
@@ -62,8 +62,8 @@
                             v-on:click="handler.handleSubmit"
                             v-bind:disabled="state.isSubmitting">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting" role="status" aria-hidden="true"></span>
-                        <span v-if="!state.isSubmitting">{{ state.deleteMode ? 'Delete' : 'Save' }}</span>
-                        <span v-else>{{ state.deleteMode ? 'Deleting...' : 'Saving...' }}</span>
+                        <span v-if="!state.isSubmitting">{{ state.deleteMode ? 'Excluir' : 'Salvar' }}</span>
+                        <span v-else>{{ state.deleteMode ? 'Excluindo...' : 'Salvando...' }}</span>
                     </button>
                 </div>
             </div>
@@ -85,12 +85,12 @@
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header bg-primary text-white">
-                                        Old Password
+                                        Senha Antiga
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-3">
-                                            <label for="OldPassword">Old Password</label>
-                                            <input ref="oldPasswordRef" v-model="state.oldPassword" type="password" class="form-control" placeholder="Enter old password">
+                                            <label for="OldPassword">Senha Antiga</label>
+                                            <input ref="oldPasswordRef" v-model="state.oldPassword" type="password" class="form-control" placeholder="Informe a senha antiga">
                                             <label class="text-danger">{{ state.errors.oldPassword }}</label>
                                         </div>
                                     </div>
@@ -99,17 +99,17 @@
                             <div class="col-md-6">
                                 <div class="card">
                                     <div class="card-header bg-success text-white">
-                                        New Password
+                                        Nova Senha
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-3">
-                                            <label for="NewPassword">New Password</label>
-                                            <input ref="newPasswordRef" v-model="state.newPassword" type="password" class="form-control" placeholder="Enter new password">
+                                            <label for="NewPassword">Nova Senha</label>
+                                            <input ref="newPasswordRef" v-model="state.newPassword" type="password" class="form-control" placeholder="Informe a nova senha">
                                             <label class="text-danger">{{ state.errors.newPassword }}</label>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="ConfirmNewPassword">Confirm New Password</label>
-                                            <input ref="confirmNewPasswordRef" v-model="state.confirmNewPassword" type="password" class="form-control" placeholder="Confirm new password">
+                                            <label for="ConfirmNewPassword">Confirmar Nova Senha</label>
+                                            <input ref="confirmNewPasswordRef" v-model="state.confirmNewPassword" type="password" class="form-control" placeholder="Confirme a nova senha">
                                             <label class="text-danger">{{ state.errors.confirmNewPassword }}</label>
                                         </div>
                                     </div>
@@ -119,11 +119,11 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button" id="ChangePasswordSaveButton" class="btn btn-primary" v-on:click="handler.handleChangePassword">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting" role="status" aria-hidden="true"></span>
-                        <span v-if="!state.isSubmitting">Save</span>
-                        <span v-else>Saving...</span>
+                        <span v-if="!state.isSubmitting">Salvar</span>
+                        <span v-else>Salvando...</span>
                     </button>
                 </div>
             </div>
@@ -144,7 +144,7 @@
                         <div class="col-md-12">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5>Uploader Area</h5>
+                                    <h5>Área de Carregamento</h5>
                                 </div>
                                 <div class="card-body">
                                     <form ref="imageUploadRef" id="ImageUpload" class="dropzone"></form>

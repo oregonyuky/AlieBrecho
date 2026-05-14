@@ -1,6 +1,6 @@
 ﻿@page
 @{
-	ViewData["Title"] = "Register";
+	ViewData["Title"] = "Cadastro";
 }
 <div id="app" class="container-fluid" v-cloak>
 
@@ -12,7 +12,7 @@
 				<input id="Email"
 					   name="Email"
 					   type="email"
-					   placeholder="Enter Email"
+					   placeholder="Informe o Email"
 					   class="form-control"
 					   v-model="state.email"
 					   v-on:input="state.errors.email = ''">
@@ -27,7 +27,7 @@
 				<input id="CompanyName"
 					   name="CompanyName"
 					   type="text"
-					   placeholder="Enter Company Name"
+					   placeholder="Informe o Nome da Empresa"
 					   class="form-control"
 					   v-model="state.companyName">
 				<div class="input-group-append">
@@ -40,7 +40,7 @@
 				<input id="FirstName"
 					   name="FirstName"
 					   type="text"
-					   placeholder="Enter First Name"
+					   placeholder="Informe o Primeiro Nome"
 					   class="form-control"
 					   v-model="state.firstName"
 					   v-on:input="state.errors.firstName = ''">
@@ -55,7 +55,7 @@
 				<input id="LastName"
 					   name="LastName"
 					   type="text"
-					   placeholder="Enter Last Name"
+					   placeholder="Informe o Sobrenome"
 					   class="form-control"
 					   v-model="state.lastName"
 					   v-on:input="state.errors.lastName = ''">
@@ -70,7 +70,7 @@
 				<input id="Password"
 					   name="Password"
 					   type="password"
-					   placeholder="Enter Password"
+					   placeholder="Informe a Senha"
 					   class="form-control"
 					   v-model="state.password"
 					   v-on:input="state.errors.password = ''">
@@ -85,7 +85,7 @@
 				<input id="ConfirmPassword"
 					   name="ConfirmPassword"
 					   type="password"
-					   placeholder="Re-type Password"
+					   placeholder="Repita a Senha"
 					   class="form-control"
 					   v-model="state.confirmPassword"
 					   v-on:input="state.errors.confirmPassword = ''">
@@ -114,7 +114,7 @@
 							  v-if="state.isSubmitting"
 							  role="status"
 							  aria-hidden="true"></span>
-						<span>{{ state.isSubmitting ? '...' : 'Register' }}</span>
+						<span>{{ state.isSubmitting ? '...' : 'Cadastro' }}</span>
 					</button>
 				</div>
 				<!-- /.col -->
@@ -122,22 +122,22 @@
 		</form>
 
 		<div class="social-auth-links text-center">
-			<p>- OR -</p>
+			<p>- OU -</p>
 			<a href="#" class="btn btn-block btn-primary">
 				<i class="fab fa-facebook mr-2"></i>
-				Sign up using Facebook
+				Cadastrar usando Facebook
 			</a>
 			<a href="#" class="btn btn-block btn-danger">
 				<i class="fab fa-google-plus mr-2"></i>
-				Sign up using Google+
+				Cadastrar usando Google+
 			</a>
 		</div>
 
 		<p class="mb-1">
-			<a asp-page="/Accounts/ForgotPassword">I forgot my password</a>
+			<a asp-page="/Accounts/ForgotPassword">Esqueci minha senha</a>
 		</p>
 		<p class="mb-1">
-			<a asp-page="/Accounts/Login" class="text-center">I already have a membership</a>
+			<a asp-page="/Accounts/Login" class="text-center">Eu já tenho uma conta</a>
 		</p>
 	</div>
 

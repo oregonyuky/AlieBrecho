@@ -1,6 +1,6 @@
 @page
 @{
-    ViewData["Title"] = "Product";
+    ViewData["Title"] = "Produto";
 }
 
 <style>
@@ -42,7 +42,7 @@
                     <form id="MainForm">
                         <div class="row mb-2">
                             <div class="col-md-8">
-                                <label>Name</label>
+                                <label>Nome</label>
                                 <input ref="nameRef"
                                        v-model="state.name"
                                        type="text"
@@ -52,11 +52,11 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label>Category</label>
+                                <label>Categoria</label>
                                 <select v-model="state.categoryID"
                                         class="form-control"
                                         v-bind:disabled="state.deleteMode">
-                                    <option value="">Select Category</option>
+                                    <option value="">Selecione uma Categoria</option>
                                     <option v-for="category in state.categories"
                                             v-bind:key="category.id"
                                             v-bind:value="category.id">
@@ -68,7 +68,7 @@
 
                         <div class="row mb-2">
                             <div class="col-md-3">
-                                <label>Unit Price</label>
+                                <label>Preco Unitario</label>
                                 <input v-model.number="state.unitPrice"
                                        type="number"
                                        step="0.01"
@@ -77,7 +77,7 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label>Old Price</label>
+                                <label>Preco Antigo</label>
                                 <input v-model.number="state.oldPrice"
                                        type="number"
                                        step="0.01"
@@ -86,7 +86,7 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label>Unit Weight</label>
+                                <label>Peso Unitario</label>
                                 <input v-model.number="state.unitWeight"
                                        type="number"
                                        step="0.01"
@@ -95,7 +95,7 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label>Discount Percent</label>
+                                <label>Percentual de Desconto</label>
                                 <input v-model.number="state.discountPercent"
                                        type="number"
                                        step="0.01"
@@ -106,7 +106,7 @@
 
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <label>Main Image</label>
+                                <label>Imagem Principal</label>
                                 <input ref="mainImageFileRef"
                                        type="file"
                                        accept="image/*"
@@ -118,14 +118,14 @@
                                 </small>
                                 <div class="mt-2" v-if="state.mainImagePreviewURL">
                                     <img v-bind:src="state.mainImagePreviewURL"
-                                         alt="Product image preview"
+                                         alt="Visualizacao da imagem do produto"
                                          class="img-thumbnail"
                                          style="max-height: 120px;">
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label>Alt Text</label>
+                                <label>Texto Alternativo</label>
                                 <input v-model="state.altText"
                                        type="text"
                                        class="form-control"
@@ -135,7 +135,7 @@
 
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <label>Short Description</label>
+                                <label>Descricao Curta</label>
                                 <textarea v-model="state.shortDescription"
                                           class="form-control"
                                           rows="2"
@@ -143,7 +143,7 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label>Long Description</label>
+                                <label>Descricao Longa</label>
                                 <textarea v-model="state.longDescription"
                                           class="form-control"
                                           rows="2"
@@ -153,7 +153,7 @@
 
                         <div class="row mb-2">
                             <div class="col-md-3">
-                                <label>Picture 1</label>
+                                <label>Imagem 1</label>
                                 <input ref="picture1FileRef"
                                        type="file"
                                        accept="image/*"
@@ -165,14 +165,14 @@
                                 </small>
                                 <div class="mt-2" v-if="state.picture1PreviewURL">
                                     <img v-bind:src="state.picture1PreviewURL"
-                                         alt="Picture 1 preview"
+                                         alt="Visualizacao da Imagem 1"
                                          class="img-thumbnail"
                                          style="max-height: 100px;">
                                 </div>
                             </div>
 
                             <div class="col-md-3">
-                                <label>Picture 2</label>
+                                <label>Imagem 2</label>
                                 <input ref="picture2FileRef"
                                        type="file"
                                        accept="image/*"
@@ -184,14 +184,14 @@
                                 </small>
                                 <div class="mt-2" v-if="state.picture2PreviewURL">
                                     <img v-bind:src="state.picture2PreviewURL"
-                                         alt="Picture 2 preview"
+                                         alt="Visualizacao da Imagem 2"
                                          class="img-thumbnail"
                                          style="max-height: 100px;">
                                 </div>
                             </div>
 
                             <div class="col-md-3">
-                                <label>Picture 3</label>
+                                <label>Imagem 3</label>
                                 <input ref="picture3FileRef"
                                        type="file"
                                        accept="image/*"
@@ -203,14 +203,14 @@
                                 </small>
                                 <div class="mt-2" v-if="state.picture3PreviewURL">
                                     <img v-bind:src="state.picture3PreviewURL"
-                                         alt="Picture 3 preview"
+                                         alt="Visualizacao da Imagem 3"
                                          class="img-thumbnail"
                                          style="max-height: 100px;">
                                 </div>
                             </div>
 
                             <div class="col-md-3">
-                                <label>Picture 4</label>
+                                <label>Imagem 4</label>
                                 <input ref="picture4FileRef"
                                        type="file"
                                        accept="image/*"
@@ -222,7 +222,7 @@
                                 </small>
                                 <div class="mt-2" v-if="state.picture4PreviewURL">
                                     <img v-bind:src="state.picture4PreviewURL"
-                                         alt="Picture 4 preview"
+                                         alt="Visualizacao da Imagem 4"
                                          class="img-thumbnail"
                                          style="max-height: 100px;">
                                 </div>
@@ -236,7 +236,7 @@
                                        id="ProductAvailable"
                                        v-model="state.productAvailable"
                                        v-bind:disabled="state.deleteMode">
-                                <label class="form-check-label" for="ProductAvailable">Available</label>
+                                <label class="form-check-label" for="ProductAvailable">Disponivel</label>
                             </div>
 
                             <div class="col-md-3 form-check">
@@ -245,13 +245,13 @@
                                        id="AddBadge"
                                        v-model="state.addBadge"
                                        v-bind:disabled="state.deleteMode">
-                                <label class="form-check-label" for="AddBadge">Add Badge</label>
+                                <label class="form-check-label" for="AddBadge">Adicionar Destaque</label>
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-12">
-                                <label>Note</label>
+                                <label>Nota</label>
                                 <textarea v-model="state.note"
                                           class="form-control"
                                           rows="2"
@@ -263,12 +263,12 @@
 
                         <div class="row mb-2">
                             <div class="col-12 d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">Sizes</h6>
+                                <h6 class="mb-0">Tamanhos</h6>
                                 <button type="button"
                                         class="btn btn-sm btn-outline-primary"
                                         v-on:click="handler.addSize"
                                         v-bind:disabled="state.deleteMode">
-                                    Add Size
+                                    Adicionar Tamanho
                                 </button>
                             </div>
                         </div>
@@ -277,11 +277,11 @@
                             <table class="table table-sm table-bordered align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Size</th>
-                                        <th>Bust</th>
-                                        <th>Sleeve</th>
-                                        <th>Length</th>
-                                        <th style="width: 80px;">Action</th>
+                                        <th>Tamanho</th>
+                                        <th>Busto</th>
+                                        <th>Manga</th>
+                                        <th>Comprimento</th>
+                                        <th style="width: 80px;">Acao</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -318,12 +318,12 @@
                                                     class="btn btn-sm btn-outline-danger"
                                                     v-on:click="handler.removeSize(index)"
                                                     v-bind:disabled="state.deleteMode">
-                                                Remove
+                                                Remover
                                             </button>
                                         </td>
                                     </tr>
                                     <tr v-if="state.sizes.length === 0">
-                                        <td colspan="5" class="text-center text-muted">No sizes</td>
+                                        <td colspan="5" class="text-center text-muted">Sem tamanhos</td>
                                     </tr>
                                 </tbody>
                             </table>

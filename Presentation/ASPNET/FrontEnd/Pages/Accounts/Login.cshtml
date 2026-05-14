@@ -1,6 +1,6 @@
 ﻿@page
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Entrar";
 }
 
 <div id="app" class="container-fluid" v-cloak>
@@ -29,7 +29,7 @@
                        name="Password"
                        type="password"
                        class="form-control"
-                       placeholder="Password"
+                       placeholder="Senha"
                        v-model="state.password"
                        v-on:input="state.errors.password = ''">
                 <div class="input-group-append">
@@ -44,7 +44,7 @@
                     <div class="icheck-primary">
                         <input type="checkbox">
                         <label for="remember">
-                            Remember Me
+                            Lembrar-me
                         </label>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
                               v-if="state.isSubmitting"
                               role="status"
                               aria-hidden="true"></span>
-                        <span>{{ state.isSubmitting ? '...' : 'Log In' }}</span>
+                        <span>{{ state.isSubmitting ? '...' : 'Entrar' }}</span>
                     </button>
                 </div>
                 <!-- /.col -->
@@ -65,21 +65,21 @@
         </form>
 
         <div class="social-auth-links text-center mb-3">
-            <p>- OR -</p>
+            <p>- OU -</p>
             <a href="#" class="btn btn-block btn-primary">
-                <i class="fab fa-facebook mr-2"></i> Sign in using Facebook
+                <i class="fab fa-facebook mr-2"></i> Entrar usando Facebook
             </a>
             <a href="#" class="btn btn-block btn-danger">
-                <i class="fab fa-google-plus mr-2"></i> Sign in using Google+
+                <i class="fab fa-google-plus mr-2"></i> Entrar usando Google+
             </a>
         </div>
         <!-- /.social-auth-links -->
 
         <p class="mb-1">
-            <a asp-page="/Accounts/ForgotPassword">Forgot Password</a>
+            <a asp-page="/Accounts/ForgotPassword">Esqueceu a Senha</a>
         </p>
         <p class="mb-0">
-            <a asp-page="/Accounts/Register" class="text-center">Register a new membership</a>
+            <a asp-page="/Accounts/Register" class="text-center">Registrar um novo usuário</a>
         </p>
     </div>
 
