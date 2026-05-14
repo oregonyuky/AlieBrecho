@@ -286,6 +286,79 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" ref="labelModalRef" id="ShippingLabelModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Etiqueta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="alert alert-danger" v-if="state.label.error">
+                        {{ state.label.error }}
+                    </div>
+
+                    <div class="alert alert-success" v-if="state.label.labelId && !state.label.error">
+                        Etiqueta gerada com sucesso.
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 220px;">Pedido</th>
+                                    <td>{{ state.label.orderId }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Destinatario</th>
+                                    <td>{{ state.label.recipientName || 'Nao informado' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>CEP</th>
+                                    <td>{{ state.label.postCode || 'Nao informado' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Cidade / Estado</th>
+                                    <td>{{ state.label.city || 'Nao informado' }} / {{ state.label.state || 'Nao informado' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Peso</th>
+                                    <td>{{ formatNumber(state.label.weight) }} kg</td>
+                                </tr>
+                                <tr>
+                                    <th>Dimensoes da caixa</th>
+                                    <td>{{ state.label.dimensions || 'Nao informado' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Frete</th>
+                                    <td>{{ formatCurrency(state.label.shippingCost) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Total</th>
+                                    <td>{{ formatCurrency(state.label.totalAmount) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-outline-primary" v-if="state.label.labelId" v-on:click="methods.downloadShippingLabel" v-bind:disabled="state.label.isDownloading">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isDownloading"></span>
+                        Baixar PDF da etiqueta
+                    </button>
+                    <button type="button" class="btn btn-primary" v-on:click="handler.handleGenerateShippingLabel" v-bind:disabled="state.label.isGenerating || !!state.label.labelId">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isGenerating"></span>
+                        <span v-if="state.label.isGenerating">Gerando...</span>
+                        <span v-else>Gerar etiqueta</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section scripts {

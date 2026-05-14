@@ -104,6 +104,34 @@ public class OrderController : BaseApiController
     }
 
     [Authorize]
+    [HttpPost("GenerateShippingLabel")]
+    public async Task<ActionResult<ApiSuccessResult<GenerateShippingLabelResult>>> GenerateShippingLabelAsync(
+        GenerateShippingLabelRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<GenerateShippingLabelResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GenerateShippingLabelAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpGet("DownloadShippingLabel")]
+    public async Task<IActionResult> DownloadShippingLabelAsync(
+        CancellationToken cancellationToken,
+        [FromQuery] string labelId)
+    {
+        var request = new DownloadShippingLabelRequest { LabelId = labelId };
+        var response = await _sender.Send(request, cancellationToken);
+
+        return File(response.Data, "application/pdf", $"etiqueta-{labelId}.pdf");
+    }
+
+    [Authorize]
     [HttpPost("DeleteOrder")]
     public async Task<ActionResult<ApiSuccessResult<DeleteOrderResult>>> DeleteOrderAsync(
         DeleteOrderRequest request,

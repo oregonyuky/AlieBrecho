@@ -30,6 +30,23 @@ const App = {
             postCode: ''
         });
 
+        const emptyLabel = () => ({
+            orderId: '',
+            recipientName: '',
+            postCode: '',
+            city: '',
+            state: '',
+            dimensions: '',
+            weight: 0,
+            shippingCost: 0,
+            totalAmount: 0,
+            labelId: '',
+            error: '',
+            rawResponse: '',
+            isGenerating: false,
+            isDownloading: false
+        });
+
         const emptyState = () => ({
             mainData: [],
             deleteMode: false,
@@ -51,6 +68,7 @@ const App = {
             products: [],
             shippingBoxes: [],
             paymentTypes: [],
+            label: emptyLabel(),
             paymentStatuses: ['Pending', 'Paid', 'Cancelled'],
             orderStatuses: ['Pending', 'Paid', 'Dispatched', 'Shipped', 'Delivered', 'Cancelled'],
             errors: {
@@ -68,13 +86,21 @@ const App = {
             Dispatched: 'Despachado',
             Shipped: 'Enviado',
             Delivered: 'Entregue',
-            Cancelled: 'Cancelado'
+            Cancelled: 'Cancelado',
+            LabelGenerated: 'Etiqueta gerada'
         };
 
         const translateStatus = (status) => statusLabels[status] ?? status;
 
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
+        const labelModalRef = Vue.ref(null);
+
+        const formatCurrencyBRL = (value) =>
+            Number(value || 0).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
 
         const services = {
             getMainData: async () => AxiosManager.get('/Order/GetOrderList', {}),
@@ -86,6 +112,11 @@ const App = {
             getProducts: async () => AxiosManager.get('/Product/GetProductList', {}),
             getShippingBoxes: async () => AxiosManager.get('/ShippingBox/GetShippingBoxList', {}),
             getPaymentTypes: async () => AxiosManager.get('/PaymentType/GetPaymentTypeList', {}),
+            generateShippingLabel: async (request) => AxiosManager.post('/Order/GenerateShippingLabel', request),
+            downloadShippingLabel: async (labelId) => AxiosManager.get('/Order/DownloadShippingLabel', {
+                params: { labelId },
+                responseType: 'blob'
+            }),
             calculateShippingCost: async (shippingBoxId, destinationPostCode) => AxiosManager.get('/Order/CalculateShippingCost', {
                 params: { shippingBoxId, destinationPostCode }
             })
@@ -155,6 +186,38 @@ const App = {
             if (!shippingBox) return '';
 
             return `${formatCompactNumber(shippingBox.width)}cm x ${formatCompactNumber(shippingBox.length)}cm x ${formatCompactNumber(shippingBox.height)}cm ${formatCompactNumber(shippingBox.weight)}kg`;
+        };
+
+        const formatRowShippingBoxData = (order) => {
+            const width = Number(order.shippingBoxWidth || 0);
+            const length = Number(order.shippingBoxLength || 0);
+            const height = Number(order.shippingBoxHeight || 0);
+            const weight = Number(order.shippingBoxWeight || 0);
+
+            if (!width || !length || !height) {
+                return order.shippingBoxData || '';
+            }
+
+            return `${formatCompactNumber(width)}cm x ${formatCompactNumber(length)}cm x ${formatCompactNumber(height)}cm ${formatCompactNumber(weight)}kg`;
+        };
+
+        const getApiErrorMessage = (error, fallback = 'Erro inesperado') => {
+            const message = error?.response?.data?.message ?? error?.message ?? fallback;
+            const cleanMessage = String(message).replace(/^Exception:\s*/i, '');
+
+            try {
+                const parsed = JSON.parse(cleanMessage);
+                if (parsed.message) return parsed.message;
+                if (parsed.error) return parsed.error;
+            } catch {
+                return cleanMessage;
+            }
+
+            return cleanMessage;
+        };
+
+        const resetLabel = () => {
+            state.label = emptyLabel();
         };
 
         const recalculateTotal = (shippingCost = state.shippingCost) => {
@@ -296,10 +359,10 @@ const App = {
                         { field: 'id', isPrimaryKey: true, visible: false },
                         { field: 'customerName', headerText: 'Nome do cliente', width: 180 },
                         { field: 'status', headerText: 'Status', width: 120 },
-                        { field: 'totalAmount', headerText: 'Total', width: 120, format: 'C2' },
-                        { field: 'shippingCost', headerText: 'Frete', width: 120, format: 'C2' },
-                        { field: 'shippingBoxData', headerText: 'Caixa de Papelão', width: 360 },
-                        { field: 'totalWithShipping', headerText: 'Total + Frete', width: 150, format: 'C2' },
+                        { field: 'totalAmount', headerText: 'Total', width: 120, valueAccessor: (_, data) => formatCurrencyBRL(data.totalAmount) },
+                        { field: 'shippingCost', headerText: 'Frete', width: 120, valueAccessor: (_, data) => formatCurrencyBRL(data.shippingCost) },
+                        { field: 'shippingBoxData', headerText: 'Caixa de Papelao', width: 200 },
+                        { field: 'totalWithShipping', headerText: 'Total + Frete', width: 150, valueAccessor: (_, data) => formatCurrencyBRL(data.totalWithShipping) },
                         { field: 'paymentTypeName', headerText: 'Formas de Pagamento', width: 150 },
                         { field: 'shippingPostCode', headerText: 'CEP', width: 140 },
                         {
@@ -308,7 +371,13 @@ const App = {
                             textAlign: 'Center',
                             template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Ver itens do pedido"><i class="fa fa-list"></i></button>'
                         },
-                        { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'yyyy-MM-dd HH:mm' },
+                        {
+                            headerText: 'Etiqueta',
+                            width: 130,
+                            textAlign: 'Center',
+                            template: '<button type="button" class="btn btn-sm btn-outline-success shipping-label-btn" title="Gerar etiqueta"><i class="fa fa-tag"></i> Etiqueta</button>'
+                        }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
@@ -338,6 +407,18 @@ const App = {
                             });
                         }
 
+                        const labelButton = args.row.querySelector('.shipping-label-btn');
+                        if (labelButton) {
+                            if (args.data.status !== 'Paid') {
+                                labelButton.classList.add('d-none');
+                            } else {
+                                labelButton.addEventListener('click', (event) => {
+                                    event.stopPropagation();
+                                    methods.openShippingLabel(args.data);
+                                });
+                            }
+                        }
+
                         const statusValue = args.data?.status;
                         const statusCell = statusValue
                             ? Array.from(args.row.cells).find(cell => cell.textContent.trim() === statusValue)
@@ -350,7 +431,8 @@ const App = {
                                 Dispatched: 'bg-info text-dark',
                                 Shipped: 'bg-primary',
                                 Delivered: 'bg-success',
-                                Cancelled: 'bg-danger'
+                                Cancelled: 'bg-danger',
+                                LabelGenerated: 'bg-success'
                             }[statusValue] || 'bg-secondary';
 
                             statusCell.innerHTML = `<span class="badge ${statusClass}">${translateStatus(statusValue)}</span>`;
@@ -398,6 +480,16 @@ const App = {
             }
         };
 
+        const labelModal = {
+            obj: null,
+            create: () => {
+                labelModal.obj = new bootstrap.Modal(labelModalRef.value, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }
+        };
+
         const methods = {
             populateMainData: async () => {
                 const response = await services.getMainData();
@@ -427,6 +519,44 @@ const App = {
 
                 resetForm();
                 fillOrder(order);
+            },
+            openShippingLabel: (order) => {
+                resetLabel();
+
+                state.label.orderId = order.id ?? '';
+                state.label.recipientName = order.shippingRecipientName || order.customerName || '';
+                state.label.postCode = order.shippingPostCode || '';
+                state.label.city = order.shippingCity || '';
+                state.label.state = order.shippingState || '';
+                state.label.dimensions = formatRowShippingBoxData(order);
+                state.label.weight = Number(order.shippingBoxWeight || 0);
+                state.label.shippingCost = Number(order.shippingCost || 0);
+                state.label.totalAmount = Number(order.totalAmount || 0);
+
+                labelModal.obj.show();
+            },
+            downloadShippingLabel: async () => {
+                if (!state.label.labelId) return;
+
+                try {
+                    state.label.isDownloading = true;
+                    state.label.error = '';
+
+                    const response = await services.downloadShippingLabel(state.label.labelId);
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `etiqueta-${state.label.orderId || state.label.labelId}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel baixar a etiqueta.');
+                } finally {
+                    state.label.isDownloading = false;
+                }
             },
             addOrderItem: () => {
                 state.orderDetails.push({
@@ -553,6 +683,38 @@ const App = {
         };
 
         const handler = {
+            handleGenerateShippingLabel: async () => {
+                if (!state.label.orderId) return;
+
+                try {
+                    state.label.isGenerating = true;
+                    state.label.error = '';
+                    state.label.labelId = '';
+                    state.label.rawResponse = '';
+
+                    const response = await services.generateShippingLabel({
+                        orderId: state.label.orderId
+                    });
+
+                    const result = response?.data?.content ?? {};
+                    state.label.labelId = result.labelId ?? '';
+                    state.label.rawResponse = result.rawResponse ?? '';
+
+                    const current = state.mainData.find(item => item.id === state.label.orderId);
+                    if (current) {
+                        current.status = 'LabelGenerated';
+                        mainGrid.refresh();
+                    }
+
+                    if (!state.label.labelId) {
+                        state.label.error = 'Etiqueta enviada ao carrinho, mas o Melhor Envio nao retornou um codigo para baixar o PDF.';
+                    }
+                } catch (error) {
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel gerar a etiqueta.');
+                } finally {
+                    state.label.isGenerating = false;
+                }
+            },
             handleSubmit: async () => {
                 try {
                     state.isSubmitting = true;
@@ -627,9 +789,14 @@ const App = {
 
                 await mainGrid.create(state.mainData);
                 mainModal.create();
+                labelModal.create();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
                     resetForm();
+                });
+
+                labelModalRef.value.addEventListener('hidden.bs.modal', () => {
+                    resetLabel();
                 });
 
                 try {
@@ -666,6 +833,7 @@ const App = {
             state,
             mainGridRef,
             mainModalRef,
+            labelModalRef,
             handler,
             methods,
             translateStatus,

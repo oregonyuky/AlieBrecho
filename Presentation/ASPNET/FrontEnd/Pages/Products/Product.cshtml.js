@@ -53,6 +53,12 @@ const App = {
         const picture3FileRef = Vue.ref(null);
         const picture4FileRef = Vue.ref(null);
 
+        const formatCurrencyBRL = (value) =>
+            Number(value || 0).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+
         const services = {
             getMainData: async () => {
                 try {
@@ -330,9 +336,9 @@ const App = {
                             width: 260,
                             template: '<div class="product-name-cell"><img src="${imageURL}" alt="Produto" /><span>${name}</span></div>'
                         },
-                        { field: 'unitPrice', headerText: 'Preco Unitario', width: 130, format: 'N2', textAlign: 'Right' },
-                        { field: 'oldPrice', headerText: 'Preco Antigo', width: 130, format: 'N2', textAlign: 'Right' },
-                        { field: 'discountPercent', headerText: 'Desconto %', width: 130, format: 'N2', textAlign: 'Right' },
+                        { field: 'unitPrice', headerText: 'Preco Unitario', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.unitPrice) },
+                        { field: 'oldPrice', headerText: 'Preco Antigo', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.oldPrice) },
+                        { field: 'discountPercent', headerText: 'Desconto %', width: 130, format: 'N2' },
                         { field: 'productAvailable', headerText: 'Disponivel', width: 120 },
                         { field: 'shortDescription', headerText: 'Descricao Curta', width: 250 }
                     ],

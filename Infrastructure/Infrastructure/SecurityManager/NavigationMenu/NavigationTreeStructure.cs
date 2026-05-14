@@ -34,12 +34,12 @@ public static class NavigationTreeStructure
             "Children": [
                 {
                     "URL": "/Orders/Order",
-                    "Name": "Orders",
+                    "Name": "Pedidos",
                     "IsModule": false
                 },
                 {
                     "URL": "/Bags/Bag",
-                    "Name": "Bags",
+                    "Name": "Sacolinhas",
                     "IsModule": false
                 }
             ]

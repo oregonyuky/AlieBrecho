@@ -20,8 +20,13 @@ public record GetOrderListDto
     public decimal? Taxes { get; init; }
     public decimal? ShippingCost { get; init; }
     public string? ShippingBoxData { get; init; }
+    public decimal? ShippingBoxWidth { get; init; }
+    public decimal? ShippingBoxLength { get; init; }
+    public decimal? ShippingBoxHeight { get; init; }
+    public decimal? ShippingBoxWeight { get; init; }
     public string? PaymentStatus { get; init; }
     public string? PaymentTypeName { get; init; }
+    public string? ShippingRecipientName { get; init; }
     public string? ShippingCity { get; init; }
     public string? ShippingState { get; init; }
     public string? ShippingPostCode { get; init; }
@@ -41,6 +46,11 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))
             .ForMember(dest => dest.TotalWithShipping, opt => opt.MapFrom(src => (src.TotalAmount ?? 0m) + ShippingCostCalculator.Calculate(src.ShippingBox)))
             .ForMember(dest => dest.ShippingBoxData, opt => opt.MapFrom(src => FormatShippingBoxData(src.ShippingBox)))
+            .ForMember(dest => dest.ShippingBoxWidth, opt => opt.MapFrom(src => src.ShippingBox != null ? src.ShippingBox.Width : null))
+            .ForMember(dest => dest.ShippingBoxLength, opt => opt.MapFrom(src => src.ShippingBox != null ? src.ShippingBox.Length : null))
+            .ForMember(dest => dest.ShippingBoxHeight, opt => opt.MapFrom(src => src.ShippingBox != null ? src.ShippingBox.Height : null))
+            .ForMember(dest => dest.ShippingBoxWeight, opt => opt.MapFrom(src => src.ShippingBox != null ? src.ShippingBox.Weight : null))
+            .ForMember(dest => dest.ShippingRecipientName, opt => opt.MapFrom(src => src.ShippingDetail != null ? $"{src.ShippingDetail.FirstName} {src.ShippingDetail.LastName}".Trim() : null))
             .ForMember(dest => dest.ShippingCity, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.City : null))
             .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.State : null))
             .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null));
