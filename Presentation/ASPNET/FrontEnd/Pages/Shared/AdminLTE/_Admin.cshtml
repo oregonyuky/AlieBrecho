@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -90,9 +90,9 @@
                         const currency = data[0]?.currency ?? '---';
 
                         document.getElementById('footerContent').innerHTML =
-                            `© ${year} <a href="${companyWeb}">${companyName}</a>, All Right Reserved.`;
+                            `© ${year} <a href="${companyWeb}">${companyName}</a>, Todos os direitos reservados.`;
                         document.getElementById('topbarContent').innerHTML =
-                            `Currency: ${currency}`;
+                            `Moeda: ${currency}`;
                     }
                 } catch (error) {
                     console.error('Error:', error);

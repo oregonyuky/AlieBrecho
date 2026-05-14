@@ -36,7 +36,7 @@ const App = {
             mainData: [],
             categories: [],
             deleteMode: false,
-            mainTitle: 'Edit Product',
+            mainTitle: 'Editar Produto',
             errors: {
                 name: ''
             },
@@ -271,7 +271,7 @@ const App = {
                     const imageName = response?.data?.content?.imageName;
 
                     if (!imageName) {
-                        throw new Error('Image upload failed.');
+                        throw new Error('Falha ao enviar imagem.');
                     }
 
                     state[targetField] = imageName;
@@ -326,22 +326,22 @@ const App = {
                         { field: 'id', isPrimaryKey: true, visible: false },
                         {
                             field: 'name',
-                            headerText: 'Name',
+                            headerText: 'Nome',
                             width: 260,
-                            template: '<div class="product-name-cell"><img src="${imageURL}" alt="Product" /><span>${name}</span></div>'
+                            template: '<div class="product-name-cell"><img src="${imageURL}" alt="Produto" /><span>${name}</span></div>'
                         },
-                        { field: 'unitPrice', headerText: 'Unit Price', width: 130, format: 'N2', textAlign: 'Right' },
-                        { field: 'oldPrice', headerText: 'Old Price', width: 130, format: 'N2', textAlign: 'Right' },
-                        { field: 'discountPercent', headerText: 'Discount %', width: 130, format: 'N2', textAlign: 'Right' },
-                        { field: 'productAvailable', headerText: 'Available', width: 120 },
-                        { field: 'shortDescription', headerText: 'Short Description', width: 250 }
+                        { field: 'unitPrice', headerText: 'Preco Unitario', width: 130, format: 'N2', textAlign: 'Right' },
+                        { field: 'oldPrice', headerText: 'Preco Antigo', width: 130, format: 'N2', textAlign: 'Right' },
+                        { field: 'discountPercent', headerText: 'Desconto %', width: 130, format: 'N2', textAlign: 'Right' },
+                        { field: 'productAvailable', headerText: 'Disponivel', width: 120 },
+                        { field: 'shortDescription', headerText: 'Descricao Curta', width: 250 }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
+                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -362,7 +362,7 @@ const App = {
 
                         if (args.item.id === 'AddCustom') {
                             state.deleteMode = false;
-                            state.mainTitle = 'Add Product';
+                            state.mainTitle = 'Adicionar Produto';
                             methods.resetForm();
 
                             mainModal.obj.show();
@@ -376,7 +376,7 @@ const App = {
                             const product = response?.data?.content?.data;
 
                             state.deleteMode = false;
-                            state.mainTitle = 'Edit Product';
+                            state.mainTitle = 'Editar Produto';
                             methods.setFormData(product);
 
                             mainModal.obj.show();
@@ -390,7 +390,7 @@ const App = {
                             const product = response?.data?.content?.data;
 
                             state.deleteMode = true;
-                            state.mainTitle = 'Delete Product';
+                            state.mainTitle = 'Excluir Produto';
                             methods.setFormData(product);
 
                             mainModal.obj.show();
@@ -419,7 +419,7 @@ const App = {
             obj: null,
             create: () => {
                 nameText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Name'
+                    placeholder: 'Digite o Nome'
                 });
                 nameText.obj.appendTo(nameRef.value);
             },
@@ -480,7 +480,7 @@ const App = {
 
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Delete Successful',
+                                title: 'Excluido com Sucesso',
                                 timer: 1000,
                                 showConfirmButton: false
                             });
@@ -491,8 +491,8 @@ const App = {
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Delete Failed',
-                                text: deleteResponse.data.message ?? 'Error'
+                                title: 'Falha ao Excluir',
+                                text: deleteResponse.data.message ?? 'Erro'
                             });
                         }
 
@@ -503,7 +503,7 @@ const App = {
                     state.errors.name = '';
 
                     if (!state.name) {
-                        state.errors.name = 'Name is required.';
+                        state.errors.name = 'Nome e obrigatorio.';
                         isValid = false;
                     }
 
@@ -522,7 +522,7 @@ const App = {
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
+                            title: 'Salvo com Sucesso',
                             timer: 1000,
                             showConfirmButton: false
                         });
@@ -533,8 +533,8 @@ const App = {
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Error'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Erro'
                         });
                     }
 
@@ -542,11 +542,11 @@ const App = {
                     const responseError = error.response?.data;
                     const errorText = responseError?.error?.message
                         ?? responseError?.message
-                        ?? 'Unexpected error';
+                        ?? 'Erro inesperado';
 
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
+                        title: 'Erro',
                         text: errorText
                     });
                 } finally {
@@ -570,7 +570,7 @@ const App = {
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
                     methods.resetForm();
                     state.deleteMode = false;
-                    state.mainTitle = 'Edit Product';
+                    state.mainTitle = 'Editar Produto';
                 });
 
             } catch (e) {

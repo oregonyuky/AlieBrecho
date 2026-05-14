@@ -1,6 +1,6 @@
 @page
 @{
-    ViewData["Title"] = "ShippingBox";
+    ViewData["Title"] = "Caixa de Envio";
 }
 
 <div id="app" v-cloak>
@@ -27,7 +27,7 @@
 
                         <div class="row mb-2">
                             <div class="col-4">
-                                <label>Width (cm)</label>
+                                <label>Largura (cm)</label>
                                 <input v-model="state.width"
                                        type="number"
                                        class="form-control"
@@ -36,7 +36,7 @@
                             </div>
 
                             <div class="col-4">
-                                <label>Length (cm)</label>
+                                <label>Comprimento (cm)</label>
                                 <input v-model="state.length"
                                        type="number"
                                        class="form-control"
@@ -45,7 +45,7 @@
                             </div>
 
                             <div class="col-4">
-                                <label>Height (cm)</label>
+                                <label>Altura (cm)</label>
                                 <input v-model="state.height"
                                        type="number"
                                        class="form-control"
@@ -56,7 +56,7 @@
 
                         <div class="row mb-2">
                             <div class="col-6">
-                                <label>Weight (kg)</label>
+                                <label>Peso (kg)</label>
                                 <input v-model="state.weight"
                                        type="number"
                                        step="0.01"
@@ -66,7 +66,7 @@
                             </div>
 
                             <div class="col-6">
-                                <label>Insurance Value</label>
+                                <label>Valor do Seguro</label>
                                 <input v-model="state.insuranceValue"
                                        type="number"
                                        step="0.01"
@@ -84,7 +84,7 @@
                                        v-model="state.isActive"
                                        v-bind:disabled="state.deleteMode">
                                 <label class="form-check-label" for="IsActive">
-                                    Is Active
+                                    Ativo
                                 </label>
                             </div>
                         </div>
@@ -96,7 +96,7 @@
                     <button type="button"
                             class="btn btn-secondary"
                             data-bs-dismiss="modal">
-                        Close
+                        Fechar
                     </button>
 
                     <button type="button"
@@ -110,11 +110,11 @@
                               v-if="state.isSubmitting"></span>
 
                         <span v-if="!state.isSubmitting">
-                            {{ state.deleteMode ? 'Delete' : 'Save' }}
+                            {{ state.deleteMode ? 'Excluir' : 'Salvar' }}
                         </span>
 
                         <span v-else>
-                            {{ state.deleteMode ? 'Deleting...' : 'Saving...' }}
+                            {{ state.deleteMode ? 'Excluindo...' : 'Salvando...' }}
                         </span>
                     </button>
                 </div>

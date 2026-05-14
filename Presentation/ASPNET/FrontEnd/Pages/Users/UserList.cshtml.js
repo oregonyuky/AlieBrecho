@@ -43,7 +43,7 @@
             obj: null,
             create: () => {
                 firstNameText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter First Name',
+                    placeholder: 'Digite o Primeiro Nome',
                 });
                 firstNameText.obj.appendTo(firstNameRef.value);
             },
@@ -58,7 +58,7 @@
             obj: null,
             create: () => {
                 lastNameText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Last Name',
+                    placeholder: 'Digite o Sobrenome',
                 });
                 lastNameText.obj.appendTo(lastNameRef.value);
             },
@@ -73,7 +73,7 @@
             obj: null,
             create: () => {
                 emailText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Email',
+                    placeholder: 'Digite o Email',
                 });
                 emailText.obj.appendTo(emailRef.value);
             },
@@ -118,31 +118,31 @@
             let isValid = true;
 
             if (!state.firstName) {
-                state.errors.firstName = 'First Name is required.';
+                state.errors.firstName = 'Primeiro nome e obrigatorio.';
                 isValid = false;
             }
             if (!state.lastName) {
-                state.errors.lastName = 'Last Name is required.';
+                state.errors.lastName = 'Sobrenome e obrigatorio.';
                 isValid = false;
             }
             if (!state.email) {
-                state.errors.email = 'Email is required.';
+                state.errors.email = 'Email e obrigatorio.';
                 isValid = false;
             } else if (!/\S+@\S+\.\S+/.test(state.email)) {
-                state.errors.email = 'Please enter a valid email address.';
+                state.errors.email = 'Digite um email valido.';
                 isValid = false;
             }
             if (state.id === '') {
                 if (!state.password) {
-                    state.errors.password = 'Password is required.';
+                    state.errors.password = 'Senha e obrigatoria.';
                     isValid = false;
                 }
                 if (!state.confirmPassword) {
-                    state.errors.confirmPassword = 'Confirm Password is required.';
+                    state.errors.confirmPassword = 'Confirmacao de senha e obrigatoria.';
                     isValid = false;
                 }
                 if (state.password && state.confirmPassword && state.password !== state.confirmPassword) {
-                    state.errors.confirmPassword = 'Password and Confirm Password must match.';
+                    state.errors.confirmPassword = 'Senha e confirmacao devem ser iguais.';
                     isValid = false;
                 }
             }
@@ -156,10 +156,10 @@
             let isValid = true;
 
             if (!state.newPassword) {
-                state.errors.newPassword = 'New Password is required.';
+                state.errors.newPassword = 'Nova senha e obrigatoria.';
                 isValid = false;
             } else if (state.newPassword.length < 6) {
-                state.errors.newPassword = 'New Password must be at least 6 characters.';
+                state.errors.newPassword = 'A nova senha deve ter pelo menos 6 caracteres.';
                 isValid = false;
             }
 
@@ -325,7 +325,7 @@
                         mainGrid.refresh();
 
                         if (!state.deleteMode) {
-                            state.mainTitle = state.id === '' ? 'Add User' : 'Edit User';
+                            state.mainTitle = state.id === '' ? 'Adicionar Usuario' : 'Editar Usuario';
                             state.id = response?.data?.content?.data.userId ?? '';
                             state.firstName = response?.data?.content?.data.firstName ?? '';
                             state.lastName = response?.data?.content?.data.lastName ?? '';
@@ -336,8 +336,8 @@
 
                             Swal.fire({
                                 icon: 'success',
-                                title: state.deleteMode ? 'Delete Successful' : 'Save Successful',
-                                text: 'Form will be closed...',
+                                title: state.deleteMode ? 'Excluido com Sucesso' : 'Salvo com Sucesso',
+                                text: 'O formulario sera fechado...',
                                 timer: 2000,
                                 showConfirmButton: false
                             });
@@ -348,8 +348,8 @@
                         } else {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Delete Successful',
-                                text: 'Form will be closed...',
+                                title: 'Excluido com Sucesso',
+                                text: 'O formulario sera fechado...',
                                 timer: 2000,
                                 showConfirmButton: false
                             });
@@ -362,17 +362,17 @@
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: state.deleteMode ? 'Delete Failed' : 'Save Failed',
-                            text: response.data.message ?? 'Please check your data.',
-                            confirmButtonText: 'Try Again'
+                            title: state.deleteMode ? 'Falha ao Excluir' : 'Falha ao Salvar',
+                            text: response.data.message ?? 'Verifique seus dados.',
+                            confirmButtonText: 'Tentar Novamente'
                         });
                     }
 
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'An Error Occurred',
-                        text: error.response?.data?.message ?? 'Please try again.',
+                        title: 'Ocorreu um Erro',
+                        text: error.response?.data?.message ?? 'Tente novamente.',
                         confirmButtonText: 'OK'
                     });
                 } finally {
@@ -393,8 +393,8 @@
                     if (response.data.code === 200) {
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
-                            text: 'Password has been updated.',
+                            title: 'Salvo com Sucesso',
+                            text: 'Senha atualizada.',
                             timer: 2000,
                             showConfirmButton: false
                         });
@@ -405,17 +405,17 @@
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Please check your data.',
-                            confirmButtonText: 'Try Again'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Verifique seus dados.',
+                            confirmButtonText: 'Tentar Novamente'
                         });
                     }
 
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'An Error Occurred',
-                        text: error.response?.data?.message ?? 'Please try again.',
+                        title: 'Ocorreu um Erro',
+                        text: error.response?.data?.message ?? 'Tente novamente.',
                         confirmButtonText: 'OK'
                     });
                 } finally {
@@ -486,22 +486,22 @@
                         {
                             field: 'id', isPrimaryKey: true, headerText: 'Id', visible: false
                         },
-                        { field: 'firstName', headerText: 'First Name', width: 150, minWidth: 150 },
-                        { field: 'lastName', headerText: 'Last Name', width: 150, minWidth: 150 },
+                        { field: 'firstName', headerText: 'Primeiro Nome', width: 150, minWidth: 150 },
+                        { field: 'lastName', headerText: 'Sobrenome', width: 150, minWidth: 150 },
                         { field: 'email', headerText: 'Email', width: 150, minWidth: 150 },
-                        { field: 'emailConfirmed', headerText: 'Email Confirmed', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
-                        { field: 'isBlocked', headerText: 'Is Blocked', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
-                        { field: 'isDeleted', headerText: 'Is Deleted', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
-                        { field: 'createdAt', headerText: 'Created At', width: 150, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'emailConfirmed', headerText: 'Email Confirmado', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
+                        { field: 'isBlocked', headerText: 'Bloqueado', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
+                        { field: 'isDeleted', headerText: 'Excluido', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
+                        { field: 'createdAt', headerText: 'Criado Em', width: 150, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' },
-                        { text: 'Change Password', tooltipText: 'Change Password', id: 'ChangePasswordCustom' },
-                        { text: 'Change Role', tooltipText: 'Change Role', id: 'ChangeRoleCustom' },
+                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' },
+                        { text: 'Alterar Senha', tooltipText: 'Alterar Senha', id: 'ChangePasswordCustom' },
+                        { text: 'Alterar Perfil', tooltipText: 'Alterar Perfil', id: 'ChangeRoleCustom' },
                     ],
                     beforeDataBound: () => { },
                     dataBound: function () {
@@ -535,7 +535,7 @@
 
                         if (args.item.id === 'AddCustom') {
                             state.deleteMode = false;
-                            state.mainTitle = 'Add User';
+                            state.mainTitle = 'Adicionar Usuario';
                             resetFormState();
                             mainModal.obj.show();
                         }
@@ -544,7 +544,7 @@
                             state.deleteMode = false;
                             if (mainGrid.obj.getSelectedRecords().length) {
                                 const selectedRecord = mainGrid.obj.getSelectedRecords()[0];
-                                state.mainTitle = 'Edit User';
+                                state.mainTitle = 'Editar Usuario';
                                 state.id = selectedRecord.id ?? '';
                                 state.firstName = selectedRecord.firstName ?? '';
                                 state.lastName = selectedRecord.lastName ?? '';
@@ -560,7 +560,7 @@
                             state.deleteMode = true;
                             if (mainGrid.obj.getSelectedRecords().length) {
                                 const selectedRecord = mainGrid.obj.getSelectedRecords()[0];
-                                state.mainTitle = 'Delete User?';
+                                state.mainTitle = 'Excluir Usuario?';
                                 state.id = selectedRecord.id ?? '';
                                 state.firstName = selectedRecord.firstName ?? '';
                                 state.lastName = selectedRecord.lastName ?? '';
@@ -575,7 +575,7 @@
                         if (args.item.id === 'ChangePasswordCustom') {
                             if (mainGrid.obj.getSelectedRecords().length) {
                                 const selectedRecord = mainGrid.obj.getSelectedRecords()[0];
-                                state.changePasswordTitle = 'Change Password';
+                                state.changePasswordTitle = 'Alterar Senha';
                                 state.userId = selectedRecord.id ?? '';
                                 changePasswordModal.obj.show();
                             }
@@ -584,7 +584,7 @@
                         if (args.item.id === 'ChangeRoleCustom') {
                             if (mainGrid.obj.getSelectedRecords().length) {
                                 const selectedRecord = mainGrid.obj.getSelectedRecords()[0];
-                                state.changeRoleTitle = 'Change Roles';
+                                state.changeRoleTitle = 'Alterar Perfis';
                                 state.userId = selectedRecord.id ?? '';
                                 await methods.populateSecondaryData(state.userId);
                                 secondaryGrid.refresh();
@@ -628,8 +628,8 @@
                         {
                             field: 'id', isPrimaryKey: true, headerText: 'Id', visible: false
                         },
-                        { field: 'roleName', headerText: 'Role', allowEditing: false, width: 200, minWidth: 200 },
-                        { field: 'accessGranted', headerText: 'Access Granted', textAlign: 'Center', width: 150, minWidth: 150, editType: 'booleanedit', displayAsCheckBox: true, type: 'boolean', allowEditing: true },
+                        { field: 'roleName', headerText: 'Perfil', allowEditing: false, width: 200, minWidth: 200 },
+                        { field: 'accessGranted', headerText: 'Acesso Concedido', textAlign: 'Center', width: 150, minWidth: 150, editType: 'booleanedit', displayAsCheckBox: true, type: 'boolean', allowEditing: true },
                     ],
                     toolbar: [
                         'ExcelExport',
@@ -678,23 +678,23 @@
                                     secondaryGrid.obj.clearSelection();
                                     Swal.fire({
                                         icon: 'success',
-                                        title: 'Save Successful',
+                                        title: 'Salvo com Sucesso',
                                         timer: 1000,
                                         showConfirmButton: false
                                     });
                                 } else {
                                     Swal.fire({
                                         icon: 'error',
-                                        title: 'Save Failed',
-                                        text: response.data.message ?? 'Please check your data.',
-                                        confirmButtonText: 'Try Again'
+                                        title: 'Falha ao Salvar',
+                                        text: response.data.message ?? 'Verifique seus dados.',
+                                        confirmButtonText: 'Tentar Novamente'
                                     });
                                 }
                             } catch (error) {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'An Error Occurred',
-                                    text: error.response?.data?.message ?? 'Please try again.',
+                                    title: 'Ocorreu um Erro',
+                                    text: error.response?.data?.message ?? 'Tente novamente.',
                                     confirmButtonText: 'OK'
                                 });
                             }

@@ -335,7 +335,7 @@
                     <button type="button"
                             class="btn btn-secondary"
                             data-bs-dismiss="modal">
-                        Close
+                        Fechar
                     </button>
 
                     <button type="button"
@@ -349,11 +349,11 @@
                               v-if="state.isSubmitting"></span>
 
                         <span v-if="!state.isSubmitting">
-                            {{ state.deleteMode ? 'Delete' : 'Save' }}
+                            {{ state.deleteMode ? 'Excluir' : 'Salvar' }}
                         </span>
 
                         <span v-else>
-                            {{ state.deleteMode ? 'Deleting...' : 'Saving...' }}
+                            {{ state.deleteMode ? 'Excluindo...' : 'Salvando...' }}
                         </span>
                     </button>
                 </div>

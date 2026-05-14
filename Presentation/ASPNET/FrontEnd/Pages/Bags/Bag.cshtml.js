@@ -2,7 +2,7 @@ const App = {
     setup() {
         const state = Vue.reactive({
             mainData: [],
-            mainTitle: 'Edit Bag',
+            mainTitle: 'Editar Sacola',
             id: '',
             customerName: '',
             status: 'Active',
@@ -20,6 +20,17 @@ const App = {
 
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
+
+        const bagStatusLabels = {
+            Active: 'Ativa',
+            Closed: 'Fechada',
+            Expired: 'Expirada',
+            Abandoned: 'Abandonada',
+            ReadyToShip: 'Pronta para Envio',
+            Shipped: 'Enviada'
+        };
+
+        const translateBagStatus = (status) => bagStatusLabels[status] ?? status;
 
         const services = {
             getMainData: async () => AxiosManager.get('/Bag/GetBagList', {}),
@@ -46,21 +57,21 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'customerName', headerText: 'Customer', width: 180 },
-                        { field: 'status', headerText: 'Status', width: 120 },
-                        { field: 'totalItemsValue', headerText: 'Items Total', width: 130, format: 'C2' },
-                        { field: 'shippingCost', headerText: 'Shipping', width: 120, format: 'C2' },
-                        { field: 'totalWeight', headerText: 'Weight', width: 110 },
-                        { field: 'itemCount', headerText: 'Items', width: 90 },
+                        { field: 'customerName', headerText: 'Cliente', width: 180 },
+                        { field: 'statusDisplay', headerText: 'Status', width: 120 },
+                        { field: 'totalItemsValue', headerText: 'Total dos Itens', width: 130, format: 'C2' },
+                        { field: 'shippingCost', headerText: 'Frete', width: 120, format: 'C2' },
+                        { field: 'totalWeight', headerText: 'Peso', width: 110 },
+                        { field: 'itemCount', headerText: 'Itens', width: 90 },
                         {
-                            headerText: 'Details', width: 120, textAlign: 'Center', template: '<button type="button" class="btn btn-sm btn-outline-primary bag-detail-btn" title="Show bag items"><i class="fa fa-list"></i></button>'
+                            headerText: 'Detalhes', width: 120, textAlign: 'Center', template: '<button type="button" class="btn btn-sm btn-outline-primary bag-detail-btn" title="Ver itens da sacola"><i class="fa fa-list"></i></button>'
                         },
-                        { field: 'lastInteractionAt', headerText: 'Last Interaction', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'lastInteractionAt', headerText: 'Ultima Interacao', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'Search',
                         { type: 'Separator' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' }
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -120,6 +131,7 @@ const App = {
                 const response = await services.getMainData();
                 state.mainData = (response?.data?.content?.data ?? []).map((item) => ({
                     ...item,
+                    statusDisplay: translateBagStatus(item.status),
                     lastInteractionAt: item.lastInteractionAt ? new Date(item.lastInteractionAt) : null
                 }));
             },
@@ -147,31 +159,31 @@ const App = {
                     const items = bag?.items ?? [];
 
                     if (!items.length) {
-                        return Swal.fire({ icon: 'info', title: 'Bag Details', text: 'No items found for this bag.' });
+                        return Swal.fire({ icon: 'info', title: 'Detalhes da Sacola', text: 'Nenhum item encontrado para esta sacola.' });
                     }
 
                     const rows = items.map((item) => `
                         <tr>
-                            <td>${item.productName || 'Unknown'}</td>
+                            <td>${item.productName || 'Desconhecido'}</td>
                             <td class="text-end">${item.quantity}</td>
                             <td class="text-end">${Number(item.price || 0).toFixed(2)}</td>
                             <td class="text-end">${Number(item.weight || 0).toFixed(3)}</td>
-                            <td class="text-center">${item.isPaid ? 'Yes' : 'No'}</td>
+                            <td class="text-center">${item.isPaid ? 'Sim' : 'Nao'}</td>
                         </tr>
                     `).join('');
 
                     await Swal.fire({
-                        title: 'Bag Items',
+                        title: 'Itens da Sacola',
                         html: `
                             <div class="table-responsive">
                                 <table class="table table-sm table-bordered">
                                     <thead>
                                         <tr>
-                                            <th>Product</th>
-                                            <th class="text-end">Qty</th>
-                                            <th class="text-end">Price</th>
-                                            <th class="text-end">Weight</th>
-                                            <th class="text-center">Paid</th>
+                                            <th>Produto</th>
+                                            <th class="text-end">Qtd</th>
+                                            <th class="text-end">Preco</th>
+                                            <th class="text-end">Peso</th>
+                                            <th class="text-center">Pago</th>
                                         </tr>
                                     </thead>
                                     <tbody>${rows}</tbody>
@@ -179,10 +191,10 @@ const App = {
                             </div>
                         `,
                         width: 760,
-                        confirmButtonText: 'Close'
+                        confirmButtonText: 'Fechar'
                     });
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: error.response?.data?.message ?? 'Unable to load bag details' });
+                    Swal.fire({ icon: 'error', title: 'Erro', text: error.response?.data?.message ?? 'Nao foi possivel carregar os detalhes da sacola' });
                 }
             }
         };
@@ -211,8 +223,8 @@ const App = {
                         mainGrid.refresh();
                         Swal.fire({
                             icon: 'success',
-                            title: 'Success',
-                            text: 'Bag updated successfully',
+                            title: 'Sucesso',
+                            text: 'Sacola atualizada com sucesso',
                             timer: 1200,
                             showConfirmButton: false
                         });
@@ -221,8 +233,8 @@ const App = {
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: error.response?.data?.message ?? 'Unable to update bag'
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Nao foi possivel atualizar a sacola'
                     });
                 } finally {
                     state.isSubmitting = false;
@@ -240,6 +252,7 @@ const App = {
             state,
             mainGridRef,
             mainModalRef,
+            translateBagStatus,
             handler
         };
     }

@@ -3,7 +3,7 @@
         const state = Vue.reactive({
             mainData: [],
             deleteMode: false,
-            mainTitle: 'Edit Company',
+            mainTitle: 'Editar Empresa',
             id: '',
             name: '',
             description: '',
@@ -107,17 +107,17 @@
                         {
                             field: 'id', isPrimaryKey: true, headerText: 'Id', visible: false
                         },
-                        { field: 'name', headerText: 'Name', width: 150, minWidth: 150 },
-                        { field: 'currency', headerText: 'Currency', width: 150, minWidth: 150 },
-                        { field: 'street', headerText: 'Street', width: 150, minWidth: 150 },
-                        { field: 'phoneNumber', headerText: 'Phone#', width: 150, minWidth: 150 },
+                        { field: 'name', headerText: 'Nome', width: 150, minWidth: 150 },
+                        { field: 'currency', headerText: 'Moeda', width: 150, minWidth: 150 },
+                        { field: 'street', headerText: 'Rua', width: 150, minWidth: 150 },
+                        { field: 'phoneNumber', headerText: 'Telefone', width: 150, minWidth: 150 },
                         { field: 'emailAddress', headerText: 'Email', width: 150, minWidth: 150 },
-                        { field: 'createdAtUtc', headerText: 'Created At UTC', width: 150, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'createdAtUtc', headerText: 'Criado Em UTC', width: 150, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
                         { type: 'Separator' },
                     ],
                     beforeDataBound: () => { },
@@ -205,7 +205,7 @@
             obj: null,
             create: () => {
                 nameText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Name',
+                    placeholder: 'Digite o Nome',
                 });
                 nameText.obj.appendTo(nameRef.value);
             },
@@ -220,7 +220,7 @@
             obj: null,
             create: () => {
                 currencyText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Currency',
+                    placeholder: 'Digite a Moeda',
                 });
                 currencyText.obj.appendTo(currencyRef.value);
             },
@@ -235,7 +235,7 @@
             obj: null,
             create: () => {
                 streetText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Street',
+                    placeholder: 'Digite a Rua',
                 });
                 streetText.obj.appendTo(streetRef.value);
             },
@@ -250,7 +250,7 @@
             obj: null,
             create: () => {
                 cityText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter City',
+                    placeholder: 'Digite a Cidade',
                 });
                 cityText.obj.appendTo(cityRef.value);
             },
@@ -265,7 +265,7 @@
             obj: null,
             create: () => {
                 stateText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter State',
+                    placeholder: 'Digite o Estado',
                 });
                 stateText.obj.appendTo(stateRef.value);
             },
@@ -280,7 +280,7 @@
             obj: null,
             create: () => {
                 zipCodeText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Zip Code',
+                    placeholder: 'Digite o CEP',
                 });
                 zipCodeText.obj.appendTo(zipCodeRef.value);
             },
@@ -295,7 +295,7 @@
             obj: null,
             create: () => {
                 countryText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Country',
+                    placeholder: 'Digite o Pais',
                 });
                 countryText.obj.appendTo(countryRef.value);
             },
@@ -310,7 +310,7 @@
             obj: null,
             create: () => {
                 phoneNumberText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Phone Number',
+                    placeholder: 'Digite o Telefone',
                 });
                 phoneNumberText.obj.appendTo(phoneNumberRef.value);
             },
@@ -325,7 +325,7 @@
             obj: null,
             create: () => {
                 faxNumberText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Fax Number',
+                    placeholder: 'Digite o Fax',
                 });
                 faxNumberText.obj.appendTo(faxNumberRef.value);
             },
@@ -340,7 +340,7 @@
             obj: null,
             create: () => {
                 emailAddressText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Email Address',
+                    placeholder: 'Digite o Email',
                 });
                 emailAddressText.obj.appendTo(emailAddressRef.value);
             },
@@ -355,7 +355,7 @@
             obj: null,
             create: () => {
                 websiteText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Website',
+                    placeholder: 'Digite o Website',
                 });
                 websiteText.obj.appendTo(websiteRef.value);
             },
@@ -459,10 +459,21 @@
 
                     // Validation
                     let isValid = true;
+                    const fieldLabels = {
+                        name: 'Nome',
+                        currency: 'Moeda',
+                        street: 'Rua',
+                        city: 'Cidade',
+                        state: 'Estado',
+                        zipCode: 'CEP',
+                        phoneNumber: 'Telefone',
+                        emailAddress: 'Email'
+                    };
+
                     Object.keys(state.errors).forEach(field => {
                         state.errors[field] = '';
                         if (!state[field] && ['name', 'currency', 'street', 'city', 'state', 'zipCode', 'phoneNumber', 'emailAddress'].includes(field)) {
-                            state.errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required.`;
+                            state.errors[field] = `${fieldLabels[field]} e obrigatorio.`;
                             isValid = false;
                         }
                     });
@@ -491,8 +502,8 @@
                         mainGrid.refresh();
                         Swal.fire({
                             icon: 'success',
-                            title: state.deleteMode ? 'Delete Successful' : 'Save Successful',
-                            text: 'Page will be refreshed...',
+                            title: state.deleteMode ? 'Excluido com Sucesso' : 'Salvo com Sucesso',
+                            text: 'A pagina sera atualizada...',
                             timer: 1000,
                             showConfirmButton: false
                         });
@@ -505,17 +516,17 @@
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: state.deleteMode ? 'Delete Failed' : 'Save Failed',
-                            text: response.data.message ?? 'Please check your data.',
-                            confirmButtonText: 'Try Again'
+                            title: state.deleteMode ? 'Falha ao Excluir' : 'Falha ao Salvar',
+                            text: response.data.message ?? 'Verifique seus dados.',
+                            confirmButtonText: 'Tentar Novamente'
                         });
                     }
 
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'An Error Occurred',
-                        text: error.response?.data?.message ?? 'Please try again.',
+                        title: 'Ocorreu um Erro',
+                        text: error.response?.data?.message ?? 'Tente novamente.',
                         confirmButtonText: 'OK'
                     });
                 } finally {

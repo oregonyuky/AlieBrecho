@@ -3,7 +3,7 @@ const App = {
         const state = Vue.reactive({
             mainData: [],
             deleteMode: false,
-            mainTitle: 'Edit Payment Type',
+            mainTitle: 'Editar Forma de Pagamento',
             id: '',
             typeName: '',
             description: '',
@@ -80,17 +80,17 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'typeName', headerText: 'Type Name', width: 200 },
-                        { field: 'description', headerText: 'Description', width: 250 },
-                        { field: 'isActive', headerText: 'Active', width: 120 },
-                        { field: 'createdAt', headerText: 'Created At', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'typeName', headerText: 'Nome do Tipo', width: 200 },
+                        { field: 'description', headerText: 'Descricao', width: 250 },
+                        { field: 'isActive', headerText: 'Ativo', width: 120 },
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
+                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -111,7 +111,7 @@ const App = {
 
                         if (args.item.id === 'AddCustom') {
                             state.deleteMode = false;
-                            state.mainTitle = 'Add Payment Type';
+                            state.mainTitle = 'Adicionar Forma de Pagamento';
                             state.id = '';
                             state.typeName = '';
                             state.description = '';
@@ -125,7 +125,7 @@ const App = {
                             if (!selected) return;
 
                             state.deleteMode = false;
-                            state.mainTitle = 'Edit Payment Type';
+                            state.mainTitle = 'Editar Forma de Pagamento';
                             state.id = selected.id ?? '';
                             state.typeName = selected.typeName ?? '';
                             state.description = selected.description ?? '';
@@ -139,7 +139,7 @@ const App = {
                             if (!selected) return;
 
                             state.deleteMode = true;
-                            state.mainTitle = 'Delete Payment Type';
+                            state.mainTitle = 'Excluir Forma de Pagamento';
                             state.id = selected.id ?? '';
                             state.typeName = selected.typeName ?? '';
                             state.description = selected.description ?? '';
@@ -181,7 +181,7 @@ const App = {
             obj: null,
             create: () => {
                 typeNameText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Type Name'
+                    placeholder: 'Digite o Nome do Tipo'
                 });
                 typeNameText.obj.appendTo(typeNameRef.value);
             },
@@ -210,7 +210,7 @@ const App = {
 
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Delete Successful',
+                                title: 'Excluido com Sucesso',
                                 timer: 1000,
                                 showConfirmButton: false
                             });
@@ -221,8 +221,8 @@ const App = {
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Delete Failed',
-                                text: deleteResponse.data.message ?? 'Error'
+                                title: 'Falha ao Excluir',
+                                text: deleteResponse.data.message ?? 'Erro'
                             });
                         }
 
@@ -233,7 +233,7 @@ const App = {
                     state.errors.typeName = '';
 
                     if (!state.typeName) {
-                        state.errors.typeName = 'Type Name is required.';
+                        state.errors.typeName = 'Nome do tipo e obrigatorio.';
                         isValid = false;
                     }
 
@@ -258,7 +258,7 @@ const App = {
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
+                            title: 'Salvo com Sucesso',
                             timer: 1000,
                             showConfirmButton: false
                         });
@@ -269,16 +269,16 @@ const App = {
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Error'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Erro'
                         });
                     }
 
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: error.response?.data?.message ?? 'Unexpected error'
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Erro inesperado'
                     });
                 } finally {
                     state.isSubmitting = false;
@@ -303,7 +303,7 @@ const App = {
                     state.description = '';
                     state.isActive = true;
                     state.deleteMode = false;
-                    state.mainTitle = 'Edit Payment Type';
+                    state.mainTitle = 'Editar Forma de Pagamento';
                     state.errors = { typeName: '', description: '' };
                 });
 

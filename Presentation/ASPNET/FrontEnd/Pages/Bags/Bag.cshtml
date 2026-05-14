@@ -1,6 +1,6 @@
 @page
 @{
-    ViewData["Title"] = "Bags";
+    ViewData["Title"] = "Sacolas";
 }
 
 <div id="app" v-cloak>
@@ -27,41 +27,41 @@
                         <div class="col-6">
                             <label>Status</label>
                             <select class="form-select" v-model="state.status">
-                                <option v-for="item in state.bagStatuses" :value="item">{{ item }}</option>
+                                <option v-for="item in state.bagStatuses" :value="item">{{ translateBagStatus(item) }}</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label>Customer</label>
+                            <label>Cliente</label>
                             <input type="text" class="form-control" :value="state.customerName" disabled />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-4">
-                            <label>Total Items Value</label>
+                            <label>Valor Total dos Itens</label>
                             <input type="number" class="form-control" v-model.number="state.totalItemsValue" />
                         </div>
                         <div class="col-4">
-                            <label>Shipping Cost</label>
+                            <label>Frete</label>
                             <input type="number" class="form-control" v-model.number="state.shippingCost" />
                         </div>
                         <div class="col-4">
-                            <label>Total Weight</label>
+                            <label>Peso Total</label>
                             <input type="number" class="form-control" v-model.number="state.totalWeight" />
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-4">
-                            <label>Expiration Date</label>
+                            <label>Data de Expiracao</label>
                             <input type="datetime-local" class="form-control" v-model="state.expirationDate" />
                         </div>
                         <div class="col-4">
-                            <label>Last Interaction</label>
+                            <label>Ultima Interacao</label>
                             <input type="datetime-local" class="form-control" v-model="state.lastInteractionAt" />
                         </div>
                         <div class="col-4">
-                            <label>Closed At</label>
+                            <label>Fechada Em</label>
                             <input type="datetime-local" class="form-control" v-model="state.closedAt" />
                         </div>
                     </div>
@@ -69,21 +69,21 @@
                     <div class="row mb-3">
                         <div class="col-4 d-flex align-items-center pt-4">
                             <input id="allItemsPaid" class="form-check-input me-2" type="checkbox" v-model="state.allItemsPaid" />
-                            <label for="allItemsPaid" class="mb-0">All Items Paid</label>
+                            <label for="allItemsPaid" class="mb-0">Todos os Itens Pagos</label>
                         </div>
                         <div class="col-8">
-                            <label>Notes</label>
+                            <label>Notas</label>
                             <textarea class="form-control" v-model="state.notes" rows="2"></textarea>
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button" id="MainSaveButton" class="btn btn-primary" v-on:click="handler.handleSubmit" v-bind:disabled="state.isSubmitting">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
-                        <span v-if="!state.isSubmitting">Save</span>
-                        <span v-else>Saving...</span>
+                        <span v-if="!state.isSubmitting">Salvar</span>
+                        <span v-else>Salvando...</span>
                     </button>
                 </div>
             </div>

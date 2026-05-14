@@ -1,6 +1,6 @@
 ﻿@page
 @{
-    ViewData["Title"] = "User List";
+    ViewData["Title"] = "Lista de Usuarios";
 }
 
 <div id="app" v-cloak>
@@ -17,24 +17,24 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.mainTitle }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" v-model="state.id" id="Id" name="Id" />
                     <form id="MainForm">
                         <div class="card mb-3">
                             <div class="card-header">
-                                <h5>User Info</h5>
+                                <h5>Informacoes do Usuario</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row mb-2">
                                     <div class="col-md-6">
-                                        <label for="FirstName">First Name</label>
+                                        <label for="FirstName">Primeiro Nome</label>
                                         <input ref="firstNameRef" v-model="state.firstName">
                                         <label class="text-danger">{{ state.errors.firstName }}</label>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="LastName">Last Name</label>
+                                        <label for="LastName">Sobrenome</label>
                                         <input ref="lastNameRef" v-model="state.lastName">
                                         <label class="text-danger">{{ state.errors.lastName }}</label>
                                     </div>
@@ -49,7 +49,7 @@
                                     <div class="col-md-6">
                                         <div class="form-check mt-4">
                                             <input v-model="state.emailConfirmed" id="EmailConfirmed" name="EmailConfirmed" type="checkbox" class="form-check-input">
-                                            <label for="EmailConfirmed" class="form-check-label">Email Confirmed</label>
+                                            <label for="EmailConfirmed" class="form-check-label">Email Confirmado</label>
                                         </div>
                                     </div>
                                 </div>
@@ -58,13 +58,13 @@
                                     <div class="col-md-6">
                                         <div class="form-check">
                                             <input v-model="state.isBlocked" id="IsBlocked" name="IsBlocked" type="checkbox" class="form-check-input">
-                                            <label for="IsBlocked" class="form-check-label">Is Blocked</label>
+                                            <label for="IsBlocked" class="form-check-label">Bloqueado</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-check">
                                             <input v-model="state.isDeleted" id="IsDeleted" name="IsDeleted" type="checkbox" class="form-check-input">
-                                            <label for="IsDeleted" class="form-check-label">Is Deleted</label>
+                                            <label for="IsDeleted" class="form-check-label">Excluido</label>
                                         </div>
                                     </div>
                                 </div>
@@ -73,18 +73,18 @@
 
                         <div id="PasswordCard" class="card" v-show="!state.id">
                             <div class="card-header">
-                                <h5>User Password</h5>
+                                <h5>Senha do Usuario</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row mb-2">
                                     <div class="col-md-6">
-                                        <label for="Password">Password</label>
-                                        <input v-model="state.password" id="Password" name="Password" type="password" class="form-control" placeholder="Enter Password">
+                                        <label for="Password">Senha</label>
+                                        <input v-model="state.password" id="Password" name="Password" type="password" class="form-control" placeholder="Digite a senha">
                                         <label class="text-danger">{{ state.errors.password }}</label>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="ConfirmPassword">Confirm Password</label>
-                                        <input v-model="state.confirmPassword" id="ConfirmPassword" name="ConfirmPassword" type="password" class="form-control" placeholder="Confirm Password">
+                                        <label for="ConfirmPassword">Confirmar Senha</label>
+                                        <input v-model="state.confirmPassword" id="ConfirmPassword" name="ConfirmPassword" type="password" class="form-control" placeholder="Confirme a senha">
                                         <label class="text-danger">{{ state.errors.confirmPassword }}</label>
                                     </div>
                                 </div>
@@ -93,7 +93,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button"
                             id="MainSaveButton"
                             class="btn"
@@ -101,8 +101,8 @@
                             v-on:click="handler.handleSubmit"
                             v-bind:disabled="state.isSubmitting">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting" role="status" aria-hidden="true"></span>
-                        <span v-if="!state.isSubmitting">{{ state.deleteMode ? 'Delete' : 'Save' }}</span>
-                        <span v-else>{{ state.deleteMode ? 'Deleting...' : 'Saving...' }}</span>
+                        <span v-if="!state.isSubmitting">{{ state.deleteMode ? 'Excluir' : 'Salvar' }}</span>
+                        <span v-else>{{ state.deleteMode ? 'Excluindo...' : 'Salvando...' }}</span>
                     </button>
                 </div>
             </div>
@@ -114,7 +114,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.changePasswordTitle }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" v-model="state.userId" id="UserId" name="UserId" />
@@ -123,12 +123,12 @@
                             <div class="col-md-12">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h5>Password</h5>
+                                        <h5>Senha</h5>
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-3">
-                                            <label for="NewPassword">New Password</label>
-                                            <input v-model="state.newPassword" id="NewPassword" name="NewPassword" type="password" class="form-control" placeholder="Enter new password">
+                                            <label for="NewPassword">Nova Senha</label>
+                                            <input v-model="state.newPassword" id="NewPassword" name="NewPassword" type="password" class="form-control" placeholder="Digite a nova senha">
                                             <label class="text-danger">{{ state.errors.newPassword }}</label>
                                         </div>
                                     </div>
@@ -138,15 +138,15 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button"
                             id="ChangePasswordSaveButton"
                             class="btn btn-primary"
                             v-on:click="handler.handleChangePassword"
                             v-bind:disabled="state.isChangePasswordSubmitting">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isChangePasswordSubmitting" role="status" aria-hidden="true"></span>
-                        <span v-if="!state.isChangePasswordSubmitting">Save</span>
-                        <span v-else>Saving...</span>
+                        <span v-if="!state.isChangePasswordSubmitting">Salvar</span>
+                        <span v-else>Salvando...</span>
                     </button>
                 </div>
             </div>
@@ -158,7 +158,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.changeRoleTitle }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" v-model="state.userId" id="UserId" name="UserId" />
@@ -166,7 +166,7 @@
                         <div class="col-md-12">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5>User Roles</h5>
+                                    <h5>Perfis do Usuario</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
@@ -182,7 +182,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>

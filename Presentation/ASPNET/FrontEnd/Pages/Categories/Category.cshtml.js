@@ -3,7 +3,7 @@ const App = {
         const state = Vue.reactive({
             mainData: [],
             deleteMode: false,
-            mainTitle: 'Edit Category',
+            mainTitle: 'Editar Categoria',
             id: '',
             name: '',
             description: '',
@@ -81,17 +81,17 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'name', headerText: 'Name', width: 200 },
-                        { field: 'description', headerText: 'Description', width: 250 },
-                        { field: 'isActive', headerText: 'Active', width: 120 },
-                        { field: 'createdAt', headerText: 'Created At', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'name', headerText: 'Nome', width: 200 },
+                        { field: 'description', headerText: 'Descricao', width: 250 },
+                        { field: 'isActive', headerText: 'Ativo', width: 120 },
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
+                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -112,7 +112,7 @@ const App = {
 
                         if (args.item.id === 'AddCustom') {
                             state.deleteMode = false;
-                            state.mainTitle = 'Add Category';
+                            state.mainTitle = 'Adicionar Categoria';
                             state.id = '';
                             state.name = '';
                             state.description = '';
@@ -126,7 +126,7 @@ const App = {
                             if (!selected) return;
 
                             state.deleteMode = false;
-                            state.mainTitle = 'Edit Category';
+                            state.mainTitle = 'Editar Categoria';
                             state.id = selected.id ?? '';
                             state.name = selected.name ?? '';
                             state.description = selected.description ?? '';
@@ -140,7 +140,7 @@ const App = {
                             if (!selected) return;
 
                             state.deleteMode = true;
-                            state.mainTitle = 'Delete Category';
+                            state.mainTitle = 'Excluir Categoria';
                             state.id = selected.id ?? '';
                             state.name = selected.name ?? '';
                             state.description = selected.description ?? '';
@@ -183,7 +183,7 @@ const App = {
             obj: null,
             create: () => {
                 nameText.obj = new ej.inputs.TextBox({
-                    placeholder: 'Enter Name'
+                    placeholder: 'Digite o Nome'
                 });
                 nameText.obj.appendTo(nameRef.value);
             },
@@ -212,7 +212,7 @@ const App = {
 
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Delete Successful',
+                                title: 'Excluido com Sucesso',
                                 timer: 1000,
                                 showConfirmButton: false
                             });
@@ -223,8 +223,8 @@ const App = {
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Delete Failed',
-                                text: deleteResponse.data.message ?? 'Error'
+                                title: 'Falha ao Excluir',
+                                text: deleteResponse.data.message ?? 'Erro'
                             });
                         }
 
@@ -236,7 +236,7 @@ const App = {
                     state.errors.name = '';
 
                     if (!state.name) {
-                        state.errors.name = 'Name is required.';
+                        state.errors.name = 'Nome e obrigatorio.';
                         isValid = false;
                     }
 
@@ -261,7 +261,7 @@ const App = {
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
+                            title: 'Salvo com Sucesso',
                             timer: 1000,
                             showConfirmButton: false
                         });
@@ -272,16 +272,16 @@ const App = {
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Error'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Erro'
                         });
                     }
 
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: error.response?.data?.message ?? 'Unexpected error'
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Erro inesperado'
                     });
                 } finally {
                     state.isSubmitting = false;
@@ -306,7 +306,7 @@ const App = {
                     state.description = '';
                     state.isActive = true;
                     state.deleteMode = false;
-                    state.mainTitle = 'Edit Category';
+                    state.mainTitle = 'Editar Categoria';
                     state.errors = { name: '', description: '' };
                 });
 

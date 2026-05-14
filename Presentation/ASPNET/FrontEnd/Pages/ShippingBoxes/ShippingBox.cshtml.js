@@ -3,7 +3,7 @@ const App = {
         const state = Vue.reactive({
             mainData: [],
             deleteMode: false,
-            mainTitle: 'Edit ShippingBox',
+            mainTitle: 'Editar Caixa de Envio',
             id: '',
             width: null,
             length: null,
@@ -59,20 +59,20 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'width', headerText: 'Width', width: 120 },
-                        { field: 'length', headerText: 'Length', width: 120 },
-                        { field: 'height', headerText: 'Height', width: 120 },
-                        { field: 'weight', headerText: 'Weight', width: 120 },
-                        { field: 'insuranceValue', headerText: 'Insurance', width: 140 },
-                        { field: 'isActive', headerText: 'Active', width: 100 },
-                        { field: 'createdAt', headerText: 'Created At', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'width', headerText: 'Largura', width: 120 },
+                        { field: 'length', headerText: 'Comprimento', width: 120 },
+                        { field: 'height', headerText: 'Altura', width: 120 },
+                        { field: 'weight', headerText: 'Peso', width: 120 },
+                        { field: 'insuranceValue', headerText: 'Seguro', width: 140 },
+                        { field: 'isActive', headerText: 'Ativo', width: 100 },
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
+                        { text: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -96,7 +96,7 @@ const App = {
                         if (args.item.id === 'AddCustom') {
                             Object.assign(state, {
                                 deleteMode: false,
-                                mainTitle: 'Add ShippingBox',
+                                mainTitle: 'Adicionar Caixa de Envio',
                                 id: '',
                                 width: null,
                                 length: null,
@@ -111,7 +111,7 @@ const App = {
                         if (args.item.id === 'EditCustom' && selected) {
                             Object.assign(state, {
                                 deleteMode: false,
-                                mainTitle: 'Edit ShippingBox',
+                                mainTitle: 'Editar Caixa de Envio',
                                 id: selected.id,
                                 width: selected.width,
                                 length: selected.length,
@@ -126,7 +126,7 @@ const App = {
                         if (args.item.id === 'DeleteCustom' && selected) {
                             Object.assign(state, {
                                 deleteMode: true,
-                                mainTitle: 'Delete ShippingBox',
+                                mainTitle: 'Excluir Caixa de Envio',
                                 id: selected.id,
                                 width: selected.width,
                                 length: selected.length,
@@ -198,7 +198,7 @@ const App = {
 
                     Swal.fire({
                         icon: 'success',
-                        title: 'Success',
+                        title: 'Sucesso',
                         timer: 1000,
                         showConfirmButton: false
                     });
@@ -206,8 +206,8 @@ const App = {
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: error.response?.data?.message ?? 'Unexpected error'
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Erro inesperado'
                     });
                 } finally {
                     state.isSubmitting = false;

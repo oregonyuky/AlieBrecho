@@ -3,7 +3,7 @@ const App = {
         const getInitialState = () => ({
             mainData: [],
             deleteMode: false,
-            mainTitle: 'Edit Customer',
+            mainTitle: 'Editar Cliente',
             id: '',
             name: '',
             description: '',
@@ -30,6 +30,11 @@ const App = {
         });
 
         const state = Vue.reactive(getInitialState());
+
+        const translateCustomerStatus = (status) => ({
+            Active: 'Ativo',
+            Inactive: 'Inativo'
+        }[status] ?? status);
 
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
@@ -112,20 +117,20 @@ const App = {
                     columns: [
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'name', headerText: 'Name', width: 180 },
+                        { field: 'name', headerText: 'Nome', width: 180 },
                         { field: 'cpf', headerText: 'CPF', width: 140 },
-                        { field: 'phoneNumber', headerText: 'Phone', width: 150 },
+                        { field: 'phoneNumber', headerText: 'Telefone', width: 150 },
                         { field: 'emailAddress', headerText: 'Email', width: 220 },
                         { field: 'postalCode', headerText: 'CEP', width: 160 },
-                        { field: 'customerStatus', headerText: 'Status', width: 120 },
-                        { field: 'createdAt', headerText: 'Created At', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'customerStatusDisplay', headerText: 'Status', width: 120 },
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
+                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -147,7 +152,7 @@ const App = {
                         if (args.item.id === 'AddCustom') {
                             resetForm();
                             state.deleteMode = false;
-                            state.mainTitle = 'Add Customer';
+                            state.mainTitle = 'Adicionar Cliente';
                             mainModal.obj.show();
                         }
 
@@ -156,7 +161,7 @@ const App = {
                             if (!selected) return;
 
                             state.deleteMode = false;
-                            state.mainTitle = 'Edit Customer';
+                            state.mainTitle = 'Editar Cliente';
                             fillStateFromRow(selected);
                             mainModal.obj.show();
                         }
@@ -166,7 +171,7 @@ const App = {
                             if (!selected) return;
 
                             state.deleteMode = true;
-                            state.mainTitle = 'Delete Customer';
+                            state.mainTitle = 'Excluir Cliente';
                             fillStateFromRow(selected);
                             mainModal.obj.show();
                         }
@@ -186,6 +191,7 @@ const App = {
 
                 state.mainData = (response?.data?.content?.data ?? []).map((item) => ({
                     ...item,
+                    customerStatusDisplay: translateCustomerStatus(item.customerStatus),
                     createdAt: new Date(item.createdAt)
                 }));
             }
@@ -208,7 +214,7 @@ const App = {
                     state.errors.name = '';
 
                     if (!state.deleteMode && !state.name) {
-                        state.errors.name = 'Name is required.';
+                        state.errors.name = 'Nome e obrigatorio.';
                         return;
                     }
 
@@ -221,7 +227,7 @@ const App = {
 
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Delete Successful',
+                                title: 'Excluido com Sucesso',
                                 timer: 1000,
                                 showConfirmButton: false
                             });
@@ -245,7 +251,7 @@ const App = {
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
+                            title: 'Salvo com Sucesso',
                             timer: 1000,
                             showConfirmButton: false
                         });
@@ -256,15 +262,15 @@ const App = {
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Error'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Erro'
                         });
                     }
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: error.response?.data?.message ?? 'Unexpected error'
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Erro inesperado'
                     });
                 } finally {
                     state.isSubmitting = false;

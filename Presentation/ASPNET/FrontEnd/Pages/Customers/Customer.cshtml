@@ -1,6 +1,6 @@
 @page
 @{
-    ViewData["Title"] = "Customer";
+    ViewData["Title"] = "Cliente";
 }
 
 <div id="app" v-cloak>
@@ -26,15 +26,15 @@
                     <form id="MainForm">
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <label>Name</label>
+                                <label>Nome</label>
                                 <input v-model="state.name" type="text" class="form-control" :disabled="state.deleteMode">
                                 <label class="text-danger">{{ state.errors.name }}</label>
                             </div>
                             <div class="col-md-6">
                                 <label>Status</label>
                                 <select v-model="state.customerStatus" class="form-control" :disabled="state.deleteMode">
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
+                                    <option value="Active">Ativo</option>
+                                    <option value="Inactive">Inativo</option>
                                 </select>
                             </div>
                         </div>
@@ -45,14 +45,14 @@
                                 <input v-model="state.cpf" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-6">
-                                <label>Phone Number</label>
+                                <label>Telefone</label>
                                 <input v-model="state.phoneNumber" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <label>Email Address</label>
+                                <label>Email</label>
                                 <input v-model="state.emailAddress" type="email" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-6">
@@ -63,48 +63,48 @@
 
                         <div class="row mb-2">
                             <div class="col-12">
-                                <label>Description</label>
+                                <label>Descricao</label>
                                 <textarea v-model="state.description" class="form-control" rows="2" :disabled="state.deleteMode"></textarea>
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <label>Street</label>
+                                <label>Rua</label>
                                 <input v-model="state.street" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-2">
-                                <label>Number</label>
+                                <label>Numero</label>
                                 <input v-model="state.number" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-4">
-                                <label>Neighborhood</label>
+                                <label>Bairro</label>
                                 <input v-model="state.neighborhood" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-4">
-                                <label>Complement</label>
+                                <label>Complemento</label>
                                 <input v-model="state.complement" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-3">
-                                <label>City</label>
+                                <label>Cidade</label>
                                 <input v-model="state.city" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-2">
-                                <label>State</label>
+                                <label>Estado</label>
                                 <input v-model="state.stateRegion" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-3">
-                                <label>Postal Code</label>
+                                <label>CEP</label>
                                 <input v-model="state.postalCode" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-4">
-                                <label>Country</label>
+                                <label>Pais</label>
                                 <input v-model="state.country" type="text" class="form-control" :disabled="state.deleteMode">
                             </div>
                             <div class="col-md-4">
@@ -128,7 +128,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Close
+                        Fechar
                     </button>
 
                     <button type="button"
@@ -141,11 +141,11 @@
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
 
                         <span v-if="!state.isSubmitting">
-                            {{ state.deleteMode ? 'Delete' : 'Save' }}
+                            {{ state.deleteMode ? 'Excluir' : 'Salvar' }}
                         </span>
 
                         <span v-else>
-                            {{ state.deleteMode ? 'Deleting...' : 'Saving...' }}
+                            {{ state.deleteMode ? 'Excluindo...' : 'Salvando...' }}
                         </span>
                     </button>
                 </div>

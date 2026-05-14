@@ -33,7 +33,7 @@ const App = {
         const emptyState = () => ({
             mainData: [],
             deleteMode: false,
-            mainTitle: 'Edit Order',
+            mainTitle: 'Editar Pedido',
             id: '',
             customerId: '',
             status: 'Pending',
@@ -61,6 +61,17 @@ const App = {
         });
 
         const state = Vue.reactive(emptyState());
+
+        const statusLabels = {
+            Pending: 'Pendente',
+            Paid: 'Pago',
+            Dispatched: 'Despachado',
+            Shipped: 'Enviado',
+            Delivered: 'Entregue',
+            Cancelled: 'Cancelado'
+        };
+
+        const translateStatus = (status) => statusLabels[status] ?? status;
 
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
@@ -284,7 +295,7 @@ const App = {
                         { type: 'checkbox', width: 60 },
                         { field: 'id', isPrimaryKey: true, visible: false },
                         { field: 'customerName', headerText: 'Nome do cliente', width: 180 },
-                        { field: 'status', headerText: 'estado', width: 120 },
+                        { field: 'status', headerText: 'Status', width: 120 },
                         { field: 'totalAmount', headerText: 'Total', width: 120, format: 'C2' },
                         { field: 'shippingCost', headerText: 'Frete', width: 120, format: 'C2' },
                         { field: 'shippingBoxData', headerText: 'Caixa de Papelão', width: 360 },
@@ -292,19 +303,19 @@ const App = {
                         { field: 'paymentTypeName', headerText: 'Formas de Pagamento', width: 150 },
                         { field: 'shippingPostCode', headerText: 'CEP', width: 140 },
                         {
-                            headerText: 'Items',
+                            headerText: 'Itens',
                             width: 120,
                             textAlign: 'Center',
-                            template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Show order items"><i class="fa fa-list"></i></button>'
+                            template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Ver itens do pedido"><i class="fa fa-list"></i></button>'
                         },
-                        { field: 'orderDate', headerText: 'Order Date', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Add', tooltipText: 'Add', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Delete', tooltipText: 'Delete', prefixIcon: 'e-delete', id: 'DeleteCustom' }
+                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
                     ],
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -342,7 +353,7 @@ const App = {
                                 Cancelled: 'bg-danger'
                             }[statusValue] || 'bg-secondary';
 
-                            statusCell.innerHTML = `<span class="badge ${statusClass}">${statusValue}</span>`;
+                            statusCell.innerHTML = `<span class="badge ${statusClass}">${translateStatus(statusValue)}</span>`;
                         }
                     },
                     toolbarClick: async (args) => {
@@ -353,7 +364,7 @@ const App = {
                         if (args.item.id === 'AddCustom') {
                             resetForm();
                             state.deleteMode = false;
-                            state.mainTitle = 'Add Order';
+                            state.mainTitle = 'Adicionar Pedido';
                             methods.addOrderItem();
                             mainModal.obj.show();
                         }
@@ -364,7 +375,7 @@ const App = {
 
                             await methods.loadOrder(selected.id);
                             state.deleteMode = args.item.id === 'DeleteCustom';
-                            state.mainTitle = state.deleteMode ? 'Delete Order' : 'Edit Order';
+                            state.mainTitle = state.deleteMode ? 'Excluir Pedido' : 'Editar Pedido';
                             mainModal.obj.show();
                         }
                     }
@@ -457,32 +468,32 @@ const App = {
                 if (!shippingBox) {
                     Swal.fire({
                         icon: 'info',
-                        title: 'Shipping Box',
-                        text: 'Select a shipping box first.'
+                        title: 'Caixa de Envio',
+                        text: 'Selecione uma caixa de envio primeiro.'
                     });
                     return;
                 }
 
                 Swal.fire({
-                    title: 'Shipping Box',
+                    title: 'Caixa de Envio',
                     html: `
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered text-start">
                                 <tbody>
-                                    <tr><th>Width</th><td>${formatNumber(shippingBox.width)} cm</td></tr>
-                                    <tr><th>Length</th><td>${formatNumber(shippingBox.length)} cm</td></tr>
-                                    <tr><th>Height</th><td>${formatNumber(shippingBox.height)} cm</td></tr>
-                                    <tr><th>Weight</th><td>${formatNumber(shippingBox.weight)} kg</td></tr>
-                                    <tr><th>Cubic Weight</th><td>${formatNumber(calculateCubicWeight(shippingBox))} kg</td></tr>
-                                    <tr><th>Charged Weight</th><td>${formatNumber(calculateChargedWeight(shippingBox))} kg</td></tr>
-                                    <tr><th>Insurance Value</th><td>${formatCurrency(shippingBox.insuranceValue)}</td></tr>
-                                    <tr><th>Shipping Cost</th><td>${formatCurrency(state.shippingCost)}</td></tr>
+                                    <tr><th>Largura</th><td>${formatNumber(shippingBox.width)} cm</td></tr>
+                                    <tr><th>Comprimento</th><td>${formatNumber(shippingBox.length)} cm</td></tr>
+                                    <tr><th>Altura</th><td>${formatNumber(shippingBox.height)} cm</td></tr>
+                                    <tr><th>Peso</th><td>${formatNumber(shippingBox.weight)} kg</td></tr>
+                                    <tr><th>Peso Cubico</th><td>${formatNumber(calculateCubicWeight(shippingBox))} kg</td></tr>
+                                    <tr><th>Peso Cobrado</th><td>${formatNumber(calculateChargedWeight(shippingBox))} kg</td></tr>
+                                    <tr><th>Valor do Seguro</th><td>${formatCurrency(shippingBox.insuranceValue)}</td></tr>
+                                    <tr><th>Frete</th><td>${formatCurrency(state.shippingCost)}</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     `,
                     width: 560,
-                    confirmButtonText: 'Close'
+                    confirmButtonText: 'Fechar'
                 });
             },
             showOrderDetails: async (id) => {
@@ -492,7 +503,7 @@ const App = {
                     const items = order?.orderDetails ?? [];
 
                     if (!items.length) {
-                        return Swal.fire({ icon: 'info', title: 'Order Details', text: 'No items found for this order.' });
+                        return Swal.fire({ icon: 'info', title: 'Detalhes do Pedido', text: 'Nenhum item encontrado para este pedido.' });
                     }
 
                     const rows = items.map(item => {
@@ -504,8 +515,8 @@ const App = {
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
-                                        ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Product'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:1rem;" />` : `<span class="badge bg-secondary">No Image</span>`}
-                                        <span>${item.productName || 'Unknown'}</span>
+                                        ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Produto'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:1rem;" />` : `<span class="badge bg-secondary">Sem Imagem</span>`}
+                                        <span>${item.productName || 'Desconhecido'}</span>
                                     </div>
                                 </td>
                                 <td class="text-end">${item.quantity}</td>
@@ -516,15 +527,15 @@ const App = {
                     }).join('');
 
                     await Swal.fire({
-                        title: 'Order Items',
+                        title: 'Itens do Pedido',
                         html: `
                             <div class="table-responsive">
                                 <table class="table table-sm table-bordered">
                                     <thead>
                                         <tr>
-                                            <th>Product</th>
-                                            <th class="text-end">Qty</th>
-                                            <th class="text-end">Unit</th>
+                                            <th>Produto</th>
+                                            <th class="text-end">Qtd</th>
+                                            <th class="text-end">Unitario</th>
                                             <th class="text-end">Total</th>
                                         </tr>
                                     </thead>
@@ -533,10 +544,10 @@ const App = {
                             </div>
                         `,
                         width: 780,
-                        confirmButtonText: 'Close'
+                        confirmButtonText: 'Fechar'
                     });
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: error.response?.data?.message ?? 'Unable to load order details' });
+                    Swal.fire({ icon: 'error', title: 'Erro', text: error.response?.data?.message ?? 'Nao foi possivel carregar os detalhes do pedido' });
                 }
             }
         };
@@ -554,7 +565,7 @@ const App = {
                         if (deleteResponse.data.code === 200) {
                             await methods.populateMainData();
                             mainGrid.refresh();
-                            Swal.fire({ icon: 'success', title: 'Delete Successful', timer: 1000, showConfirmButton: false });
+                            Swal.fire({ icon: 'success', title: 'Excluido com Sucesso', timer: 1000, showConfirmButton: false });
                             setTimeout(() => mainModal.obj.hide(), 1000);
                         }
 
@@ -562,12 +573,12 @@ const App = {
                     }
 
                     if (!state.customerId) {
-                        state.errors.customerId = 'Customer is required.';
+                        state.errors.customerId = 'Cliente e obrigatorio.';
                         return;
                     }
 
                     if (!state.orderDetails.length || state.orderDetails.some(x => !x.productId)) {
-                        state.errors.orderDetails = 'Add at least one product.';
+                        state.errors.orderDetails = 'Adicione pelo menos um produto.';
                         return;
                     }
 
@@ -581,13 +592,13 @@ const App = {
                         await methods.populateMainData();
                         mainGrid.refresh();
 
-                        Swal.fire({ icon: 'success', title: 'Save Successful', timer: 1000, showConfirmButton: false });
+                        Swal.fire({ icon: 'success', title: 'Salvo com Sucesso', timer: 1000, showConfirmButton: false });
                         setTimeout(() => mainModal.obj.hide(), 1000);
                     } else {
-                        Swal.fire({ icon: 'error', title: 'Save Failed', text: response.data.message ?? 'Error' });
+                        Swal.fire({ icon: 'error', title: 'Falha ao Salvar', text: response.data.message ?? 'Erro' });
                     }
                 } catch (error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: error.response?.data?.message ?? 'Unexpected error' });
+                    Swal.fire({ icon: 'error', title: 'Erro', text: error.response?.data?.message ?? 'Erro inesperado' });
                 } finally {
                     state.isSubmitting = false;
                 }
@@ -627,8 +638,8 @@ const App = {
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Orders',
-                        text: error.response?.data?.message ?? 'Unable to load orders.'
+                        title: 'Pedidos',
+                        text: error.response?.data?.message ?? 'Nao foi possivel carregar os pedidos.'
                     });
                 }
 
@@ -637,16 +648,16 @@ const App = {
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Order Lookups',
-                        text: error.response?.data?.message ?? 'Unable to load customers, products, shipping boxes or payment types.'
+                        title: 'Dados do Pedido',
+                        text: error.response?.data?.message ?? 'Nao foi possivel carregar clientes, produtos, caixas de envio ou formas de pagamento.'
                     });
                 }
             } catch (e) {
                 console.error(e);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Orders',
-                    text: e.response?.data?.message ?? e.message ?? 'Unable to open Orders page.'
+                    title: 'Pedidos',
+                    text: e.response?.data?.message ?? e.message ?? 'Nao foi possivel abrir a pagina de pedidos.'
                 });
             }
         });
@@ -657,6 +668,7 @@ const App = {
             mainModalRef,
             handler,
             methods,
+            translateStatus,
             formatDate,
             calculateItemsTotal,
             calculateCubicWeight,

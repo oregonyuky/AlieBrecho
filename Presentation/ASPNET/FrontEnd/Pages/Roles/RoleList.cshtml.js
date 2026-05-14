@@ -44,7 +44,7 @@
                         {
                             field: 'id', isPrimaryKey: true, headerText: 'Id', visible: false
                         },
-                        { field: 'name', headerText: 'Name', width: 300, minWidth: 300 },
+                        { field: 'name', headerText: 'Nome', width: 300, minWidth: 300 },
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',

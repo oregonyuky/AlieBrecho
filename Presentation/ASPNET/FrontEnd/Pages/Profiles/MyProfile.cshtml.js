@@ -9,9 +9,9 @@
             oldPassword: '',
             newPassword: '',
             confirmNewPassword: '',
-            mainTitle: 'Edit MyProfile',
-            changePasswordTitle: 'Change Password',
-            changeAvatarTitle: 'Change Avatar',
+            mainTitle: 'Editar Meu Perfil',
+            changePasswordTitle: 'Alterar Senha',
+            changeAvatarTitle: 'Alterar Avatar',
             errors: {
                 firstName: '',
                 lastName: '',
@@ -115,17 +115,17 @@
                         {
                             field: 'id', isPrimaryKey: true, headerText: 'Id', visible: false
                         },
-                        { field: 'firstName', headerText: 'First Name', width: 200, minWidth: 200 },
-                        { field: 'lastName', headerText: 'Last Name', width: 200, minWidth: 200 },
-                        { field: 'companyName', headerText: 'Company Name', width: 400, minWidth: 400 },
+                        { field: 'firstName', headerText: 'Primeiro Nome', width: 200, minWidth: 200 },
+                        { field: 'lastName', headerText: 'Sobrenome', width: 200, minWidth: 200 },
+                        { field: 'companyName', headerText: 'Empresa', width: 400, minWidth: 400 },
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
                         { type: 'Separator' },
-                        { text: 'Edit', tooltipText: 'Edit', prefixIcon: 'e-edit', id: 'EditCustom' },
+                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
                         { type: 'Separator' },
-                        { text: 'Change Password', tooltipText: 'Change Password', id: 'ChangePasswordCustom' },
-                        { text: 'Change Avatar', tooltipText: 'Change Avatar', id: 'ChangeAvatarCustom' },
+                        { text: 'Alterar Senha', tooltipText: 'Alterar Senha', id: 'ChangePasswordCustom' },
+                        { text: 'Alterar Avatar', tooltipText: 'Alterar Avatar', id: 'ChangeAvatarCustom' },
                     ],
                     beforeDataBound: () => { },
                     dataBound: function () {
@@ -204,13 +204,13 @@
 
                 // Validasi firstName
                 if (!state.firstName) {
-                    state.errors.firstName = 'First Name is required.';
+                    state.errors.firstName = 'Primeiro nome e obrigatorio.';
                     isValid = false;
                 }
 
                 // Validasi lastName
                 if (!state.lastName) {
-                    state.errors.lastName = 'Last Name is required.';
+                    state.errors.lastName = 'Sobrenome e obrigatorio.';
                     isValid = false;
                 }
 
@@ -226,8 +226,8 @@
                         mainGrid.refresh();
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
-                            text: 'Form will be closed...',
+                            title: 'Salvo com Sucesso',
+                            text: 'O formulario sera fechado...',
                             timer: 2000,
                             showConfirmButton: false
                         });
@@ -237,16 +237,16 @@
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Please check your data.',
-                            confirmButtonText: 'Try Again'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Verifique seus dados.',
+                            confirmButtonText: 'Tentar Novamente'
                         });
                     }
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'An Error Occurred',
-                        text: error.response?.data?.message ?? 'Please try again.',
+                        title: 'Ocorreu um Erro',
+                        text: error.response?.data?.message ?? 'Tente novamente.',
                         confirmButtonText: 'OK'
                     });
                 } finally {
@@ -264,28 +264,28 @@
 
                 // old password validation
                 if (!state.oldPassword) {
-                    state.errors.oldPassword = 'Old Password is required.';
+                    state.errors.oldPassword = 'Senha antiga e obrigatoria.';
                     isValid = false;
                 } else if (state.oldPassword.length < 6) {
-                    state.errors.oldPassword = 'Old Password must be at least 6 characters.';
+                    state.errors.oldPassword = 'A senha antiga deve ter pelo menos 6 caracteres.';
                     isValid = false;
                 }
 
                 // new password validation
                 if (!state.newPassword) {
-                    state.errors.newPassword = 'New Password is required.';
+                    state.errors.newPassword = 'Nova senha e obrigatoria.';
                     isValid = false;
                 } else if (state.newPassword.length < 6) {
-                    state.errors.newPassword = 'New Password must be at least 6 characters.';
+                    state.errors.newPassword = 'A nova senha deve ter pelo menos 6 caracteres.';
                     isValid = false;
                 }
 
                 // confirm new password validation
                 if (!state.confirmNewPassword) {
-                    state.errors.confirmNewPassword = 'Confirm New Password is required.';
+                    state.errors.confirmNewPassword = 'Confirme a nova senha.';
                     isValid = false;
                 } else if (state.confirmNewPassword.length < 6) {
-                    state.errors.confirmNewPassword = 'Confirm New Password must be at least 6 characters.';
+                    state.errors.confirmNewPassword = 'A confirmacao deve ter pelo menos 6 caracteres.';
                     isValid = false;
                 }
 
@@ -299,8 +299,8 @@
                     if (response.data.code === 200) {
                         Swal.fire({
                             icon: 'success',
-                            title: 'Save Successful',
-                            text: 'Form will be closed...',
+                            title: 'Salvo com Sucesso',
+                            text: 'O formulario sera fechado...',
                             timer: 2000,
                             showConfirmButton: false
                         });
@@ -310,16 +310,16 @@
                     } else {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Save Failed',
-                            text: response.data.message ?? 'Please check your data.',
-                            confirmButtonText: 'Try Again'
+                            title: 'Falha ao Salvar',
+                            text: response.data.message ?? 'Verifique seus dados.',
+                            confirmButtonText: 'Tentar Novamente'
                         });
                     }
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'An Error Occurred',
-                        text: error.response?.data?.message ?? 'Please try again.',
+                        title: 'Ocorreu um Erro',
+                        text: error.response?.data?.message ?? 'Tente novamente.',
                         confirmButtonText: 'OK'
                     });
                 } finally {
@@ -336,9 +336,8 @@
 
                         Swal.fire({
                             icon: "success",
-                            title: "Upload Successful",
-                            text: "Your image has been uploaded successfully!",
-                            text: 'Page will be refreshed...',
+                            title: "Upload realizado com Sucesso",
+                            text: 'A pagina sera atualizada...',
                             timer: 1000,
                             showConfirmButton: false
                         });
@@ -350,15 +349,15 @@
                     } else {
                         Swal.fire({
                             icon: "error",
-                            title: "Upload Failed",
-                            text: response.message ?? "An error occurred during upload."
+                            title: "Falha no Upload",
+                            text: response.message ?? "Ocorreu um erro durante o upload."
                         });
                     }
                 } catch (error) {
                     Swal.fire({
                         icon: "error",
-                        title: "Upload Failed",
-                        text: "An unexpected error occurred."
+                        title: "Falha no Upload",
+                        text: "Ocorreu um erro inesperado."
                     });
                 }
             },
@@ -402,7 +401,7 @@
                     maxFilesize: 5,
                     acceptedFiles: "image/*",
                     addRemoveLinks: true,
-                    dictDefaultMessage: "Drag and drop an image here to upload",
+                    dictDefaultMessage: "Arraste e solte uma imagem aqui para enviar",
                     autoProcessQueue: false,
                     init: function () {
                         this.on("addedfile", async function (file) {
