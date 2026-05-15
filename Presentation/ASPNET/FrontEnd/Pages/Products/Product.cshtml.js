@@ -1,5 +1,7 @@
 const App = {
     setup() {
+        const LOW_STOCK_THRESHOLD = 3;
+
         const emptyState = () => ({
             id: '',
             name: '',
@@ -39,6 +41,12 @@ const App = {
             mainTitle: 'Editar Produto',
             errors: {
                 name: ''
+            },
+            summary: {
+                totalProducts: 0,
+                publishedProducts: 0,
+                lowStockProducts: 0,
+                outOfStockProducts: 0
             },
             isSubmitting: false,
             ...emptyState()
@@ -121,6 +129,42 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const normalizedStock = (item) => {
+                    const possibleStock = Number(
+                        item?.stockQuantity
+                        ?? item?.quantity
+                        ?? item?.stock
+                        ?? item?.currentStock
+                        ?? NaN
+                    );
+
+                    return Number.isFinite(possibleStock) ? possibleStock : null;
+                };
+
+                const totalProducts = state.mainData.length;
+                const publishedProducts = state.mainData.filter(x => x?.productAvailable === true).length;
+                const lowStockProducts = state.mainData.filter(item => {
+                    const stock = normalizedStock(item);
+                    return stock !== null && stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+                }).length;
+
+                let outOfStockProducts = state.mainData.filter(item => {
+                    const stock = normalizedStock(item);
+                    return stock !== null && stock <= 0;
+                }).length;
+
+                if (outOfStockProducts === 0) {
+                    outOfStockProducts = state.mainData.filter(x => x?.productAvailable === false).length;
+                }
+
+                state.summary = {
+                    totalProducts,
+                    publishedProducts,
+                    lowStockProducts,
+                    outOfStockProducts
+                };
+            },
             resetForm: () => {
                 if (state.mainImagePreviewURL) {
                     URL.revokeObjectURL(state.mainImagePreviewURL);
@@ -265,6 +309,8 @@ const App = {
                         ? '/api/FileImage/GetImage?imageName=' + item.mainImageURL
                         : '/noimage.png'
                 }));
+
+                methods.updateSummaryCards();
             },
             populateCategoryData: async () => {
                 const response = await services.getCategoryData();

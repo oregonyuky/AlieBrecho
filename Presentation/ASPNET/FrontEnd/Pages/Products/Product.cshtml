@@ -4,6 +4,26 @@
 }
 
 <style>
+    .product-summary-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: #fff;
+        height: 100%;
+    }
+
+    .product-summary-card .label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 4px;
+    }
+
+    .product-summary-card .value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
     .product-name-cell {
         display: flex;
         align-items: center;
@@ -20,6 +40,33 @@
 </style>
 
 <div id="app" v-cloak>
+    <div class="row mb-3">
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="product-summary-card">
+                <div class="label">Total de Produtos</div>
+                <div class="value">{{ state.summary.totalProducts }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="product-summary-card">
+                <div class="label">Publicados</div>
+                <div class="value">{{ state.summary.publishedProducts }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="product-summary-card">
+                <div class="label">Estoque Baixo</div>
+                <div class="value">{{ state.summary.lowStockProducts }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="product-summary-card">
+                <div class="label">Esgotados</div>
+                <div class="value">{{ state.summary.outOfStockProducts }}</div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="grid-container">
