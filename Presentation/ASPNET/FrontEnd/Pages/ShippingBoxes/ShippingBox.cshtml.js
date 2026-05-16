@@ -64,7 +64,17 @@ const App = {
                         { field: 'height', headerText: 'Altura', width: 120 },
                         { field: 'weight', headerText: 'Peso', width: 120 },
                         { field: 'insuranceValue', headerText: 'Seguro', width: 140 },
-                        { field: 'isActive', headerText: 'Ativo', width: 100 },
+                        {
+                            field: 'isActive',
+                            headerText: 'Ativo',
+                            width: 100,
+                            textAlign: 'Center',
+                            disableHtmlEncode: false,
+                            valueAccessor: (_, data) =>
+                                data?.isActive === true
+                                    ? '<span title="Sim" style="color:#198754;font-size:16px;">&#10004;</span>'
+                                    : '<span title="Nao" style="color:#dc3545;font-size:16px;">&#10006;</span>'
+                        },
                         { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [

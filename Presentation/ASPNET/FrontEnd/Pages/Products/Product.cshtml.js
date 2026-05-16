@@ -385,7 +385,17 @@ const App = {
                         { field: 'unitPrice', headerText: 'Preco Unitario', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.unitPrice) },
                         { field: 'oldPrice', headerText: 'Preco Antigo', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.oldPrice) },
                         { field: 'discountPercent', headerText: 'Desconto %', width: 130, format: 'N2' },
-                        { field: 'productAvailable', headerText: 'Disponivel', width: 120 },
+                        {
+                            field: 'productAvailable',
+                            headerText: 'Disponivel',
+                            width: 120,
+                            textAlign: 'Center',
+                            disableHtmlEncode: false,
+                            valueAccessor: (_, data) =>
+                                data?.productAvailable === true
+                                    ? '<span title="Sim" style="color:#198754;font-size:16px;">&#10004;</span>'
+                                    : '<span title="Nao" style="color:#dc3545;font-size:16px;">&#10006;</span>'
+                        },
                         { field: 'shortDescription', headerText: 'Descricao Curta', width: 250 }
                     ],
                     toolbar: [

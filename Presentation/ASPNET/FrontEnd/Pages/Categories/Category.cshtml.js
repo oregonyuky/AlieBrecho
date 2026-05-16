@@ -83,7 +83,17 @@ const App = {
                         { field: 'id', isPrimaryKey: true, visible: false },
                         { field: 'name', headerText: 'Nome', width: 200 },
                         { field: 'description', headerText: 'Descricao', width: 250 },
-                        { field: 'isActive', headerText: 'Ativo', width: 120 },
+                        {
+                            field: 'isActive',
+                            headerText: 'Ativo',
+                            width: 120,
+                            textAlign: 'Center',
+                            disableHtmlEncode: false,
+                            valueAccessor: (_, data) =>
+                                data?.isActive === true
+                                    ? '<span title="Sim" style="color:#198754;font-size:16px;">&#10004;</span>'
+                                    : '<span title="Nao" style="color:#dc3545;font-size:16px;">&#10006;</span>'
+                        },
                         { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
                     ],
                     toolbar: [
