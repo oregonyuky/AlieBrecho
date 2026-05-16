@@ -3,7 +3,50 @@
     ViewData["Title"] = "Caixa de Envio";
 }
 
-<div id="app" v-cloak>
+<style>
+    .page-summary-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: #fff;
+        height: 100%;
+    }
+
+    .page-summary-card .label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 4px;
+    }
+
+    .page-summary-card .value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+</style>
+
+<div id="app">
+    <div class="row mb-3">
+        <div class="col-12 col-md-4 mb-2">
+            <div class="page-summary-card">
+                <div class="label">Total de Caixas</div>
+                <div class="value">{{ state.summary.total }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4 mb-2">
+            <div class="page-summary-card">
+                <div class="label">Ativas</div>
+                <div class="value">{{ state.summary.active }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4 mb-2">
+            <div class="page-summary-card">
+                <div class="label">Inativas</div>
+                <div class="value">{{ state.summary.inactive }}</div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="grid-container">
@@ -124,5 +167,5 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/ShippingBoxes/ShippingBox.cshtml.js"></script>
+    <script src="~/FrontEnd/Pages/ShippingBoxes/ShippingBox.cshtml.js?v=20260516"></script>
 }

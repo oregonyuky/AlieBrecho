@@ -49,6 +49,12 @@ const App = {
 
         const emptyState = () => ({
             mainData: [],
+            summary: {
+                total: 0,
+                pending: 0,
+                paid: 0,
+                cancelled: 0
+            },
             deleteMode: false,
             mainTitle: 'Editar Pedido',
             id: '',
@@ -491,6 +497,14 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const pending = state.mainData.filter(x => x?.status === 'Pending').length;
+                const paid = state.mainData.filter(x => x?.status === 'Paid').length;
+                const cancelled = state.mainData.filter(x => x?.status === 'Cancelled').length;
+
+                state.summary = { total, pending, paid, cancelled };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
                 state.mainData = (response?.data?.content?.data ?? []).map(item => ({
@@ -498,6 +512,7 @@ const App = {
                     orderDate: new Date(item.orderDate),
                     createdAt: new Date(item.createdAt)
                 }));
+                methods.updateSummaryCards();
             },
             loadLookups: async () => {
                 const [customers, products, shippingBoxes, paymentTypes] = await Promise.all([

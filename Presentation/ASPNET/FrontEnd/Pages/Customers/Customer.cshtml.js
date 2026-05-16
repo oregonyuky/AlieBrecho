@@ -2,6 +2,11 @@ const App = {
     setup() {
         const getInitialState = () => ({
             mainData: [],
+            summary: {
+                total: 0,
+                active: 0,
+                inactive: 0
+            },
             deleteMode: false,
             mainTitle: 'Editar Cliente',
             id: '',
@@ -186,6 +191,13 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const active = state.mainData.filter(x => x?.customerStatus === 'Active').length;
+                const inactive = total - active;
+
+                state.summary = { total, active, inactive };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
 
@@ -194,6 +206,8 @@ const App = {
                     customerStatusDisplay: translateCustomerStatus(item.customerStatus),
                     createdAt: new Date(item.createdAt)
                 }));
+
+                methods.updateSummaryCards();
             }
         };
 

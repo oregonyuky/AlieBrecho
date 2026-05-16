@@ -2,6 +2,12 @@ const App = {
     setup() {
         const state = Vue.reactive({
             mainData: [],
+            summary: {
+                total: 0,
+                active: 0,
+                closed: 0,
+                abandoned: 0
+            },
             mainTitle: 'Editar Sacola',
             id: '',
             customerName: '',
@@ -127,6 +133,14 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const active = state.mainData.filter(x => x?.status === 'Active').length;
+                const closed = state.mainData.filter(x => x?.status === 'Closed').length;
+                const abandoned = state.mainData.filter(x => x?.status === 'Abandoned').length;
+
+                state.summary = { total, active, closed, abandoned };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
                 state.mainData = (response?.data?.content?.data ?? []).map((item) => ({
@@ -134,6 +148,7 @@ const App = {
                     statusDisplay: translateBagStatus(item.status),
                     lastInteractionAt: item.lastInteractionAt ? new Date(item.lastInteractionAt) : null
                 }));
+                methods.updateSummaryCards();
             },
             loadBag: async (id) => {
                 const response = await services.getSingleData(id);

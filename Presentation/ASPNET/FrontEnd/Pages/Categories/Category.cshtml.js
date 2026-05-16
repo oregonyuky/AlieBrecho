@@ -2,6 +2,11 @@ const App = {
     setup() {
         const state = Vue.reactive({
             mainData: [],
+            summary: {
+                total: 0,
+                active: 0,
+                inactive: 0
+            },
             deleteMode: false,
             mainTitle: 'Editar Categoria',
             id: '',
@@ -169,6 +174,13 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const active = state.mainData.filter(x => x?.isActive === true).length;
+                const inactive = total - active;
+
+                state.summary = { total, active, inactive };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
 
@@ -176,6 +188,8 @@ const App = {
                     ...item,
                     createdAt: new Date(item.createdAt)
                 }));
+
+                methods.updateSummaryCards();
             }
         };
 
