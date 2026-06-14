@@ -1,5 +1,7 @@
 const App = {
     setup() {
+        const LOW_STOCK_THRESHOLD = 3;
+
         const emptyState = () => ({
             id: '',
             name: '',
@@ -40,6 +42,12 @@ const App = {
             errors: {
                 name: ''
             },
+            summary: {
+                totalProducts: 0,
+                publishedProducts: 0,
+                lowStockProducts: 0,
+                outOfStockProducts: 0
+            },
             isSubmitting: false,
             ...emptyState()
         });
@@ -58,6 +66,14 @@ const App = {
                 style: 'currency',
                 currency: 'BRL'
             });
+
+        const renderProductAvailabilityBadge = (isAvailable) => {
+            if (isAvailable === true) {
+                return '<span class="badge d-inline-flex align-items-center gap-1" title="Disponivel" style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;"><i class="fa fa-circle-check"></i> Disponivel</span>';
+            }
+
+            return '<span class="badge d-inline-flex align-items-center gap-1" title="Indisponivel" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600;"><i class="fa fa-circle-minus"></i> Indisponivel</span>';
+        };
 
         const services = {
             getMainData: async () => {
@@ -121,6 +137,42 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const normalizedStock = (item) => {
+                    const possibleStock = Number(
+                        item?.stockQuantity
+                        ?? item?.quantity
+                        ?? item?.stock
+                        ?? item?.currentStock
+                        ?? NaN
+                    );
+
+                    return Number.isFinite(possibleStock) ? possibleStock : null;
+                };
+
+                const totalProducts = state.mainData.length;
+                const publishedProducts = state.mainData.filter(x => x?.productAvailable === true).length;
+                const lowStockProducts = state.mainData.filter(item => {
+                    const stock = normalizedStock(item);
+                    return stock !== null && stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+                }).length;
+
+                let outOfStockProducts = state.mainData.filter(item => {
+                    const stock = normalizedStock(item);
+                    return stock !== null && stock <= 0;
+                }).length;
+
+                if (outOfStockProducts === 0) {
+                    outOfStockProducts = state.mainData.filter(x => x?.productAvailable === false).length;
+                }
+
+                state.summary = {
+                    totalProducts,
+                    publishedProducts,
+                    lowStockProducts,
+                    outOfStockProducts
+                };
+            },
             resetForm: () => {
                 if (state.mainImagePreviewURL) {
                     URL.revokeObjectURL(state.mainImagePreviewURL);
@@ -265,6 +317,8 @@ const App = {
                         ? '/api/FileImage/GetImage?imageName=' + item.mainImageURL
                         : '/noimage.png'
                 }));
+
+                methods.updateSummaryCards();
             },
             populateCategoryData: async () => {
                 const response = await services.getCategoryData();
@@ -339,7 +393,14 @@ const App = {
                         { field: 'unitPrice', headerText: 'Preco Unitario', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.unitPrice) },
                         { field: 'oldPrice', headerText: 'Preco Antigo', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.oldPrice) },
                         { field: 'discountPercent', headerText: 'Desconto %', width: 130, format: 'N2' },
-                        { field: 'productAvailable', headerText: 'Disponivel', width: 120 },
+                        {
+                            field: 'productAvailable',
+                            headerText: 'Disponivel',
+                            width: 150,
+                            textAlign: 'Center',
+                            disableHtmlEncode: false,
+                            valueAccessor: (_, data) => renderProductAvailabilityBadge(data?.productAvailable)
+                        },
                         { field: 'shortDescription', headerText: 'Descricao Curta', width: 250 }
                     ],
                     toolbar: [

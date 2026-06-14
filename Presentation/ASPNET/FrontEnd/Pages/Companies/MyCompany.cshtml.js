@@ -112,7 +112,7 @@
                         { field: 'street', headerText: 'Rua', width: 150, minWidth: 150 },
                         { field: 'phoneNumber', headerText: 'Telefone', width: 150, minWidth: 150 },
                         { field: 'emailAddress', headerText: 'Email', width: 150, minWidth: 150 },
-                        { field: 'createdAtUtc', headerText: 'Criado Em UTC', width: 150, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'createdAtUtc', headerText: 'Criado Em UTC', width: 150, format: 'dd/MM/yyyy HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',

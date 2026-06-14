@@ -47,7 +47,7 @@ public class CustomerSeeder
                 Neighborhood = "Jardins",
                 City = "Sao Paulo",
                 State = "SP",
-                PostalCode = "01234567",
+                PostalCode = "01405001",
                 Complement = "Loja B",
                 CustomerStatus = "Active"
             }

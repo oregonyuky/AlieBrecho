@@ -88,6 +88,21 @@ public class OrderController : BaseApiController
     }
 
     [Authorize]
+    [HttpGet("GetMelhorEnvioBalance")]
+    public async Task<ActionResult<ApiSuccessResult<GetMelhorEnvioBalanceResult>>> GetMelhorEnvioBalanceAsync(
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(new GetMelhorEnvioBalanceRequest(), cancellationToken);
+
+        return Ok(new ApiSuccessResult<GetMelhorEnvioBalanceResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GetMelhorEnvioBalanceAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
     [HttpPost("UpdateOrder")]
     public async Task<ActionResult<ApiSuccessResult<UpdateOrderResult>>> UpdateOrderAsync(
         UpdateOrderRequest request,
@@ -129,6 +144,54 @@ public class OrderController : BaseApiController
         var response = await _sender.Send(request, cancellationToken);
 
         return File(response.Data, "application/pdf", $"etiqueta-{labelId}.pdf");
+    }
+
+    [Authorize]
+    [HttpPost("MarkShippingCart")]
+    public async Task<ActionResult<ApiSuccessResult<MarkShippingCartResult>>> MarkShippingCartAsync(
+        MarkShippingCartRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<MarkShippingCartResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(MarkShippingCartAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpPost("BuyShippingCart")]
+    public async Task<ActionResult<ApiSuccessResult<BuyShippingCartResult>>> BuyShippingCartAsync(
+        BuyShippingCartRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<BuyShippingCartResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(BuyShippingCartAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
+    [HttpPost("GeneratePurchasedShippingLabel")]
+    public async Task<ActionResult<ApiSuccessResult<GeneratePurchasedShippingLabelResult>>> GeneratePurchasedShippingLabelAsync(
+        GeneratePurchasedShippingLabelRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<GeneratePurchasedShippingLabelResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GeneratePurchasedShippingLabelAsync)}",
+            Content = response
+        });
     }
 
     [Authorize]

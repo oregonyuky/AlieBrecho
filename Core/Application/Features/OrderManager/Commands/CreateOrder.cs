@@ -41,17 +41,20 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderRequest>
 public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrderResult>
 {
     private readonly ICommandRepository<Order> _repository;
+    private readonly ICommandRepository<Product> _productRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryContext _context;
     private readonly IShippingCostService _shippingCostService;
 
     public CreateOrderHandler(
         ICommandRepository<Order> repository,
+        ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork,
         IQueryContext context,
         IShippingCostService shippingCostService)
     {
         _repository = repository;
+        _productRepository = productRepository;
         _unitOfWork = unitOfWork;
         _context = context;
         _shippingCostService = shippingCostService;
@@ -59,13 +62,16 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
 
     public async Task<CreateOrderResult> Handle(CreateOrderRequest request, CancellationToken cancellationToken)
     {
-        var customerExists = await _context.Customer
-            .AnyAsync(x => x.Id == request.CustomerId, cancellationToken);
+        var customer = await _context.Customer
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
 
-        if (!customerExists)
+        if (customer == null)
         {
             throw new Exception($"Customer not found: {request.CustomerId}");
         }
+
+        EnsureShippingPostCodeMatchesCustomer(customer, request.ShippingDetail?.PostCode);
 
         ShippingBox? shippingBox = null;
 
@@ -185,6 +191,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
         }
 
         entity.TotalAmount = await CalculateTotalAsync(entity, shippingBox, cancellationToken);
+        await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
 
         await _repository.CreateAsync(entity, cancellationToken);
         await _unitOfWork.SaveAsync(cancellationToken);
@@ -210,5 +217,57 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             - (entity.Discount ?? 0m)
             + (entity.Taxes ?? 0m)
             + shippingCost;
+    }
+
+    private async Task MarkProductsUnavailableWhenPaidAsync(Order entity, CancellationToken cancellationToken)
+    {
+        if (entity.Status != OrderStatus.Paid)
+        {
+            return;
+        }
+
+        var productIds = entity.OrderDetails
+            .Where(x => !x.IsDeleted && !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList();
+
+        if (productIds.Count == 0)
+        {
+            return;
+        }
+
+        var products = await _productRepository.GetQuery()
+            .Where(x => productIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            product.ProductAvailable = false;
+            _productRepository.Update(product);
+        }
+    }
+
+    private static void EnsureShippingPostCodeMatchesCustomer(Customer customer, string? shippingPostCode)
+    {
+        var customerPostCode = NormalizePostCode(customer.PostalCode);
+        var orderPostCode = NormalizePostCode(shippingPostCode);
+
+        if (string.IsNullOrWhiteSpace(orderPostCode))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customerPostCode) || customerPostCode != orderPostCode)
+        {
+            throw new Exception("O CEP do pedido deve corresponder ao CEP do cliente selecionado.");
+        }
+    }
+
+    private static string NormalizePostCode(string? postCode)
+    {
+        return string.IsNullOrWhiteSpace(postCode)
+            ? string.Empty
+            : new string(postCode.Where(char.IsDigit).ToArray());
     }
 }

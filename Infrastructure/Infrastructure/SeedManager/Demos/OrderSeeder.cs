@@ -43,6 +43,7 @@ public class OrderSeeder
         }
 
         var customer = customers.First();
+        var customer2 = customers.Count > 1 ? customers[1] : customer;
         var paymentType = paymentTypes.First();
         var shippingBox1 = shippingBoxes.First();
         var shippingBox2 = shippingBoxes.Count > 1 ? shippingBoxes[1] : shippingBox1;
@@ -88,7 +89,7 @@ public class OrderSeeder
                 Neighborhood = "Jardim Paulista",
                 City = "São Paulo",
                 State = "SP",
-                PostCode = "01405-001",
+                PostCode = customer.PostalCode,
                 OrderId = string.Empty
             },
             OrderDetails = new List<OrderDetail>()
@@ -125,8 +126,8 @@ public class OrderSeeder
 
         var order2 = new Order
         {
-            CustomerId = customers.Count > 1 ? customers[1].Id : customer.Id,
-            Customer = customers.Count > 1 ? customers[1] : customer,
+            CustomerId = customer2.Id,
+            Customer = customer2,
             ShippingBoxId = shippingBox2.Id,
             ShippingBox = shippingBox2,
             Status = OrderStatus.Shipped,
@@ -149,7 +150,7 @@ public class OrderSeeder
                     TransactionId = "TXN-2002",
                     AuthorizationCode = "AUTH2002",
                     ReferenceNumber = "REF2002",
-                    CardHolderName = customers.Count > 1 ? customers[1].Name : customer.Name,
+                    CardHolderName = customer2.Name,
                     CardLast4 = "0000"
                 }
             },
@@ -164,7 +165,7 @@ public class OrderSeeder
                 Neighborhood = "Copacabana",
                 City = "Rio de Janeiro",
                 State = "RJ",
-                PostCode = "22070-002",
+                PostCode = customer2.PostalCode,
                 OrderId = string.Empty
             },
             OrderDetails = new List<OrderDetail>()

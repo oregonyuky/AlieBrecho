@@ -2,6 +2,11 @@ const App = {
     setup() {
         const state = Vue.reactive({
             mainData: [],
+            summary: {
+                total: 0,
+                active: 0,
+                inactive: 0
+            },
             deleteMode: false,
             mainTitle: 'Editar Categoria',
             id: '',
@@ -18,6 +23,14 @@ const App = {
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
         const nameRef = Vue.ref(null);
+
+        const renderCategoryStatusBadge = (isActive) => {
+            if (isActive === true) {
+                return '<span class="badge d-inline-flex align-items-center gap-1" title="Ativa" style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;"><i class="fa fa-circle-check"></i> Ativa</span>';
+            }
+
+            return '<span class="badge d-inline-flex align-items-center gap-1" title="Inativa" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600;"><i class="fa fa-circle-minus"></i> Inativa</span>';
+        };
 
         const services = {
             getMainData: async () => {
@@ -83,8 +96,15 @@ const App = {
                         { field: 'id', isPrimaryKey: true, visible: false },
                         { field: 'name', headerText: 'Nome', width: 200 },
                         { field: 'description', headerText: 'Descricao', width: 250 },
-                        { field: 'isActive', headerText: 'Ativo', width: 120 },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        {
+                            field: 'isActive',
+                            headerText: 'Ativo',
+                            width: 130,
+                            textAlign: 'Center',
+                            disableHtmlEncode: false,
+                            valueAccessor: (_, data) => renderCategoryStatusBadge(data?.isActive)
+                        },
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
@@ -159,6 +179,13 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const active = state.mainData.filter(x => x?.isActive === true).length;
+                const inactive = total - active;
+
+                state.summary = { total, active, inactive };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
 
@@ -166,6 +193,8 @@ const App = {
                     ...item,
                     createdAt: new Date(item.createdAt)
                 }));
+
+                methods.updateSummaryCards();
             }
         };
 

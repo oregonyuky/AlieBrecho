@@ -2,6 +2,11 @@ const App = {
     setup() {
         const getInitialState = () => ({
             mainData: [],
+            summary: {
+                total: 0,
+                active: 0,
+                inactive: 0
+            },
             deleteMode: false,
             mainTitle: 'Editar Cliente',
             id: '',
@@ -35,6 +40,14 @@ const App = {
             Active: 'Ativo',
             Inactive: 'Inativo'
         }[status] ?? status);
+
+        const renderCustomerStatusBadge = (status) => {
+            if (status === 'Active') {
+                return '<span class="badge d-inline-flex align-items-center gap-1" style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;"><i class="fa fa-circle-check"></i> Ativo</span>';
+            }
+
+            return '<span class="badge d-inline-flex align-items-center gap-1" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600;"><i class="fa fa-circle-minus"></i> Inativo</span>';
+        };
 
         const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
@@ -123,7 +136,7 @@ const App = {
                         { field: 'emailAddress', headerText: 'Email', width: 220 },
                         { field: 'postalCode', headerText: 'CEP', width: 160 },
                         { field: 'customerStatusDisplay', headerText: 'Status', width: 120 },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
@@ -143,6 +156,16 @@ const App = {
                     rowDeselected: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
                         mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
+                    },
+                    rowDataBound: (args) => {
+                        const statusValue = args.data?.customerStatus;
+                        const statusText = translateCustomerStatus(statusValue);
+                        const statusCell = Array.from(args.row.cells)
+                            .find(cell => cell.textContent.trim() === statusText);
+
+                        if (statusCell) {
+                            statusCell.innerHTML = renderCustomerStatusBadge(statusValue);
+                        }
                     },
                     toolbarClick: (args) => {
                         if (args.item.id?.toLowerCase().includes('excelexport')) {
@@ -186,6 +209,13 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const active = state.mainData.filter(x => x?.customerStatus === 'Active').length;
+                const inactive = total - active;
+
+                state.summary = { total, active, inactive };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
 
@@ -194,6 +224,8 @@ const App = {
                     customerStatusDisplay: translateCustomerStatus(item.customerStatus),
                     createdAt: new Date(item.createdAt)
                 }));
+
+                methods.updateSummaryCards();
             }
         };
 

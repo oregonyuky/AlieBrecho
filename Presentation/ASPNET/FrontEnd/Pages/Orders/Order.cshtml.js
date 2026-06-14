@@ -41,14 +41,32 @@ const App = {
             shippingCost: 0,
             totalAmount: 0,
             labelId: '',
+            cartAddedAt: '',
+            checkoutAt: '',
+            generatedAt: '',
             error: '',
             rawResponse: '',
             isGenerating: false,
+            isBuying: false,
+            isGeneratingPurchased: false,
             isDownloading: false
         });
 
         const emptyState = () => ({
             mainData: [],
+            summary: {
+                total: 0,
+                pending: 0,
+                paid: 0,
+                cancelled: 0
+            },
+            melhorEnvioBalance: {
+                balance: 0,
+                reserved: 0,
+                debts: 0,
+                isLoading: false,
+                error: ''
+            },
             deleteMode: false,
             mainTitle: 'Editar Pedido',
             id: '',
@@ -87,7 +105,7 @@ const App = {
             Shipped: 'Enviado',
             Delivered: 'Entregue',
             Cancelled: 'Cancelado',
-            LabelGenerated: 'Etiqueta gerada'
+            LabelGenerated: 'Frete no carrinho'
         };
 
         const translateStatus = (status) => statusLabels[status] ?? status;
@@ -112,7 +130,11 @@ const App = {
             getProducts: async () => AxiosManager.get('/Product/GetProductList', {}),
             getShippingBoxes: async () => AxiosManager.get('/ShippingBox/GetShippingBoxList', {}),
             getPaymentTypes: async () => AxiosManager.get('/PaymentType/GetPaymentTypeList', {}),
+            getMelhorEnvioBalance: async () => AxiosManager.get('/Order/GetMelhorEnvioBalance', {}),
             generateShippingLabel: async (request) => AxiosManager.post('/Order/GenerateShippingLabel', request),
+            markShippingCart: async (request) => AxiosManager.post('/Order/MarkShippingCart', request),
+            buyShippingCart: async (request) => AxiosManager.post('/Order/BuyShippingCart', request),
+            generatePurchasedShippingLabel: async (request) => AxiosManager.post('/Order/GeneratePurchasedShippingLabel', request),
             downloadShippingLabel: async (labelId) => AxiosManager.get('/Order/DownloadShippingLabel', {
                 params: { labelId },
                 responseType: 'blob'
@@ -201,6 +223,18 @@ const App = {
             return `${formatCompactNumber(width)}cm x ${formatCompactNumber(length)}cm x ${formatCompactNumber(height)}cm ${formatCompactNumber(weight)}kg`;
         };
 
+        const splitCustomerName = (name) => {
+            const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+            if (!parts.length) {
+                return { firstName: '', lastName: '' };
+            }
+
+            return {
+                firstName: parts[0],
+                lastName: parts.slice(1).join(' ')
+            };
+        };
+
         const getApiErrorMessage = (error, fallback = 'Erro inesperado') => {
             const message = error?.response?.data?.message ?? error?.message ?? fallback;
             const cleanMessage = String(message).replace(/^Exception:\s*/i, '');
@@ -236,7 +270,15 @@ const App = {
         const resetForm = () => {
             const initial = emptyState();
             Object.keys(initial).forEach((key) => {
-                if (['mainData', 'customers', 'products', 'shippingBoxes', 'paymentTypes'].includes(key)) {
+                if ([
+                    'mainData',
+                    'summary',
+                    'melhorEnvioBalance',
+                    'customers',
+                    'products',
+                    'shippingBoxes',
+                    'paymentTypes'
+                ].includes(key)) {
                     return;
                 }
                 state[key] = initial[key];
@@ -371,12 +413,12 @@ const App = {
                             textAlign: 'Center',
                             template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Ver itens do pedido"><i class="fa fa-list"></i></button>'
                         },
-                        { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'yyyy-MM-dd HH:mm' },
+                        { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'dd/MM/yyyy HH:mm' },
                         {
                             headerText: 'Etiqueta',
                             width: 130,
                             textAlign: 'Center',
-                            template: '<button type="button" class="btn btn-sm btn-outline-success shipping-label-btn" title="Gerar etiqueta"><i class="fa fa-tag"></i> Etiqueta</button>'
+                            template: '<button type="button" class="btn btn-sm btn-outline-success shipping-label-btn" title="Adicionar frete ao carrinho"><i class="fa fa-shopping-cart"></i> Carrinho</button>'
                         }
                     ],
                     toolbar: [
@@ -411,6 +453,23 @@ const App = {
                         if (labelButton) {
                             if (args.data.status !== 'Paid') {
                                 labelButton.classList.add('d-none');
+                            } else if (args.data.isMelhorEnvioCartAdded || args.data.melhorEnvioCartId) {
+                                labelButton.classList.remove('btn-outline-success');
+                                labelButton.classList.add('btn-success');
+                                labelButton.title = args.data.isMelhorEnvioGenerated || args.data.melhorEnvioGeneratedAt
+                                    ? 'Etiqueta gerada no Melhor Envio'
+                                    : args.data.isMelhorEnvioCheckedOut || args.data.melhorEnvioCheckoutAt
+                                    ? 'Gerar etiqueta no Melhor Envio'
+                                    : `Comprar frete${args.data.melhorEnvioCartId ? ': ' + args.data.melhorEnvioCartId : ''}`;
+                                labelButton.innerHTML = args.data.isMelhorEnvioGenerated || args.data.melhorEnvioGeneratedAt
+                                    ? '<i class="fa fa-check"></i> Gerada'
+                                    : args.data.isMelhorEnvioCheckedOut || args.data.melhorEnvioCheckoutAt
+                                    ? '<i class="fa fa-tag"></i> Gerar'
+                                    : '<i class="fa fa-credit-card"></i> Comprar';
+                                labelButton.addEventListener('click', (event) => {
+                                    event.stopPropagation();
+                                    methods.openShippingLabel(args.data);
+                                });
                             } else {
                                 labelButton.addEventListener('click', (event) => {
                                     event.stopPropagation();
@@ -491,6 +550,14 @@ const App = {
         };
 
         const methods = {
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const pending = state.mainData.filter(x => x?.status === 'Pending').length;
+                const paid = state.mainData.filter(x => x?.status === 'Paid').length;
+                const cancelled = state.mainData.filter(x => x?.status === 'Cancelled').length;
+
+                state.summary = { total, pending, paid, cancelled };
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
                 state.mainData = (response?.data?.content?.data ?? []).map(item => ({
@@ -498,6 +565,24 @@ const App = {
                     orderDate: new Date(item.orderDate),
                     createdAt: new Date(item.createdAt)
                 }));
+                methods.updateSummaryCards();
+            },
+            loadMelhorEnvioBalance: async () => {
+                try {
+                    state.melhorEnvioBalance.isLoading = true;
+                    state.melhorEnvioBalance.error = '';
+
+                    const response = await services.getMelhorEnvioBalance();
+                    const balance = response?.data?.content?.data ?? {};
+
+                    state.melhorEnvioBalance.balance = Number(balance.balance || 0);
+                    state.melhorEnvioBalance.reserved = Number(balance.reserved || 0);
+                    state.melhorEnvioBalance.debts = Number(balance.debts || 0);
+                } catch (error) {
+                    state.melhorEnvioBalance.error = getApiErrorMessage(error, 'Nao foi possivel carregar o saldo do Melhor Envio.');
+                } finally {
+                    state.melhorEnvioBalance.isLoading = false;
+                }
             },
             loadLookups: async () => {
                 const [customers, products, shippingBoxes, paymentTypes] = await Promise.all([
@@ -520,6 +605,30 @@ const App = {
                 resetForm();
                 fillOrder(order);
             },
+            handleCustomerChange: async () => {
+                const customer = state.customers.find(x => x.id === state.customerId);
+                if (!customer) {
+                    state.shipping = emptyShipping();
+                    recalculateTotal();
+                    return;
+                }
+
+                const name = splitCustomerName(customer.name);
+
+                state.shipping.firstName = name.firstName;
+                state.shipping.lastName = name.lastName;
+                state.shipping.email = customer.emailAddress ?? '';
+                state.shipping.phoneNumber = customer.phoneNumber ?? '';
+                state.shipping.street = customer.street ?? '';
+                state.shipping.number = customer.number ?? '';
+                state.shipping.neighborhood = customer.neighborhood ?? '';
+                state.shipping.complement = customer.complement ?? '';
+                state.shipping.city = customer.city ?? '';
+                state.shipping.state = customer.state ?? '';
+                state.shipping.postCode = customer.postalCode ?? '';
+
+                await methods.refreshShippingCost();
+            },
             openShippingLabel: (order) => {
                 resetLabel();
 
@@ -532,8 +641,89 @@ const App = {
                 state.label.weight = Number(order.shippingBoxWeight || 0);
                 state.label.shippingCost = Number(order.shippingCost || 0);
                 state.label.totalAmount = Number(order.totalAmount || 0);
+                state.label.labelId = order.melhorEnvioCartId || '';
+                state.label.cartAddedAt = order.melhorEnvioCartAddedAt || '';
+                state.label.checkoutAt = order.melhorEnvioCheckoutAt || '';
+                state.label.generatedAt = order.melhorEnvioGeneratedAt || '';
 
                 labelModal.obj.show();
+            },
+            buyShippingCart: async () => {
+                if (!state.label.orderId || !state.label.labelId || state.label.checkoutAt) return;
+
+                const confirm = await Swal.fire({
+                    icon: 'question',
+                    title: 'Comprar frete?',
+                    text: `Comprar o frete no Melhor Envio para o pedido ${state.label.orderId}?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Comprar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (!confirm.isConfirmed) return;
+
+                try {
+                    state.label.isBuying = true;
+                    state.label.error = '';
+
+                    const response = await services.buyShippingCart({
+                        orderId: state.label.orderId
+                    });
+
+                    state.label.rawResponse = response?.data?.content?.rawResponse ?? '';
+                    state.label.checkoutAt = new Date().toISOString();
+
+                    const current = state.mainData.find(item => item.id === state.label.orderId);
+                    if (current) {
+                        current.melhorEnvioCheckoutAt = state.label.checkoutAt;
+                        current.isMelhorEnvioCheckedOut = true;
+                        current.isMelhorEnvioGenerated = false;
+                        mainGrid.refresh();
+                    }
+
+                    await methods.loadMelhorEnvioBalance();
+                } catch (error) {
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel comprar o frete.');
+                } finally {
+                    state.label.isBuying = false;
+                }
+            },
+            generatePurchasedShippingLabel: async () => {
+                if (!state.label.orderId || !state.label.labelId || !state.label.checkoutAt || state.label.generatedAt) return;
+
+                const confirm = await Swal.fire({
+                    icon: 'question',
+                    title: 'Gerar etiqueta?',
+                    text: `Gerar a etiqueta no Melhor Envio para o pedido ${state.label.orderId}?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Gerar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (!confirm.isConfirmed) return;
+
+                try {
+                    state.label.isGeneratingPurchased = true;
+                    state.label.error = '';
+
+                    const response = await services.generatePurchasedShippingLabel({
+                        orderId: state.label.orderId
+                    });
+
+                    state.label.rawResponse = response?.data?.content?.rawResponse ?? '';
+                    state.label.generatedAt = new Date().toISOString();
+
+                    const current = state.mainData.find(item => item.id === state.label.orderId);
+                    if (current) {
+                        current.melhorEnvioGeneratedAt = state.label.generatedAt;
+                        current.isMelhorEnvioGenerated = true;
+                        mainGrid.refresh();
+                    }
+                } catch (error) {
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel gerar a etiqueta.');
+                } finally {
+                    state.label.isGeneratingPurchased = false;
+                }
             },
             downloadShippingLabel: async () => {
                 if (!state.label.labelId) return;
@@ -556,6 +746,57 @@ const App = {
                     state.label.error = getApiErrorMessage(error, 'Nao foi possivel baixar a etiqueta.');
                 } finally {
                     state.label.isDownloading = false;
+                }
+            },
+            markShippingCart: async () => {
+                if (!state.label.orderId || state.label.labelId) return;
+
+                const result = await Swal.fire({
+                    title: 'Codigo do carrinho',
+                    input: 'text',
+                    inputLabel: 'Informe o codigo/id retornado pelo Melhor Envio',
+                    inputPlaceholder: 'Ex: etiqueta ou order id do carrinho',
+                    showCancelButton: true,
+                    confirmButtonText: 'Marcar',
+                    cancelButtonText: 'Cancelar',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'Informe o codigo do carrinho.';
+                        }
+                        return null;
+                    }
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    state.label.isGenerating = true;
+                    state.label.error = '';
+
+                    const response = await services.markShippingCart({
+                        orderId: state.label.orderId,
+                        cartId: result.value.trim()
+                    });
+
+                    const cartId = response?.data?.content?.cartId ?? result.value.trim();
+                    state.label.labelId = cartId;
+                    state.label.cartAddedAt = new Date().toISOString();
+
+                    const current = state.mainData.find(item => item.id === state.label.orderId);
+                    if (current) {
+                        current.melhorEnvioCartId = cartId;
+                        current.melhorEnvioCartAddedAt = state.label.cartAddedAt;
+                        current.isMelhorEnvioCartAdded = true;
+                        current.isMelhorEnvioCheckedOut = false;
+                        current.isMelhorEnvioGenerated = false;
+                        mainGrid.refresh();
+                    }
+
+                    await methods.loadMelhorEnvioBalance();
+                } catch (error) {
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel marcar o pedido como adicionado ao carrinho.');
+                } finally {
+                    state.label.isGenerating = false;
                 }
             },
             addOrderItem: () => {
@@ -697,20 +938,27 @@ const App = {
                     });
 
                     const result = response?.data?.content ?? {};
-                    state.label.labelId = result.labelId ?? '';
+                    state.label.labelId = result.cartId ?? result.labelId ?? '';
                     state.label.rawResponse = result.rawResponse ?? '';
+                    state.label.cartAddedAt = new Date().toISOString();
 
                     const current = state.mainData.find(item => item.id === state.label.orderId);
                     if (current) {
-                        current.status = 'LabelGenerated';
+                        current.melhorEnvioCartId = state.label.labelId;
+                        current.melhorEnvioCartAddedAt = state.label.cartAddedAt;
+                        current.isMelhorEnvioCartAdded = true;
+                        current.isMelhorEnvioCheckedOut = false;
+                        current.isMelhorEnvioGenerated = false;
                         mainGrid.refresh();
                     }
 
+                    await methods.loadMelhorEnvioBalance();
+
                     if (!state.label.labelId) {
-                        state.label.error = 'Etiqueta criada, mas o Melhor Envio nao retornou um codigo para baixar o PDF.';
+                        state.label.error = 'Frete adicionado ao carrinho, mas o Melhor Envio nao retornou o codigo da etiqueta.';
                     }
                 } catch (error) {
-                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel gerar a etiqueta.');
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel adicionar o frete ao carrinho.');
                 } finally {
                     state.label.isGenerating = false;
                 }
@@ -779,7 +1027,13 @@ const App = {
             if (!value) return '';
             const date = new Date(value);
             if (Number.isNaN(date.getTime())) return '';
-            return date.toLocaleString();
+            return date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         };
 
         Vue.onMounted(async () => {
@@ -809,6 +1063,8 @@ const App = {
                         text: error.response?.data?.message ?? 'Nao foi possivel carregar os pedidos.'
                     });
                 }
+
+                await methods.loadMelhorEnvioBalance();
 
                 try {
                     await methods.loadLookups();

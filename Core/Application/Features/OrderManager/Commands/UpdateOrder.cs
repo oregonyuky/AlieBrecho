@@ -84,6 +84,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
 {
     private readonly ICommandRepository<Order> _repository;
     private readonly ICommandRepository<OrderDetail> _orderDetailRepository;
+    private readonly ICommandRepository<Product> _productRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryContext _context;
     private readonly IShippingCostService _shippingCostService;
@@ -91,12 +92,14 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
     public UpdateOrderHandler(
         ICommandRepository<Order> repository,
         ICommandRepository<OrderDetail> orderDetailRepository,
+        ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork,
         IQueryContext context,
         IShippingCostService shippingCostService)
     {
         _repository = repository;
         _orderDetailRepository = orderDetailRepository;
+        _productRepository = productRepository;
         _unitOfWork = unitOfWork;
         _context = context;
         _shippingCostService = shippingCostService;
@@ -123,17 +126,25 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             entity.Status = status;
         }
 
+        var customerId = !string.IsNullOrWhiteSpace(request.CustomerId)
+            ? request.CustomerId
+            : entity.CustomerId;
+
+        var customer = await _context.Customer
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == customerId, cancellationToken);
+
+        if (customer == null)
+        {
+            throw new Exception($"Customer not found: {customerId}");
+        }
+
+        var shippingPostCode = request.ShippingDetail?.PostCode ?? entity.ShippingDetail?.PostCode;
+        EnsureShippingPostCodeMatchesCustomer(customer, shippingPostCode);
+
         // Basic fields
         if (!string.IsNullOrWhiteSpace(request.CustomerId))
         {
-            var customerExists = await _context.Customer
-                .AnyAsync(x => x.Id == request.CustomerId, cancellationToken);
-
-            if (!customerExists)
-            {
-                throw new Exception($"Customer not found: {request.CustomerId}");
-            }
-
             entity.CustomerId = request.CustomerId;
         }
 
@@ -256,6 +267,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         }
 
         entity.TotalAmount = await CalculateTotalAsync(entity, shippingBox, cancellationToken);
+        await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
 
         _repository.Update(entity);
         await _unitOfWork.SaveAsync(cancellationToken);
@@ -283,5 +295,57 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             - (entity.Discount ?? 0m)
             + (entity.Taxes ?? 0m)
             + shippingCost;
+    }
+
+    private async Task MarkProductsUnavailableWhenPaidAsync(Order entity, CancellationToken cancellationToken)
+    {
+        if (entity.Status != OrderStatus.Paid)
+        {
+            return;
+        }
+
+        var productIds = entity.OrderDetails
+            .Where(x => !x.IsDeleted && !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList();
+
+        if (productIds.Count == 0)
+        {
+            return;
+        }
+
+        var products = await _productRepository.GetQuery()
+            .Where(x => productIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            product.ProductAvailable = false;
+            _productRepository.Update(product);
+        }
+    }
+
+    private static void EnsureShippingPostCodeMatchesCustomer(Customer customer, string? shippingPostCode)
+    {
+        var customerPostCode = NormalizePostCode(customer.PostalCode);
+        var orderPostCode = NormalizePostCode(shippingPostCode);
+
+        if (string.IsNullOrWhiteSpace(orderPostCode))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(customerPostCode) || customerPostCode != orderPostCode)
+        {
+            throw new Exception("O CEP do pedido deve corresponder ao CEP do cliente selecionado.");
+        }
+    }
+
+    private static string NormalizePostCode(string? postCode)
+    {
+        return string.IsNullOrWhiteSpace(postCode)
+            ? string.Empty
+            : new string(postCode.Where(char.IsDigit).ToArray());
     }
 }

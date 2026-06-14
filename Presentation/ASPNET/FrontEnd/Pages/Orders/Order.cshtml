@@ -3,7 +3,132 @@
     ViewData["Title"] = "Pedidos";
 }
 
+<style>
+    .page-summary-card {
+        border: 1px solid var(--summary-border, #e9ecef);
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: var(--summary-bg, #fff);
+        color: var(--summary-text, #111827);
+        height: 100%;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .page-summary-card .label {
+        font-size: 0.8rem;
+        color: var(--summary-muted, #6c757d);
+        margin-bottom: 4px;
+    }
+
+    .page-summary-card .value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .summary-total {
+        --summary-bg: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+        --summary-border: #dbe4ff;
+        --summary-muted: #64748b;
+        --summary-text: #1e293b;
+    }
+
+    .summary-pending {
+        --summary-bg: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+        --summary-border: #fed7aa;
+        --summary-muted: #9a3412;
+        --summary-text: #7c2d12;
+    }
+
+    .summary-paid {
+        --summary-bg: linear-gradient(135deg, #ecfdf5 0%, #ccfbf1 100%);
+        --summary-border: #99f6e4;
+        --summary-muted: #047857;
+        --summary-text: #064e3b;
+    }
+
+    .summary-cancelled {
+        --summary-bg: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+        --summary-border: #fecdd3;
+        --summary-muted: #be123c;
+        --summary-text: #881337;
+    }
+
+    .summary-balance {
+        --summary-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        --summary-border: #bae6fd;
+        --summary-muted: #0369a1;
+        --summary-text: #0c4a6e;
+    }
+
+    .summary-reserved {
+        --summary-bg: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        --summary-border: #ddd6fe;
+        --summary-muted: #6d28d9;
+        --summary-text: #4c1d95;
+    }
+
+    .summary-debts {
+        --summary-bg: linear-gradient(135deg, #fdf2f8 0%, #fae8ff 100%);
+        --summary-border: #f5d0fe;
+        --summary-muted: #a21caf;
+        --summary-text: #701a75;
+    }
+</style>
+
 <div id="app" v-cloak>
+    <div class="row mb-3">
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="page-summary-card summary-total">
+                <div class="label">Total de Pedidos</div>
+                <div class="value">{{ state.summary.total }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="page-summary-card summary-pending">
+                <div class="label">Pendentes</div>
+                <div class="value">{{ state.summary.pending }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="page-summary-card summary-paid">
+                <div class="label">Pagos</div>
+                <div class="value">{{ state.summary.paid }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3 mb-2">
+            <div class="page-summary-card summary-cancelled">
+                <div class="label">Cancelados</div>
+                <div class="value">{{ state.summary.cancelled }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12 col-md-4 mb-2">
+            <div class="page-summary-card summary-balance">
+                <div class="label">Saldo Melhor Envio</div>
+                <div class="value">
+                    <span v-if="state.melhorEnvioBalance.isLoading">Carregando...</span>
+                    <span v-else>{{ formatCurrency(state.melhorEnvioBalance.balance) }}</span>
+                </div>
+                <small class="text-danger" v-if="state.melhorEnvioBalance.error">{{ state.melhorEnvioBalance.error }}</small>
+            </div>
+        </div>
+        <div class="col-12 col-md-4 mb-2">
+            <div class="page-summary-card summary-reserved">
+                <div class="label">Reservado</div>
+                <div class="value">{{ formatCurrency(state.melhorEnvioBalance.reserved) }}</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4 mb-2">
+            <div class="page-summary-card summary-debts">
+                <div class="label">Debitos</div>
+                <div class="value">{{ formatCurrency(state.melhorEnvioBalance.debts) }}</div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="grid-container">
@@ -30,7 +155,7 @@
                     <div class="row mb-3">
                         <div class="col-4">
                             <label>Cliente</label>
-                            <select class="form-select" v-model="state.customerId" v-bind:disabled="state.deleteMode">
+                            <select class="form-select" v-model="state.customerId" v-on:change="methods.handleCustomerChange" v-bind:disabled="state.deleteMode">
                                 <option value="">Selecione</option>
                                 <option v-for="item in state.customers" :value="item.id">{{ item.name }}</option>
                             </select>
@@ -291,7 +416,7 @@
         <div class="modal-dialog modal-dialog-scrollable modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Etiqueta</h5>
+                    <h5 class="modal-title">Carrinho Melhor Envio</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -301,7 +426,15 @@
                     </div>
 
                     <div class="alert alert-success" v-if="state.label.labelId && !state.label.error">
-                        Etiqueta gerada com sucesso.
+                        Frete adicionado ao carrinho com sucesso. Codigo: {{ state.label.labelId }}
+                    </div>
+
+                    <div class="alert alert-info" v-if="state.label.checkoutAt && !state.label.error">
+                        Frete comprado no Melhor Envio.
+                    </div>
+
+                    <div class="alert alert-success" v-if="state.label.generatedAt && !state.label.error">
+                        Etiqueta gerada no Melhor Envio.
                     </div>
 
                     <div class="table-responsive">
@@ -346,14 +479,23 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" class="btn btn-outline-primary" v-if="state.label.labelId" v-on:click="methods.downloadShippingLabel" v-bind:disabled="state.label.isDownloading">
-                        <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isDownloading"></span>
-                        Baixar PDF da etiqueta
+                    <button type="button" class="btn btn-outline-success" v-if="!state.label.labelId" v-on:click="methods.markShippingCart" v-bind:disabled="state.label.isGenerating">
+                        Ja esta no carrinho
+                    </button>
+                    <button type="button" class="btn btn-success" v-if="state.label.labelId && !state.label.checkoutAt" v-on:click="methods.buyShippingCart" v-bind:disabled="state.label.isBuying || state.label.isGenerating">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isBuying"></span>
+                        <span v-if="state.label.isBuying">Comprando...</span>
+                        <span v-else>Comprar frete</span>
+                    </button>
+                    <button type="button" class="btn btn-success" v-if="state.label.labelId && state.label.checkoutAt && !state.label.generatedAt" v-on:click="methods.generatePurchasedShippingLabel" v-bind:disabled="state.label.isGeneratingPurchased || state.label.isBuying || state.label.isGenerating">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isGeneratingPurchased"></span>
+                        <span v-if="state.label.isGeneratingPurchased">Gerando...</span>
+                        <span v-else>Gerar etiqueta</span>
                     </button>
                     <button type="button" class="btn btn-primary" v-on:click="handler.handleGenerateShippingLabel" v-bind:disabled="state.label.isGenerating || !!state.label.labelId">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isGenerating"></span>
-                        <span v-if="state.label.isGenerating">Gerando...</span>
-                        <span v-else>Gerar etiqueta</span>
+                        <span v-if="state.label.isGenerating">Adicionando...</span>
+                        <span v-else>Adicionar ao carrinho</span>
                     </button>
                 </div>
             </div>

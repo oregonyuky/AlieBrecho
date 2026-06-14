@@ -83,7 +83,7 @@ const App = {
                         { field: 'typeName', headerText: 'Nome do Tipo', width: 200 },
                         { field: 'description', headerText: 'Descricao', width: 250 },
                         { field: 'isActive', headerText: 'Ativo', width: 120 },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',

@@ -37,13 +37,16 @@ public class UpdateBagValidator : AbstractValidator<UpdateBagRequest>
 public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResult>
 {
     private readonly ICommandRepository<Bag> _repository;
+    private readonly ICommandRepository<Product> _productRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public UpdateBagHandler(
         ICommandRepository<Bag> repository,
+        ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork)
     {
         _repository = repository;
+        _productRepository = productRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -72,6 +75,8 @@ public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResul
         entity.AllItemsPaid = request.AllItemsPaid;
         entity.Notes = request.Notes;
 
+        await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
+
         _repository.Update(entity);
         await _unitOfWork.SaveAsync(cancellationToken);
 
@@ -79,5 +84,34 @@ public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResul
         {
             Data = entity
         };
+    }
+
+    private async Task MarkProductsUnavailableWhenPaidAsync(Bag entity, CancellationToken cancellationToken)
+    {
+        if (!entity.AllItemsPaid)
+        {
+            return;
+        }
+
+        var productIds = (entity.Items ?? [])
+            .Where(x => !x.IsDeleted && !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList();
+
+        if (productIds.Count == 0)
+        {
+            return;
+        }
+
+        var products = await _productRepository.GetQuery()
+            .Where(x => productIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            product.ProductAvailable = false;
+            _productRepository.Update(product);
+        }
     }
 }

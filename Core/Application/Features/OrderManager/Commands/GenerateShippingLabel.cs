@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Application.Common.CQS.Queries;
+using Application.Common.Repositories;
 using Application.Common.Services;
 using Application.Common.Services.MelhorEnvioManager;
 using Domain.Enums;
@@ -13,6 +14,7 @@ namespace Application.Features.OrderManager.Commands;
 public class GenerateShippingLabelResult
 {
     public string? LabelId { get; init; }
+    public string? CartId { get; init; }
     public string? RawResponse { get; init; }
 }
 
@@ -26,15 +28,21 @@ public class GenerateShippingLabelRequest : IRequest<GenerateShippingLabelResult
 public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabelRequest, GenerateShippingLabelResult>
 {
     private readonly IQueryContext _context;
+    private readonly ICommandRepository<Domain.Entities.Order> _repository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMelhorEnvioService _melhorEnvioService;
     private readonly IShippingOriginProvider _shippingOriginProvider;
 
     public GenerateShippingLabelHandler(
         IQueryContext context,
+        ICommandRepository<Domain.Entities.Order> repository,
+        IUnitOfWork unitOfWork,
         IMelhorEnvioService melhorEnvioService,
         IShippingOriginProvider shippingOriginProvider)
     {
         _context = context;
+        _repository = repository;
+        _unitOfWork = unitOfWork;
         _melhorEnvioService = melhorEnvioService;
         _shippingOriginProvider = shippingOriginProvider;
     }
@@ -46,8 +54,7 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
             throw new Exception("Pedido nao informado.");
         }
 
-        var order = await _context.Order
-            .AsNoTracking()
+        var order = await _repository.GetQuery()
             .Include(x => x.Customer)
             .Include(x => x.ShippingDetail)
             .Include(x => x.ShippingBox)
@@ -62,7 +69,12 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
 
         if (order.Status != OrderStatus.Paid)
         {
-            throw new Exception("A etiqueta so pode ser gerada para pedidos com status Pago.");
+            throw new Exception("O frete so pode ser adicionado ao carrinho para pedidos com status Pago.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(order.MelhorEnvioCartId))
+        {
+            throw new Exception($"Este pedido ja foi adicionado ao carrinho do Melhor Envio. Codigo: {order.MelhorEnvioCartId}");
         }
 
         if (order.ShippingDetail == null)
@@ -101,21 +113,20 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
             return new GenerateShippingLabelResult
             {
                 LabelId = null,
+                CartId = null,
                 RawResponse = rawResponse
             };
         }
 
-        var ordersPayload = new
-        {
-            orders = new[] { labelId }
-        };
-
-        await _melhorEnvioService.ComprarFretesAsync(ordersPayload, cancellationToken);
-        await _melhorEnvioService.GerarEtiquetasAsync(ordersPayload, cancellationToken);
+        order.MelhorEnvioCartId = labelId;
+        order.MelhorEnvioCartAddedAt = DateTime.UtcNow;
+        _repository.Update(order);
+        await _unitOfWork.SaveAsync(cancellationToken);
 
         return new GenerateShippingLabelResult
         {
             LabelId = labelId,
+            CartId = labelId,
             RawResponse = rawResponse
         };
     }
@@ -160,40 +171,42 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
         ValidateRequired(box.Height, "Altura da caixa nao informada.");
         ValidateRequired(box.Weight, "Peso da caixa nao informado.");
 
-        return new
+        var payload = new Dictionary<string, object?>
         {
-            service = serviceId,
-            agency = agencyId,
-            from = new
+            ["service"] = serviceId,
+            ["from"] = new
             {
                 name = company?.Name,
-                phone = senderPhone,
                 email = company?.EmailAddress,
+                phone = senderPhone,
+                state_register = string.Empty,
+                economic_activity_code = string.Empty,
                 address = company?.Street,
                 complement = string.Empty,
                 number = "S/N",
                 district = "Centro",
                 city = company?.City,
-                state_abbr = senderState,
                 postal_code = senderPostCode,
+                state_abbr = senderState,
                 country_id = "BR"
             },
-            to = new
+            ["to"] = new
             {
                 name = recipientName,
-                phone = recipientPhone,
                 email = shipping.Email,
+                phone = recipientPhone,
                 document = recipientDocument,
+                state_register = "ISENTO",
                 address = shipping.Street,
                 complement = shipping.Complement,
                 number = shipping.Number,
                 district = shipping.Neighborhood,
                 city = shipping.City,
-                state_abbr = recipientState,
                 postal_code = OnlyDigits(shipping.PostCode),
-                country_id = "BR"
+                country_id = "BR",
+                state_abbr = recipientState
             },
-            products = order.OrderDetails
+            ["products"] = order.OrderDetails
                 .Where(item => !item.IsDeleted)
                 .Select(item => new
                 {
@@ -202,7 +215,7 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
                     unitary_value = item.UnitPrice ?? item.Product?.UnitPrice ?? 0m
                 })
                 .ToArray(),
-            volumes = new[]
+            ["volumes"] = new[]
             {
                 new
                 {
@@ -212,8 +225,10 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
                     weight = box.Weight ?? 0m
                 }
             },
-            options = new
+            ["options"] = new
             {
+                platform = "AlieBrecho",
+                reminder = $"Pedido {order.Id}",
                 insurance_value = insuranceValue,
                 receipt = false,
                 own_hand = false,
@@ -221,6 +236,13 @@ public class GenerateShippingLabelHandler : IRequestHandler<GenerateShippingLabe
                 non_commercial = true
             }
         };
+
+        if (agencyId.HasValue)
+        {
+            payload["agency"] = agencyId.Value;
+        }
+
+        return payload;
     }
 
     private async Task<int> GetAvailableServiceIdAsync(
@@ -531,6 +553,211 @@ public class DownloadShippingLabelHandler : IRequestHandler<DownloadShippingLabe
         return new DownloadShippingLabelResult
         {
             Data = data
+        };
+    }
+}
+
+public class MarkShippingCartResult
+{
+    public string? CartId { get; init; }
+}
+
+public class MarkShippingCartRequest : IRequest<MarkShippingCartResult>
+{
+    public string? OrderId { get; init; }
+    public string? CartId { get; init; }
+}
+
+public class MarkShippingCartHandler : IRequestHandler<MarkShippingCartRequest, MarkShippingCartResult>
+{
+    private readonly ICommandRepository<Domain.Entities.Order> _repository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public MarkShippingCartHandler(
+        ICommandRepository<Domain.Entities.Order> repository,
+        IUnitOfWork unitOfWork)
+    {
+        _repository = repository;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<MarkShippingCartResult> Handle(MarkShippingCartRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.OrderId))
+        {
+            throw new Exception("Pedido nao informado.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.CartId))
+        {
+            throw new Exception("Codigo do carrinho nao informado.");
+        }
+
+        var order = await _repository.GetAsync(request.OrderId, cancellationToken);
+        if (order == null)
+        {
+            throw new Exception($"Pedido nao encontrado: {request.OrderId}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(order.MelhorEnvioCartId))
+        {
+            throw new Exception($"Este pedido ja foi marcado como adicionado ao carrinho. Codigo: {order.MelhorEnvioCartId}");
+        }
+
+        order.MelhorEnvioCartId = request.CartId.Trim();
+        order.MelhorEnvioCartAddedAt = DateTime.UtcNow;
+
+        _repository.Update(order);
+        await _unitOfWork.SaveAsync(cancellationToken);
+
+        return new MarkShippingCartResult
+        {
+            CartId = order.MelhorEnvioCartId
+        };
+    }
+}
+
+public class BuyShippingCartResult
+{
+    public string? CartId { get; init; }
+    public string? RawResponse { get; init; }
+}
+
+public class BuyShippingCartRequest : IRequest<BuyShippingCartResult>
+{
+    public string? OrderId { get; init; }
+}
+
+public class BuyShippingCartHandler : IRequestHandler<BuyShippingCartRequest, BuyShippingCartResult>
+{
+    private readonly ICommandRepository<Domain.Entities.Order> _repository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMelhorEnvioService _melhorEnvioService;
+
+    public BuyShippingCartHandler(
+        ICommandRepository<Domain.Entities.Order> repository,
+        IUnitOfWork unitOfWork,
+        IMelhorEnvioService melhorEnvioService)
+    {
+        _repository = repository;
+        _unitOfWork = unitOfWork;
+        _melhorEnvioService = melhorEnvioService;
+    }
+
+    public async Task<BuyShippingCartResult> Handle(BuyShippingCartRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.OrderId))
+        {
+            throw new Exception("Pedido nao informado.");
+        }
+
+        var order = await _repository.GetAsync(request.OrderId, cancellationToken);
+        if (order == null)
+        {
+            throw new Exception($"Pedido nao encontrado: {request.OrderId}");
+        }
+
+        if (string.IsNullOrWhiteSpace(order.MelhorEnvioCartId))
+        {
+            throw new Exception("Este pedido ainda nao foi adicionado ao carrinho do Melhor Envio.");
+        }
+
+        if (order.MelhorEnvioCheckoutAt != null)
+        {
+            throw new Exception("Este frete ja foi comprado no Melhor Envio.");
+        }
+
+        var payload = new
+        {
+            orders = new[] { order.MelhorEnvioCartId }
+        };
+
+        var rawResponse = await _melhorEnvioService.ComprarFretesAsync(payload, cancellationToken);
+
+        order.MelhorEnvioCheckoutAt = DateTime.UtcNow;
+        _repository.Update(order);
+        await _unitOfWork.SaveAsync(cancellationToken);
+
+        return new BuyShippingCartResult
+        {
+            CartId = order.MelhorEnvioCartId,
+            RawResponse = rawResponse
+        };
+    }
+}
+
+public class GeneratePurchasedShippingLabelResult
+{
+    public string? CartId { get; init; }
+    public string? RawResponse { get; init; }
+}
+
+public class GeneratePurchasedShippingLabelRequest : IRequest<GeneratePurchasedShippingLabelResult>
+{
+    public string? OrderId { get; init; }
+}
+
+public class GeneratePurchasedShippingLabelHandler : IRequestHandler<GeneratePurchasedShippingLabelRequest, GeneratePurchasedShippingLabelResult>
+{
+    private readonly ICommandRepository<Domain.Entities.Order> _repository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMelhorEnvioService _melhorEnvioService;
+
+    public GeneratePurchasedShippingLabelHandler(
+        ICommandRepository<Domain.Entities.Order> repository,
+        IUnitOfWork unitOfWork,
+        IMelhorEnvioService melhorEnvioService)
+    {
+        _repository = repository;
+        _unitOfWork = unitOfWork;
+        _melhorEnvioService = melhorEnvioService;
+    }
+
+    public async Task<GeneratePurchasedShippingLabelResult> Handle(
+        GeneratePurchasedShippingLabelRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.OrderId))
+        {
+            throw new Exception("Pedido nao informado.");
+        }
+
+        var order = await _repository.GetAsync(request.OrderId, cancellationToken);
+        if (order == null)
+        {
+            throw new Exception($"Pedido nao encontrado: {request.OrderId}");
+        }
+
+        if (string.IsNullOrWhiteSpace(order.MelhorEnvioCartId))
+        {
+            throw new Exception("Este pedido ainda nao foi adicionado ao carrinho do Melhor Envio.");
+        }
+
+        if (order.MelhorEnvioCheckoutAt == null)
+        {
+            throw new Exception("Este frete ainda nao foi comprado no Melhor Envio.");
+        }
+
+        if (order.MelhorEnvioGeneratedAt != null)
+        {
+            throw new Exception("Esta etiqueta ja foi gerada no Melhor Envio.");
+        }
+
+        var payload = new
+        {
+            orders = new[] { order.MelhorEnvioCartId }
+        };
+
+        var rawResponse = await _melhorEnvioService.GerarEtiquetasAsync(payload, cancellationToken);
+
+        order.MelhorEnvioGeneratedAt = DateTime.UtcNow;
+        _repository.Update(order);
+        await _unitOfWork.SaveAsync(cancellationToken);
+
+        return new GeneratePurchasedShippingLabelResult
+        {
+            CartId = order.MelhorEnvioCartId,
+            RawResponse = rawResponse
         };
     }
 }

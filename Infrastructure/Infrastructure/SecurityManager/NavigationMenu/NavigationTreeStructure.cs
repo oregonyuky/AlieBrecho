@@ -68,48 +68,48 @@ public static class NavigationTreeStructure
             "Children": [
                 {
                     "URL": "/Customers/Customer",
-                    "Name": "Customer",
+                    "Name": "Clientes",
                     "IsModule": false
                 }
             ]
         },
         {
             "URL": "#",
-            "Name": "Membership",
+            "Name": "Acesso",
             "IsModule": true,
             "Children": [
                 {
                     "URL": "/Users/UserList",
-                    "Name": "Usuarios",
+                    "Name": "Usuários",
                     "IsModule": false
                 },
                 {
                     "URL": "/Roles/RoleList",
-                    "Name": "Roles",
+                    "Name": "Perfis de Acesso",
                     "IsModule": false
                 }
             ]
         },
         {
             "URL": "#",
-            "Name": "Profiles",
+            "Name": "Perfil",
             "IsModule": true,
             "Children": [
                 {
                     "URL": "/Profiles/MyProfile",
-                    "Name": "My Profile",
+                    "Name": "Meu Perfil",
                     "IsModule": false
                 }
             ]
         },
         {
             "URL": "#",
-            "Name": "Settings",
+            "Name": "Configurações",
             "IsModule": true,
             "Children": [
                 {
                     "URL": "/Companies/MyCompany",
-                    "Name": "My Company",
+                    "Name": "Minha Empresa",
                     "IsModule": false
                 }
             ]

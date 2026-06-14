@@ -115,8 +115,157 @@ public static class DI
         var dataContext = serviceProvider.GetRequiredService<DataContext>();
         dataContext.Database.EnsureCreated(); // Ensure database is created (development only)
         EnsureCustomerTable(dataContext);
+        EnsureOrderMelhorEnvioCartColumns(dataContext);
+        EnsurePaidOrderProductsUnavailable(dataContext);
+        EnsurePaidBagProductsUnavailable(dataContext);
 
         return host;
+    }
+
+    private static void EnsurePaidBagProductsUnavailable(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               UPDATE p
+                                               SET p.ProductAvailable = 0
+                                               FROM [Product] p
+                                               WHERE (p.IsDeleted = 0 OR p.IsDeleted IS NULL)
+                                                 AND (p.ProductAvailable = 1 OR p.ProductAvailable IS NULL)
+                                                 AND EXISTS (
+                                                     SELECT 1
+                                                     FROM [BagItem] bi
+                                                     INNER JOIN [Bag] b ON b.Id = bi.BagId
+                                                     WHERE bi.ProductId = p.Id
+                                                       AND (bi.IsDeleted = 0 OR bi.IsDeleted IS NULL)
+                                                       AND (b.IsDeleted = 0 OR b.IsDeleted IS NULL)
+                                                       AND b.AllItemsPaid = 1
+                                                 );
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               UPDATE "Product" p
+                                               SET "ProductAvailable" = FALSE
+                                               WHERE (p."IsDeleted" = FALSE OR p."IsDeleted" IS NULL)
+                                                 AND (p."ProductAvailable" = TRUE OR p."ProductAvailable" IS NULL)
+                                                 AND EXISTS (
+                                                     SELECT 1
+                                                     FROM "BagItem" bi
+                                                     INNER JOIN "Bag" b ON b."Id" = bi."BagId"
+                                                     WHERE bi."ProductId" = p."Id"
+                                                       AND (bi."IsDeleted" = FALSE OR bi."IsDeleted" IS NULL)
+                                                       AND (b."IsDeleted" = FALSE OR b."IsDeleted" IS NULL)
+                                                       AND b."AllItemsPaid" = TRUE
+                                                 );
+                                               """);
+        }
+    }
+
+    private static void EnsurePaidOrderProductsUnavailable(DataContext dataContext)
+    {
+        const int paidStatus = 1;
+
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               UPDATE p
+                                               SET p.ProductAvailable = 0
+                                               FROM [Product] p
+                                               WHERE (p.IsDeleted = 0 OR p.IsDeleted IS NULL)
+                                                 AND (p.ProductAvailable = 1 OR p.ProductAvailable IS NULL)
+                                                 AND EXISTS (
+                                                     SELECT 1
+                                                     FROM [OrderDetail] od
+                                                     INNER JOIN [Order] o ON o.Id = od.OrderId
+                                                     WHERE od.ProductId = p.Id
+                                                       AND (od.IsDeleted = 0 OR od.IsDeleted IS NULL)
+                                                       AND (o.IsDeleted = 0 OR o.IsDeleted IS NULL)
+                                                       AND o.Status = {0}
+                                                 );
+                                               """, paidStatus);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               UPDATE "Product" p
+                                               SET "ProductAvailable" = FALSE
+                                               WHERE (p."IsDeleted" = FALSE OR p."IsDeleted" IS NULL)
+                                                 AND (p."ProductAvailable" = TRUE OR p."ProductAvailable" IS NULL)
+                                                 AND EXISTS (
+                                                     SELECT 1
+                                                     FROM "OrderDetail" od
+                                                     INNER JOIN "Order" o ON o."Id" = od."OrderId"
+                                                     WHERE od."ProductId" = p."Id"
+                                                       AND (od."IsDeleted" = FALSE OR od."IsDeleted" IS NULL)
+                                                       AND (o."IsDeleted" = FALSE OR o."IsDeleted" IS NULL)
+                                                       AND o."Status" = {0}
+                                                 );
+                                               """, paidStatus);
+        }
+    }
+
+    private static void EnsureOrderMelhorEnvioCartColumns(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.[Order]', 'MelhorEnvioCartId') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [Order] ADD [MelhorEnvioCartId] nvarchar(max) NULL;
+                                               END
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.[Order]', 'MelhorEnvioCartAddedAt') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [Order] ADD [MelhorEnvioCartAddedAt] datetime2 NULL;
+                                               END
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.[Order]', 'MelhorEnvioCheckoutAt') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [Order] ADD [MelhorEnvioCheckoutAt] datetime2 NULL;
+                                               END
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.[Order]', 'MelhorEnvioGeneratedAt') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [Order] ADD [MelhorEnvioGeneratedAt] datetime2 NULL;
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Order"
+                                               ADD COLUMN IF NOT EXISTS "MelhorEnvioCartId" text;
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Order"
+                                               ADD COLUMN IF NOT EXISTS "MelhorEnvioCartAddedAt" timestamp with time zone;
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Order"
+                                               ADD COLUMN IF NOT EXISTS "MelhorEnvioCheckoutAt" timestamp with time zone;
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Order"
+                                               ADD COLUMN IF NOT EXISTS "MelhorEnvioGeneratedAt" timestamp with time zone;
+                                               """);
+        }
     }
 
     private static void EnsureCustomerTable(DataContext dataContext)

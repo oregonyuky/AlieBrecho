@@ -30,6 +30,13 @@ public record GetOrderListDto
     public string? ShippingCity { get; init; }
     public string? ShippingState { get; init; }
     public string? ShippingPostCode { get; init; }
+    public string? MelhorEnvioCartId { get; init; }
+    public DateTime? MelhorEnvioCartAddedAt { get; init; }
+    public DateTime? MelhorEnvioCheckoutAt { get; init; }
+    public DateTime? MelhorEnvioGeneratedAt { get; init; }
+    public bool IsMelhorEnvioCartAdded { get; init; }
+    public bool IsMelhorEnvioCheckedOut { get; init; }
+    public bool IsMelhorEnvioGenerated { get; init; }
     public DateTime OrderDate { get; init; }
     public DateTime CreatedAt { get; init; }
 }
@@ -53,7 +60,10 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.ShippingRecipientName, opt => opt.MapFrom(src => src.ShippingDetail != null ? $"{src.ShippingDetail.FirstName} {src.ShippingDetail.LastName}".Trim() : null))
             .ForMember(dest => dest.ShippingCity, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.City : null))
             .ForMember(dest => dest.ShippingState, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.State : null))
-            .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null));
+            .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null))
+            .ForMember(dest => dest.IsMelhorEnvioCartAdded, opt => opt.MapFrom(src => !string.IsNullOrWhiteSpace(src.MelhorEnvioCartId)))
+            .ForMember(dest => dest.IsMelhorEnvioCheckedOut, opt => opt.MapFrom(src => src.MelhorEnvioCheckoutAt != null))
+            .ForMember(dest => dest.IsMelhorEnvioGenerated, opt => opt.MapFrom(src => src.MelhorEnvioGeneratedAt != null));
     }
 
     private static string? FormatShippingBoxData(ShippingBox? shippingBox)

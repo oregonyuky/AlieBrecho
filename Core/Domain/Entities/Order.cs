@@ -21,6 +21,10 @@ public class Order : BaseEntity
     public DateTime? ShippedDate { get; set; }
     public DateTime? DeliveredDate { get; set; }
     public DateTime? CancelledDate { get; set; }
+    public string? MelhorEnvioCartId { get; set; }
+    public DateTime? MelhorEnvioCartAddedAt { get; set; }
+    public DateTime? MelhorEnvioCheckoutAt { get; set; }
+    public DateTime? MelhorEnvioGeneratedAt { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();

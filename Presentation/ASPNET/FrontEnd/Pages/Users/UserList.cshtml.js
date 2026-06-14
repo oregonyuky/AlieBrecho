@@ -492,7 +492,7 @@
                         { field: 'emailConfirmed', headerText: 'Email Confirmado', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
                         { field: 'isBlocked', headerText: 'Bloqueado', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
                         { field: 'isDeleted', headerText: 'Excluido', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 150, format: 'yyyy-MM-dd HH:mm' }
+                        { field: 'createdAt', headerText: 'Criado Em', width: 150, format: 'dd/MM/yyyy HH:mm' }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',

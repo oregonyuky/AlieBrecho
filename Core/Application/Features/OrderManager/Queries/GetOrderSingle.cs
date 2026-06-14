@@ -71,6 +71,13 @@ public record GetOrderSingleDto
     public decimal? TotalAmount { get; init; }
     public decimal? ShippingCost { get; init; }
     public string? Notes { get; init; }
+    public string? MelhorEnvioCartId { get; init; }
+    public DateTime? MelhorEnvioCartAddedAt { get; init; }
+    public DateTime? MelhorEnvioCheckoutAt { get; init; }
+    public DateTime? MelhorEnvioGeneratedAt { get; init; }
+    public bool IsMelhorEnvioCartAdded { get; init; }
+    public bool IsMelhorEnvioCheckedOut { get; init; }
+    public bool IsMelhorEnvioGenerated { get; init; }
     public DateTime OrderDate { get; init; }
     public DateTime CreatedAt { get; init; }
     public PaymentDto? Payment { get; init; }
@@ -95,7 +102,10 @@ public class GetOrderSingleProfile : Profile
         CreateMap<Order, GetOrderSingleDto>()
             .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
             .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.IsMelhorEnvioCartAdded, opt => opt.MapFrom(src => !string.IsNullOrWhiteSpace(src.MelhorEnvioCartId)))
+            .ForMember(dest => dest.IsMelhorEnvioCheckedOut, opt => opt.MapFrom(src => src.MelhorEnvioCheckoutAt != null))
+            .ForMember(dest => dest.IsMelhorEnvioGenerated, opt => opt.MapFrom(src => src.MelhorEnvioGeneratedAt != null));
     }
 }
 
