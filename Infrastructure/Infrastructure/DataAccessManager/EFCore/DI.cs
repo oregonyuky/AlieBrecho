@@ -270,6 +270,17 @@ public static class DI
 
     private static void EnsureCustomerTable(DataContext dataContext)
     {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.Customer', 'PasswordHash') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [Customer] ADD [PasswordHash] nvarchar(512) NULL;
+                                               END
+                                               """);
+            return;
+        }
+
         if (!dataContext.Database.IsNpgsql())
         {
             return;
@@ -295,6 +306,7 @@ public static class DI
                                           "Instagram" character varying(255),
                                           "TwitterX" character varying(255),
                                           "TikTok" character varying(255),
+                                          "PasswordHash" character varying(512),
                                           "CustomerStatus" character varying(255),
                                           "CreatedAt" timestamp with time zone NOT NULL,
                                           "IsDeleted" boolean NOT NULL DEFAULT FALSE,
@@ -312,7 +324,13 @@ public static class DI
                                         CREATE INDEX IF NOT EXISTS "IX_Customer_EmailAddress" ON "Customer" ("EmailAddress");
                                         """;
 
+        const string alterTableSql = """
+                                     ALTER TABLE "Customer"
+                                     ADD COLUMN IF NOT EXISTS "PasswordHash" character varying(512);
+                                     """;
+
         dataContext.Database.ExecuteSqlRaw(createTableSql);
+        dataContext.Database.ExecuteSqlRaw(alterTableSql);
         dataContext.Database.ExecuteSqlRaw(createIndexesSql);
     }
 }

@@ -1,4 +1,6 @@
 ﻿using Infrastructure.SecurityManager.AspNetIdentity;
+using Application.Common.Services;
+using Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,7 +15,7 @@ public interface ITokenService
     string GenerateToken(ApplicationUser user, List<Claim>? userClaims);
     string GenerateRefreshToken();
 }
-public class TokenService : ITokenService
+public class TokenService : ITokenService, ICustomerTokenService
 {
     private readonly TokenSettings _tokenSettings;
 
@@ -49,6 +51,36 @@ public class TokenService : ITokenService
             claims.AddRange(userClaims);
 
         }
+
+        var key = GetSymmetricSecurityKey();
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _tokenSettings.Issuer,
+            audience: _tokenSettings.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(_tokenSettings.ExpireInMinute),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public string GenerateToken(Customer customer)
+    {
+        var nameParts = (customer.Name ?? string.Empty)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, customer.Id),
+            new Claim(JwtRegisteredClaimNames.Sub, customer.Id),
+            new Claim(JwtRegisteredClaimNames.Email, customer.EmailAddress ?? ""),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("FirstName", nameParts.FirstOrDefault() ?? ""),
+            new Claim("LastName", nameParts.Length <= 1 ? "" : string.Join(' ', nameParts.Skip(1))),
+            new Claim(ClaimTypes.Role, "Customer")
+        };
 
         var key = GetSymmetricSecurityKey();
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

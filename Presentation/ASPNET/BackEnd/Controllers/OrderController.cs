@@ -103,6 +103,22 @@ public class OrderController : BaseApiController
     }
 
     [Authorize]
+    [HttpPost("InsertMelhorEnvioBalance")]
+    public async Task<ActionResult<ApiSuccessResult<InsertMelhorEnvioBalanceResult>>> InsertMelhorEnvioBalanceAsync(
+        InsertMelhorEnvioBalanceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<InsertMelhorEnvioBalanceResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(InsertMelhorEnvioBalanceAsync)}",
+            Content = response
+        });
+    }
+
+    [Authorize]
     [HttpPost("UpdateOrder")]
     public async Task<ActionResult<ApiSuccessResult<UpdateOrderResult>>> UpdateOrderAsync(
         UpdateOrderRequest request,

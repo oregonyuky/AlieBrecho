@@ -15,7 +15,7 @@ public class CustomerController : BaseApiController
     {
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("CreateCustomer")]
     public async Task<ActionResult<ApiSuccessResult<CreateCustomerResult>>> CreateCustomerAsync(
         CreateCustomerRequest request,
@@ -27,6 +27,22 @@ public class CustomerController : BaseApiController
         {
             Code = StatusCodes.Status200OK,
             Message = $"Success executing {nameof(CreateCustomerAsync)}",
+            Content = response
+        });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("Login")]
+    public async Task<ActionResult<ApiSuccessResult<LoginCustomerResult>>> LoginAsync(
+        LoginCustomerRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+
+        return Ok(new ApiSuccessResult<LoginCustomerResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(LoginAsync)}",
             Content = response
         });
     }

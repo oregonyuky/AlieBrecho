@@ -8,6 +8,7 @@ public interface IMelhorEnvioService
     Task<string> CriarEtiquetaAsync(object request);
     Task<string> AdicionarEtiquetaAoCarrinhoAsync(object request, CancellationToken cancellationToken = default);
     Task<string> ConsultarSaldoAsync(CancellationToken cancellationToken = default);
+    Task<string> InserirSaldoAsync(object request, CancellationToken cancellationToken = default);
     Task<string> ComprarFretesAsync(object request, CancellationToken cancellationToken = default);
     Task<string> GerarEtiquetasAsync(object request, CancellationToken cancellationToken = default);
     Task<byte[]> BaixarEtiquetaPdfAsync(string labelId, CancellationToken cancellationToken = default);

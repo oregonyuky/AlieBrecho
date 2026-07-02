@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
+using Application.Common.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -99,6 +100,7 @@ public static class DI
         });
 
         services.AddTransient<ITokenService, TokenService>();
+        services.AddTransient<ICustomerTokenService, TokenService>();
         services.AddScoped<TokenSettings>();
 
         return services;

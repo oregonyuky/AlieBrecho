@@ -123,6 +123,31 @@ public class MelhorEnvioService : IMelhorEnvioService
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
+    public async Task<string> InserirSaldoAsync(object request, CancellationToken cancellationToken = default)
+    {
+        AddAuth();
+
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json"
+        );
+
+        var response = await _httpClient.PostAsync(
+            $"{ConfigurationPlaceholderResolver.Resolve(_settings.BaseUrl)}v2/me/balance",
+            content,
+            cancellationToken
+        );
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception(GetApiErrorMessage(error));
+        }
+
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
     public async Task<string> ComprarFretesAsync(object request, CancellationToken cancellationToken = default)
     {
         AddAuth();

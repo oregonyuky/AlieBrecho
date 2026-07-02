@@ -1,4 +1,5 @@
 using Application.Common.Repositories;
+using Application.Features.CustomerManager;
 using Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -29,6 +30,8 @@ public class CreateCustomerRequest : IRequest<CreateCustomerResult>
     public string? Instagram { get; init; }
     public string? TwitterX { get; init; }
     public string? TikTok { get; init; }
+    public string? Password { get; init; }
+    public string? ConfirmPassword { get; init; }
     public string? CustomerStatus { get; init; }
 }
 
@@ -37,6 +40,10 @@ public class CreateCustomerValidator : AbstractValidator<CreateCustomerRequest>
     public CreateCustomerValidator()
     {
         RuleFor(x => x.Name).NotEmpty();
+        RuleFor(x => x.ConfirmPassword)
+            .Equal(x => x.Password)
+            .When(x => !string.IsNullOrWhiteSpace(x.Password))
+            .WithMessage("As senhas nao conferem.");
     }
 }
 
@@ -75,6 +82,9 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerRequest, Crea
             Instagram = request.Instagram,
             TwitterX = request.TwitterX,
             TikTok = request.TikTok,
+            PasswordHash = string.IsNullOrWhiteSpace(request.Password)
+                ? null
+                : CustomerPasswordHasher.Hash(request.Password),
             CustomerStatus = string.IsNullOrWhiteSpace(request.CustomerStatus) ? "Active" : request.CustomerStatus,
             CreatedAt = DateTime.UtcNow
         };

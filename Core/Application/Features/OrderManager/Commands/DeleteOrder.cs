@@ -44,6 +44,7 @@ public class DeleteOrderHandler : IRequestHandler<DeleteOrderRequest, DeleteOrde
                 .ThenInclude(x => x!.PaymentDetail)
             .Include(x => x.ShippingDetail)
             .Include(x => x.OrderDetails)
+                .ThenInclude(x => x.Product)
             .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
@@ -70,6 +71,10 @@ public class DeleteOrderHandler : IRequestHandler<DeleteOrderRequest, DeleteOrde
         foreach (var item in entity.OrderDetails)
         {
             item.IsDeleted = true;
+            if (item.Product != null)
+            {
+                item.Product.ProductAvailable = true;
+            }
         }
 
         await _unitOfWork.SaveAsync(cancellationToken);

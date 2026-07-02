@@ -112,6 +112,11 @@
                     <span v-if="state.melhorEnvioBalance.isLoading">Carregando...</span>
                     <span v-else>{{ formatCurrency(state.melhorEnvioBalance.balance) }}</span>
                 </div>
+                <button type="button" class="btn btn-sm btn-primary mt-2" v-on:click="methods.openInsertBalance" v-bind:disabled="state.melhorEnvioBalance.isInserting">
+                    <span class="spinner-border spinner-border-sm me-1" v-if="state.melhorEnvioBalance.isInserting"></span>
+                    <i class="fa fa-wallet" v-if="!state.melhorEnvioBalance.isInserting"></i>
+                    Inserir saldo
+                </button>
                 <small class="text-danger" v-if="state.melhorEnvioBalance.error">{{ state.melhorEnvioBalance.error }}</small>
             </div>
         </div>

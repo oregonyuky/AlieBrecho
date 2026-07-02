@@ -65,6 +65,7 @@ const App = {
                 reserved: 0,
                 debts: 0,
                 isLoading: false,
+                isInserting: false,
                 error: ''
             },
             deleteMode: false,
@@ -131,6 +132,7 @@ const App = {
             getShippingBoxes: async () => AxiosManager.get('/ShippingBox/GetShippingBoxList', {}),
             getPaymentTypes: async () => AxiosManager.get('/PaymentType/GetPaymentTypeList', {}),
             getMelhorEnvioBalance: async () => AxiosManager.get('/Order/GetMelhorEnvioBalance', {}),
+            insertMelhorEnvioBalance: async (request) => AxiosManager.post('/Order/InsertMelhorEnvioBalance', request),
             generateShippingLabel: async (request) => AxiosManager.post('/Order/GenerateShippingLabel', request),
             markShippingCart: async (request) => AxiosManager.post('/Order/MarkShippingCart', request),
             buyShippingCart: async (request) => AxiosManager.post('/Order/BuyShippingCart', request),
@@ -248,6 +250,63 @@ const App = {
             }
 
             return cleanMessage;
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const parseMoneyInput = (value) => Number(String(value || '')
+            .trim()
+            .replace(/\./g, '')
+            .replace(',', '.'));
+
+        const isImageSource = (value) => {
+            const text = String(value || '').trim();
+            return /^data:image\//i.test(text) ||
+                /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(text);
+        };
+
+        const buildInsertBalanceResultHtml = (content) => {
+            const paymentUrl = content.paymentUrl || '';
+            const pixQrCode = content.pixQrCode || '';
+            const pixCopyPaste = content.pixCopyPaste || (!isImageSource(pixQrCode) ? pixQrCode : '');
+            const parts = [];
+
+            if (paymentUrl) {
+                parts.push(`
+                    <a href="${escapeHtml(paymentUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary w-100 mb-3">
+                        Abrir pagamento
+                    </a>
+                `);
+            }
+
+            if (isImageSource(pixQrCode)) {
+                parts.push(`
+                    <div class="text-center mb-3">
+                        <img src="${escapeHtml(pixQrCode)}" alt="QR Code Pix" class="img-fluid" style="max-width:260px;">
+                    </div>
+                `);
+            }
+
+            if (pixCopyPaste) {
+                parts.push(`
+                    <label class="form-label text-start d-block">Pix copia e cola</label>
+                    <textarea id="insert-balance-pix-copy" class="form-control mb-2" rows="4" readonly>${escapeHtml(pixCopyPaste)}</textarea>
+                    <button type="button" id="insert-balance-copy-button" class="btn btn-outline-primary w-100">
+                        Copiar Pix
+                    </button>
+                `);
+            }
+
+            if (!parts.length) {
+                parts.push('<p class="mb-0">A solicitacao foi criada no Melhor Envio, mas a resposta nao trouxe link ou codigo Pix reconhecido.</p>');
+            }
+
+            return `<div class="text-start">${parts.join('')}</div>`;
         };
 
         const resetLabel = () => {
@@ -604,6 +663,87 @@ const App = {
 
                 resetForm();
                 fillOrder(order);
+            },
+            openInsertBalance: async () => {
+                const result = await Swal.fire({
+                    title: 'Inserir saldo',
+                    html: `
+                        <div class="text-start">
+                            <label class="form-label" for="insert-balance-value">Valor</label>
+                            <input id="insert-balance-value" type="number" min="1" step="0.01" class="form-control" placeholder="10.50">
+                            <label class="form-label mt-3" for="insert-balance-slug">Forma</label>
+                            <select id="insert-balance-slug" class="form-select">
+                                <option value="pix">Pix</option>
+                                <option value="boleto">Boleto</option>
+                            </select>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Inserir saldo',
+                    cancelButtonText: 'Cancelar',
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const value = parseMoneyInput(document.getElementById('insert-balance-value')?.value);
+                        const slug = document.getElementById('insert-balance-slug')?.value || 'pix';
+
+                        if (!value || value <= 0) {
+                            Swal.showValidationMessage('Informe um valor maior que zero.');
+                            return false;
+                        }
+
+                        return { value, slug };
+                    }
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    state.melhorEnvioBalance.isInserting = true;
+                    state.melhorEnvioBalance.error = '';
+
+                    const response = await services.insertMelhorEnvioBalance({
+                        value: result.value.value,
+                        slug: result.value.slug
+                    });
+
+                    const content = response?.data?.content ?? {};
+                    await methods.loadMelhorEnvioBalance();
+
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Saldo solicitado',
+                        html: buildInsertBalanceResultHtml(content),
+                        confirmButtonText: 'Fechar',
+                        didOpen: () => {
+                            const copyButton = document.getElementById('insert-balance-copy-button');
+                            const copyInput = document.getElementById('insert-balance-pix-copy');
+
+                            if (!copyButton || !copyInput) {
+                                return;
+                            }
+
+                            copyButton.addEventListener('click', async () => {
+                                try {
+                                    await navigator.clipboard.writeText(copyInput.value);
+                                    copyButton.textContent = 'Pix copiado';
+                                } catch {
+                                    copyInput.select();
+                                    document.execCommand('copy');
+                                    copyButton.textContent = 'Pix copiado';
+                                }
+                            });
+                        }
+                    });
+                } catch (error) {
+                    state.melhorEnvioBalance.error = getApiErrorMessage(error, 'Nao foi possivel inserir saldo na carteira.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Inserir saldo',
+                        text: state.melhorEnvioBalance.error
+                    });
+                } finally {
+                    state.melhorEnvioBalance.isInserting = false;
+                }
             },
             handleCustomerChange: async () => {
                 const customer = state.customers.find(x => x.id === state.customerId);
