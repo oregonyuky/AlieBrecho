@@ -30,6 +30,7 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
     public DbSet<Bag> Bag { get; set; }
     public DbSet<BagItem> BagItem { get; set; }
     public DbSet<ShippingBox> ShippingBox { get; set; }
+    public DbSet<DropConfig> DropConfig { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -48,5 +49,6 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new BagConfiguration());
         modelBuilder.ApplyConfiguration(new BagItemConfiguration());
         modelBuilder.ApplyConfiguration(new ShippingBoxConfiguration());
+        modelBuilder.ApplyConfiguration(new DropConfigConfiguration());
     }
 }

@@ -118,8 +118,58 @@ public static class DI
         EnsureOrderMelhorEnvioCartColumns(dataContext);
         EnsurePaidOrderProductsUnavailable(dataContext);
         EnsurePaidBagProductsUnavailable(dataContext);
+        EnsureDropConfigTable(dataContext);
 
         return host;
+    }
+
+    private static void EnsureDropConfigTable(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF OBJECT_ID('dbo.DropConfig', 'U') IS NULL
+                                               BEGIN
+                                                   CREATE TABLE [DropConfig] (
+                                                       [Id] nvarchar(50) NOT NULL,
+                                                       [IsDeleted] bit NOT NULL CONSTRAINT [DF_DropConfig_IsDeleted] DEFAULT CAST(0 AS bit),
+                                                       [CreatedAtUtc] datetime2 NULL,
+                                                       [CreatedById] nvarchar(450) NULL,
+                                                       [UpdatedAtUtc] datetime2 NULL,
+                                                       [UpdatedById] nvarchar(450) NULL,
+                                                       [Titulo] nvarchar(255) NOT NULL,
+                                                       [Subtitulo] nvarchar(4000) NULL,
+                                                       [DataLiberacao] datetime2 NOT NULL,
+                                                       [Ativo] bit NOT NULL,
+                                                       [CreatedAt] datetime2 NOT NULL,
+                                                       [UpdatedAt] datetime2 NULL,
+                                                       CONSTRAINT [PK_DropConfig] PRIMARY KEY ([Id])
+                                                   );
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "DropConfig" (
+                                                   "Id" character varying(50) NOT NULL,
+                                                   "IsDeleted" boolean NOT NULL DEFAULT FALSE,
+                                                   "CreatedAtUtc" timestamp with time zone NULL,
+                                                   "CreatedById" character varying(450) NULL,
+                                                   "UpdatedAtUtc" timestamp with time zone NULL,
+                                                   "UpdatedById" character varying(450) NULL,
+                                                   "Titulo" character varying(255) NOT NULL,
+                                                   "Subtitulo" character varying(4000) NULL,
+                                                   "DataLiberacao" timestamp with time zone NOT NULL,
+                                                   "Ativo" boolean NOT NULL,
+                                                   "CreatedAt" timestamp with time zone NOT NULL,
+                                                   "UpdatedAt" timestamp with time zone NULL,
+                                                   CONSTRAINT "PK_DropConfig" PRIMARY KEY ("Id")
+                                               );
+                                               """);
+        }
     }
 
     private static void EnsurePaidBagProductsUnavailable(DataContext dataContext)

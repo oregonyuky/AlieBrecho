@@ -23,5 +23,6 @@ public interface IEntityDbSet
     public DbSet<Bag> Bag { get; set; }
     public DbSet<BagItem> BagItem { get; set; }
     public DbSet<ShippingBox> ShippingBox { get; set; }
+    public DbSet<DropConfig> DropConfig { get; set; }
 
 }

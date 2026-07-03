@@ -1,5 +1,6 @@
 ﻿using Application.Common.Behaviors;
 using Application.Common.Services;
+using Application.Common.Time;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IShippingCostService, ShippingCostService>();
+        services.AddSingleton<IBrazilTimeZoneConverter, BrazilTimeZoneConverter>();
 
         //>>> Register services in Application.Features 
         var assembly = Assembly.GetExecutingAssembly();

@@ -58,6 +58,11 @@ public static class NavigationTreeStructure
                     "URL": "/Products/Product",
                     "Name": "Produtos",
                     "IsModule": false
+                },
+                {
+                    "URL": "/DropConfigs/DropConfig",
+                    "Name": "Drop de Lançamento",
+                    "IsModule": false
                 }
             ]
         },

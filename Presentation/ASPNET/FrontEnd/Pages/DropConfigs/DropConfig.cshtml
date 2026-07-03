@@ -1,0 +1,389 @@
+@page
+@{
+    ViewData["Title"] = "Drop";
+}
+
+<style>
+    .drop-admin {
+        background: #f4f6f9;
+        color: #1f2933;
+        min-height: calc(100vh - 120px);
+        padding: 16px 18px 34px;
+    }
+
+    .drop-admin [v-cloak] {
+        display: none;
+    }
+
+    .drop-panel {
+        background: #ffffff;
+        border: 1px solid #dde3ea;
+        border-top: 4px solid #222831;
+        border-radius: 10px;
+        box-shadow: 0 10px 28px rgba(31, 41, 51, 0.08);
+        margin-bottom: 24px;
+        max-width: 960px;
+        padding: 22px 24px 24px;
+    }
+
+    .drop-toolbar {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 14px;
+        max-width: 960px;
+    }
+
+    .drop-panel__title,
+    .drop-list-title {
+        align-items: center;
+        color: #222831;
+        display: flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        margin: 0 0 18px;
+    }
+
+    .drop-panel__title i,
+    .drop-list-title i {
+        color: #d97706;
+    }
+
+    .drop-field {
+        display: grid;
+        gap: 5px;
+        margin-bottom: 14px;
+    }
+
+    .drop-field label,
+    .drop-check label {
+        color: #59636f;
+        font-size: 11px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .drop-input,
+    .drop-textarea {
+        background: #fbfcfd;
+        border: 1px solid #cfd7df;
+        border-radius: 6px;
+        color: #18212c;
+        font-size: 14px;
+        font-weight: 700;
+        outline: none;
+        padding: 9px 12px;
+        width: 100%;
+    }
+
+    .drop-input:focus,
+    .drop-textarea:focus {
+        background: #ffffff;
+        border-color: #222831;
+        box-shadow: 0 0 0 3px rgba(34, 40, 49, 0.08);
+    }
+
+    .drop-textarea {
+        min-height: 104px;
+        resize: vertical;
+    }
+
+    .drop-row {
+        align-items: end;
+        display: grid;
+        gap: 18px;
+        grid-template-columns: 240px 1fr;
+        margin-bottom: 18px;
+    }
+
+    .drop-check {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        min-height: 38px;
+    }
+
+    .drop-check input {
+        accent-color: #222831;
+        height: 15px;
+        width: 15px;
+    }
+
+    .drop-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .drop-btn {
+        align-items: center;
+        border: 1px solid #cfd7df;
+        border-radius: 7px;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        min-height: 36px;
+        padding: 0 16px;
+    }
+
+    .drop-btn--primary {
+        background: #222831;
+        border-color: #222831;
+        color: #ffffff;
+    }
+
+    .drop-btn--ghost {
+        background: #ffffff;
+        color: #222831;
+    }
+
+    .drop-btn--icon {
+        background: #ffffff;
+        color: #222831;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0;
+        width: 40px;
+    }
+
+    .drop-btn--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+
+    .drop-btn--primary:hover {
+        background: #111827;
+        border-color: #111827;
+    }
+
+    .drop-btn--ghost:hover,
+    .drop-btn--icon:hover {
+        background: #f3f5f7;
+        border-color: #aeb8c3;
+    }
+
+    .drop-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+
+    .drop-error {
+        color: #dc2626;
+        font-size: 11px;
+        min-height: 14px;
+    }
+
+    .drop-list-title {
+        margin: 0;
+        max-width: 960px;
+    }
+
+    .drop-list {
+        display: grid;
+        gap: 10px;
+        max-width: 960px;
+    }
+
+    .drop-card {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #e1e7ee;
+        border-left: 4px solid #cbd5e1;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(31, 41, 51, 0.05);
+        display: flex;
+        justify-content: space-between;
+        min-height: 74px;
+        padding: 12px 14px 12px 18px;
+    }
+
+    .drop-card__main {
+        min-width: 0;
+    }
+
+    .drop-card__top {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        margin-bottom: 5px;
+    }
+
+    .drop-card__title {
+        color: #18212c;
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .drop-badge {
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+        padding: 2px 8px;
+    }
+
+    .drop-badge--active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .drop-badge--inactive {
+        background: #e5e7eb;
+        color: #4b5563;
+    }
+
+    .drop-card__date {
+        align-items: center;
+        color: #6b7280;
+        display: flex;
+        font-size: 12px;
+        font-weight: 700;
+        gap: 6px;
+    }
+
+    .drop-card__actions {
+        display: flex;
+        flex-shrink: 0;
+        gap: 8px;
+    }
+
+    .drop-empty {
+        background: #ffffff;
+        border: 1px dashed #cfd7df;
+        border-radius: 8px;
+        color: #6b7280;
+        font-size: 13px;
+        max-width: 960px;
+        padding: 18px;
+    }
+
+    @@media (max-width: 720px) {
+        .drop-panel {
+            padding: 18px;
+        }
+
+        .drop-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .drop-row {
+            grid-template-columns: 1fr;
+        }
+
+        .drop-card {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .drop-card__actions {
+            justify-content: flex-end;
+        }
+    }
+</style>
+
+<div id="app" class="drop-admin" v-cloak>
+    <div class="drop-toolbar">
+        <h2 class="drop-list-title">
+            <i class="fa fa-list" aria-hidden="true"></i>
+            Drops cadastrados
+        </h2>
+
+        <button class="drop-btn drop-btn--primary" type="button" v-on:click="handler.handleNew">
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            Novo drop
+        </button>
+    </div>
+
+    <section class="drop-panel" v-if="state.isFormVisible">
+        <h2 class="drop-panel__title">
+            <i class="fa fa-rocket" aria-hidden="true"></i>
+            {{ state.id ? 'Editar configuracao de drop' : 'Nova configuracao de drop' }}
+        </h2>
+
+        <form v-on:submit.prevent="handler.handleSubmit">
+            <div class="drop-field">
+                <label for="dropTitulo">Titulo</label>
+                <input id="dropTitulo"
+                       v-model="state.titulo"
+                       class="drop-input"
+                       type="text"
+                       placeholder="DROP 05">
+                <span class="drop-error">{{ state.errors.titulo }}</span>
+            </div>
+
+            <div class="drop-field">
+                <label for="dropSubtitulo">Subtitulo / descricao</label>
+                <textarea id="dropSubtitulo"
+                          v-model="state.subtitulo"
+                          class="drop-textarea"
+                          placeholder="A proxima colecao foi feita para quem vive na rua e nao segue regras. Quantidades extremamente limitadas."></textarea>
+            </div>
+
+            <div class="drop-row">
+                <div class="drop-field">
+                    <label for="dropDataLiberacao">Data e hora da liberacao</label>
+                    <input id="dropDataLiberacao"
+                           v-model="state.dataLiberacao"
+                           class="drop-input"
+                           type="datetime-local">
+                    <span class="drop-error">{{ state.errors.dataLiberacao }}</span>
+                </div>
+
+                <div class="drop-check">
+                    <input id="dropAtivo" v-model="state.ativo" type="checkbox">
+                    <label for="dropAtivo">Ativo (exibir no site)</label>
+                </div>
+            </div>
+
+            <div class="drop-actions">
+                <button class="drop-btn drop-btn--primary" type="submit" v-bind:disabled="state.isSubmitting">
+                    {{ state.isSubmitting ? 'Salvando...' : 'Salvar drop' }}
+                </button>
+                <button class="drop-btn drop-btn--ghost" type="button" v-on:click="handler.handleCancel" v-bind:disabled="state.isSubmitting">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="drop-list" v-if="state.mainData.length">
+        <article class="drop-card" v-for="drop in state.mainData" v-bind:key="drop.id">
+            <div class="drop-card__main">
+                <div class="drop-card__top">
+                    <strong class="drop-card__title">{{ drop.titulo }}</strong>
+                    <span class="drop-badge" v-bind:class="drop.ativo ? 'drop-badge--active' : 'drop-badge--inactive'">
+                        {{ drop.ativo ? 'Ativo' : 'Inativo' }}
+                    </span>
+                </div>
+                <div class="drop-card__date">
+                    <i class="fa fa-calendar-days" aria-hidden="true"></i>
+                    {{ methods.formatDateTime(drop.dataLiberacaoBrasilia) }} (Brasilia)
+                </div>
+            </div>
+
+            <div class="drop-card__actions">
+                <button class="drop-btn drop-btn--icon" type="button" title="Editar" v-on:click="handler.handleEdit(drop)">
+                    <i class="fa fa-pen-to-square" aria-hidden="true"></i>
+                </button>
+                <button class="drop-btn drop-btn--icon drop-btn--danger" type="button" title="Excluir" v-on:click="handler.handleDelete(drop)">
+                    <i class="fa fa-trash-can" aria-hidden="true"></i>
+                </button>
+            </div>
+        </article>
+    </section>
+
+    <div class="drop-empty" v-else>
+        Nenhum drop cadastrado.
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/FrontEnd/Pages/DropConfigs/DropConfig.cshtml.js?v=20260703-2"></script>
+}
