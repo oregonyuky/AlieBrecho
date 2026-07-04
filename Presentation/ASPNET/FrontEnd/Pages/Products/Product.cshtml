@@ -88,7 +88,7 @@
 
                     <form id="MainForm">
                         <div class="row mb-2">
-                            <div class="col-md-8">
+                            <div class="col-md-6">
                                 <label>Nome</label>
                                 <input ref="nameRef"
                                        v-model="state.name"
@@ -98,7 +98,7 @@
                                 <label class="text-danger">{{ state.errors.name }}</label>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label>Categoria</label>
                                 <select v-model="state.categoryID"
                                         class="form-control"
@@ -108,6 +108,20 @@
                                             v-bind:key="category.id"
                                             v-bind:value="category.id">
                                         {{ category.name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label>Drop</label>
+                                <select v-model="state.dropConfigId"
+                                        class="form-control"
+                                        v-bind:disabled="state.deleteMode">
+                                    <option value="">Sem drop</option>
+                                    <option v-for="drop in state.dropConfigs"
+                                            v-bind:key="drop.id"
+                                            v-bind:value="drop.id">
+                                        {{ drop.titulo }}
                                     </option>
                                 </select>
                             </div>

@@ -22,6 +22,7 @@ public class CreateProductRequest : IRequest<CreateProductResult>
 {
     public string? Name { get; init; }
     public string? CategoryID { get; init; }
+    public string? DropConfigId { get; init; }
     public decimal? UnitPrice { get; init; }
     public decimal? OldPrice { get; init; }
     public decimal? UnitWeight { get; init; }
@@ -72,6 +73,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductRequest, Create
         {
             Name = request.Name ?? string.Empty,
             CategoryID = request.CategoryID,
+            DropConfigId = request.DropConfigId,
             UnitPrice = request.UnitPrice,
             OldPrice = request.OldPrice,
             UnitWeight = request.UnitWeight,

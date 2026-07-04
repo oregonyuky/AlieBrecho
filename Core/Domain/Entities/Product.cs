@@ -8,6 +8,8 @@ public class Product : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string? CategoryID { get; set; }
     public Category? Category { get; set; }
+    public string? DropConfigId { get; set; }
+    public DropConfig? DropConfig { get; set; }
     public decimal? UnitPrice { get; set; }
     public decimal? OldPrice { get; set; }
     public decimal? UnitWeight { get; set; }

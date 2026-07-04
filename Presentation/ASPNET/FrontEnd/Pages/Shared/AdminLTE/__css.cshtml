@@ -22,17 +22,160 @@
         margin-top: 10px;
     }
 
-    /* For Syncfusion Grid */
+    /* Modern tables and Syncfusion grids */
+    .grid-container,
+    .table-responsive {
+        background: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 8px 22px rgba(31, 41, 55, 0.04);
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .grid-container .e-grid {
+        border: 0;
+        border-radius: 8px;
+        color: #212529;
+        font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        overflow: hidden;
+    }
+
     .grid-container .e-gridcontent {
         cursor: pointer;
     }
 
-    .e-grid .e-row.e-altrow {
-        background-color: #F3F6F9;
+    .e-grid .e-gridheader,
+    .e-grid .e-headercontent {
+        background: #f8f9fa;
+        border: 0;
     }
 
-    .e-headertext {
-        padding-left: 5px;
+    .e-grid .e-gridheader .e-headercell,
+    .e-grid .e-gridheader .e-stackedheadercell {
+        background: #f8f9fa;
+        border-color: #edf1f5;
+        border-style: solid;
+        border-width: 0 0 1px 0;
+        color: #6c757d;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        padding: 12px 14px;
+        text-transform: uppercase;
+        transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .e-grid .e-headertext {
+        padding-left: 0;
+    }
+
+    .e-grid .e-sortfilterdiv,
+    .e-grid .e-icons {
+        transition: color 0.18s ease, opacity 0.18s ease;
+    }
+
+    .e-grid .e-gridcontent .e-content {
+        overflow-x: auto;
+    }
+
+    .e-grid .e-gridcontent .e-row,
+    .e-grid .e-gridcontent .e-altrow {
+        background: #ffffff;
+        transition: background-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .e-grid .e-gridcontent .e-altrow {
+        background: #fbfcfd;
+    }
+
+    .e-grid .e-gridcontent .e-row:hover,
+    .e-grid .e-gridcontent .e-altrow:hover {
+        background: #f3f8ff;
+    }
+
+    .e-grid .e-gridcontent .e-rowcell {
+        border-color: #edf1f5;
+        border-style: solid;
+        border-width: 0 0 1px 0;
+        color: #343a40;
+        font-size: 0.9rem;
+        line-height: 1.35;
+        padding: 13px 14px;
+        transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .e-grid .e-rowcell.e-selectionbackground,
+    .e-grid .e-active {
+        background-color: rgba(27, 132, 255, 0.08) !important;
+    }
+
+    .e-grid .e-gridpager {
+        background: #ffffff;
+        border-color: #edf1f5;
+        border-style: solid;
+        border-width: 1px 0 0 0;
+        padding: 8px 12px;
+    }
+
+    .e-grid .e-gridpager .e-pagercontainer,
+    .e-grid .e-gridpager .e-parentmsgbar {
+        font-size: 0.84rem;
+    }
+
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        color: #212529;
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: #f8f9fa;
+        border-color: #edf1f5 !important;
+        border-style: solid !important;
+        border-width: 0 0 1px 0 !important;
+        color: #6c757d;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        padding: 12px 14px;
+        text-transform: uppercase;
+        vertical-align: middle;
+    }
+
+    .table tbody td {
+        border-color: #edf1f5 !important;
+        border-style: solid !important;
+        border-width: 0 0 1px 0 !important;
+        padding: 13px 14px;
+        vertical-align: middle;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.18s ease;
+    }
+
+    .table tbody tr:nth-child(even) {
+        background: #fbfcfd;
+    }
+
+    .table tbody tr:hover {
+        background: #f3f8ff;
+    }
+
+    .table-bordered {
+        border: 0;
+    }
+
+    .badge,
+    .e-badge {
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0.32rem 0.55rem;
     }
 
     .e-grid .e-gridpager .e-currentitem {

@@ -1,6 +1,7 @@
 ﻿using Application.Common.CQS.Commands;
 using Application.Common.CQS.Queries;
 using Application.Common.Repositories;
+using System.Data;
 using Infrastructure.DataAccessManager.EFCore.Contexts;
 using Infrastructure.DataAccessManager.EFCore.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -77,23 +78,23 @@ public static class DI
                     .EnableSensitiveDataLogging()
                 );
                 break;
-            // case "Sqlite":
-            //     services.AddDbContext<DataContext>(options =>
-            //         options.UseSqlite(connectionString)
-            //         .LogTo(Log.Information, LogLevel.Information)
-            //         .EnableSensitiveDataLogging()
-            //     );
-            //     services.AddDbContext<CommandContext>(options =>
-            //         options.UseSqlite(connectionString)
-            //         .LogTo(Log.Information, LogLevel.Information)
-            //         .EnableSensitiveDataLogging()
-            //     );
-            //     services.AddDbContext<QueryContext>(options =>
-            //         options.UseSqlite(connectionString)
-            //         .LogTo(Log.Information, LogLevel.Information)
-            //         .EnableSensitiveDataLogging()
-            //     );
-            //     break;
+            case "Sqlite":
+                services.AddDbContext<DataContext>(options =>
+                    options.UseSqlite(connectionString)
+                    .LogTo(Log.Information, LogLevel.Information)
+                    .EnableSensitiveDataLogging()
+                );
+                services.AddDbContext<CommandContext>(options =>
+                    options.UseSqlite(connectionString)
+                    .LogTo(Log.Information, LogLevel.Information)
+                    .EnableSensitiveDataLogging()
+                );
+                services.AddDbContext<QueryContext>(options =>
+                    options.UseSqlite(connectionString)
+                    .LogTo(Log.Information, LogLevel.Information)
+                    .EnableSensitiveDataLogging()
+                );
+                break;
         }
 
 
@@ -119,8 +120,103 @@ public static class DI
         EnsurePaidOrderProductsUnavailable(dataContext);
         EnsurePaidBagProductsUnavailable(dataContext);
         EnsureDropConfigTable(dataContext);
+        EnsureProductDropConfigColumn(dataContext);
 
         return host;
+    }
+
+    private static void EnsureProductDropConfigColumn(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.Product', 'DropConfigId') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [Product] ADD [DropConfigId] nvarchar(50) NULL;
+                                               END
+
+                                               IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Product_DropConfigId' AND object_id = OBJECT_ID('dbo.Product'))
+                                               BEGIN
+                                                   CREATE INDEX [IX_Product_DropConfigId] ON [Product] ([DropConfigId]);
+                                               END
+
+                                               IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Product_DropConfig_DropConfigId')
+                                               BEGIN
+                                                   ALTER TABLE [Product]
+                                                   ADD CONSTRAINT [FK_Product_DropConfig_DropConfigId]
+                                                   FOREIGN KEY ([DropConfigId]) REFERENCES [DropConfig] ([Id])
+                                                   ON DELETE SET NULL;
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Product"
+                                               ADD COLUMN IF NOT EXISTS "DropConfigId" character varying(50);
+
+                                               CREATE INDEX IF NOT EXISTS "IX_Product_DropConfigId" ON "Product" ("DropConfigId");
+
+                                               DO $$
+                                               BEGIN
+                                                   IF NOT EXISTS (
+                                                       SELECT 1
+                                                       FROM pg_constraint
+                                                       WHERE conname = 'FK_Product_DropConfig_DropConfigId'
+                                                   ) THEN
+                                                       ALTER TABLE "Product"
+                                                       ADD CONSTRAINT "FK_Product_DropConfig_DropConfigId"
+                                                       FOREIGN KEY ("DropConfigId") REFERENCES "DropConfig" ("Id")
+                                                       ON DELETE SET NULL;
+                                                   END IF;
+                                               END $$;
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite() && !SqliteColumnExists(dataContext, "Product", "DropConfigId"))
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Product" ADD COLUMN "DropConfigId" TEXT NULL;
+                                               """);
+        }
+    }
+
+    private static bool SqliteColumnExists(DataContext dataContext, string tableName, string columnName)
+    {
+        var connection = dataContext.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+
+        if (shouldClose)
+        {
+            connection.Open();
+        }
+
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = $"""PRAGMA table_info("{tableName}");""";
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                if (string.Equals(reader["name"]?.ToString(), columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                connection.Close();
+            }
+        }
     }
 
     private static void EnsureDropConfigTable(DataContext dataContext)

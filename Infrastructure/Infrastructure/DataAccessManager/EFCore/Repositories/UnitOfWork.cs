@@ -17,6 +17,25 @@ public class UnitOfWork : IUnitOfWork
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<T> ExecuteInTransactionAsync<T>(
+        Func<Task<T>> operation,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var result = await operation();
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public void Save()
     {
         _context.SaveChanges();

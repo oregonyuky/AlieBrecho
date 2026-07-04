@@ -24,6 +24,7 @@ public class UpdateProductRequest : IRequest<UpdateProductResult>
     public string? Id { get; init; }
     public string? Name { get; init; }
     public string? CategoryID { get; init; }
+    public string? DropConfigId { get; init; }
     public decimal? UnitPrice { get; init; }
     public decimal? OldPrice { get; init; }
     public decimal? UnitWeight { get; init; }
@@ -83,6 +84,7 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductRequest, Update
 
         entity.Name = request.Name ?? string.Empty;
         entity.CategoryID = request.CategoryID;
+        entity.DropConfigId = request.DropConfigId;
         entity.UnitPrice = request.UnitPrice;
         entity.OldPrice = request.OldPrice;
         entity.UnitWeight = request.UnitWeight;

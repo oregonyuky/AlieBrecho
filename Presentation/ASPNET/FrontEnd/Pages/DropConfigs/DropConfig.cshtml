@@ -19,11 +19,52 @@
         background: #ffffff;
         border: 1px solid #dde3ea;
         border-top: 4px solid #222831;
-        border-radius: 10px;
+        border-radius: 8px;
         box-shadow: 0 10px 28px rgba(31, 41, 51, 0.08);
-        margin-bottom: 24px;
         max-width: 960px;
         padding: 22px 24px 24px;
+    }
+
+    .drop-modal-overlay {
+        align-items: center;
+        background: rgba(17, 24, 39, 0.62);
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        left: 0;
+        padding: 18px;
+        position: fixed;
+        right: 0;
+        top: 0;
+        z-index: 1050;
+    }
+
+    .drop-modal {
+        max-height: calc(100vh - 36px);
+        overflow-y: auto;
+        position: relative;
+        width: min(720px, 100%);
+    }
+
+    .drop-modal__close {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d7dee6;
+        border-radius: 7px;
+        color: #222831;
+        cursor: pointer;
+        display: inline-flex;
+        height: 34px;
+        justify-content: center;
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        width: 34px;
+    }
+
+    .drop-modal__close:hover {
+        background: #f3f5f7;
+        border-color: #aeb8c3;
     }
 
     .drop-toolbar {
@@ -301,57 +342,63 @@
         </button>
     </div>
 
-    <section class="drop-panel" v-if="state.isFormVisible">
-        <h2 class="drop-panel__title">
-            <i class="fa fa-rocket" aria-hidden="true"></i>
-            {{ state.id ? 'Editar configuracao de drop' : 'Nova configuracao de drop' }}
-        </h2>
+    <div class="drop-modal-overlay" v-if="state.isFormVisible" v-on:click.self="handler.handleCancel">
+        <section class="drop-panel drop-modal" role="dialog" aria-modal="true" aria-labelledby="dropModalTitle">
+            <button class="drop-modal__close" type="button" title="Fechar" aria-label="Fechar" v-on:click="handler.handleCancel" v-bind:disabled="state.isSubmitting">
+                <i class="fa fa-xmark" aria-hidden="true"></i>
+            </button>
 
-        <form v-on:submit.prevent="handler.handleSubmit">
-            <div class="drop-field">
-                <label for="dropTitulo">Titulo</label>
-                <input id="dropTitulo"
-                       v-model="state.titulo"
-                       class="drop-input"
-                       type="text"
-                       placeholder="DROP 05">
-                <span class="drop-error">{{ state.errors.titulo }}</span>
-            </div>
+            <h2 id="dropModalTitle" class="drop-panel__title">
+                <i class="fa fa-rocket" aria-hidden="true"></i>
+                {{ state.id ? 'Editar configuracao de drop' : 'Nova configuracao de drop' }}
+            </h2>
 
-            <div class="drop-field">
-                <label for="dropSubtitulo">Subtitulo / descricao</label>
-                <textarea id="dropSubtitulo"
-                          v-model="state.subtitulo"
-                          class="drop-textarea"
-                          placeholder="A proxima colecao foi feita para quem vive na rua e nao segue regras. Quantidades extremamente limitadas."></textarea>
-            </div>
-
-            <div class="drop-row">
+            <form v-on:submit.prevent="handler.handleSubmit">
                 <div class="drop-field">
-                    <label for="dropDataLiberacao">Data e hora da liberacao</label>
-                    <input id="dropDataLiberacao"
-                           v-model="state.dataLiberacao"
+                    <label for="dropTitulo">Titulo</label>
+                    <input id="dropTitulo"
+                           v-model="state.titulo"
                            class="drop-input"
-                           type="datetime-local">
-                    <span class="drop-error">{{ state.errors.dataLiberacao }}</span>
+                           type="text"
+                           placeholder="DROP 05">
+                    <span class="drop-error">{{ state.errors.titulo }}</span>
                 </div>
 
-                <div class="drop-check">
-                    <input id="dropAtivo" v-model="state.ativo" type="checkbox">
-                    <label for="dropAtivo">Ativo (exibir no site)</label>
+                <div class="drop-field">
+                    <label for="dropSubtitulo">Subtitulo / descricao</label>
+                    <textarea id="dropSubtitulo"
+                              v-model="state.subtitulo"
+                              class="drop-textarea"
+                              placeholder="A proxima colecao foi feita para quem vive na rua e nao segue regras. Quantidades extremamente limitadas."></textarea>
                 </div>
-            </div>
 
-            <div class="drop-actions">
-                <button class="drop-btn drop-btn--primary" type="submit" v-bind:disabled="state.isSubmitting">
-                    {{ state.isSubmitting ? 'Salvando...' : 'Salvar drop' }}
-                </button>
-                <button class="drop-btn drop-btn--ghost" type="button" v-on:click="handler.handleCancel" v-bind:disabled="state.isSubmitting">
-                    Cancelar
-                </button>
-            </div>
-        </form>
-    </section>
+                <div class="drop-row">
+                    <div class="drop-field">
+                        <label for="dropDataLiberacao">Data e hora da liberacao</label>
+                        <input id="dropDataLiberacao"
+                               v-model="state.dataLiberacao"
+                               class="drop-input"
+                               type="datetime-local">
+                        <span class="drop-error">{{ state.errors.dataLiberacao }}</span>
+                    </div>
+
+                    <div class="drop-check">
+                        <input id="dropAtivo" v-model="state.ativo" type="checkbox">
+                        <label for="dropAtivo">Ativo (exibir no site)</label>
+                    </div>
+                </div>
+
+                <div class="drop-actions">
+                    <button class="drop-btn drop-btn--primary" type="submit" v-bind:disabled="state.isSubmitting">
+                        {{ state.isSubmitting ? 'Salvando...' : 'Salvar' }}
+                    </button>
+                    <button class="drop-btn drop-btn--ghost" type="button" v-on:click="handler.handleCancel" v-bind:disabled="state.isSubmitting">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
 
     <section class="drop-list" v-if="state.mainData.length">
         <article class="drop-card" v-for="drop in state.mainData" v-bind:key="drop.id">
@@ -370,10 +417,10 @@
 
             <div class="drop-card__actions">
                 <button class="drop-btn drop-btn--icon" type="button" title="Editar" v-on:click="handler.handleEdit(drop)">
-                    <i class="fa fa-pen-to-square" aria-hidden="true"></i>
+                    <i class="fas fa-edit" aria-hidden="true"></i>
                 </button>
                 <button class="drop-btn drop-btn--icon drop-btn--danger" type="button" title="Excluir" v-on:click="handler.handleDelete(drop)">
-                    <i class="fa fa-trash-can" aria-hidden="true"></i>
+                    <i class="fas fa-trash-alt" aria-hidden="true"></i>
                 </button>
             </div>
         </article>

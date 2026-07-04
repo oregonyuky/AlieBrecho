@@ -21,6 +21,8 @@ public record GetProductSingleDto
     public string? Id { get; init; }
     public string? Name { get; init; }
     public string? CategoryID { get; init; }
+    public string? DropConfigId { get; init; }
+    public string? DropTitulo { get; init; }
     public decimal? UnitPrice { get; init; }
     public decimal? OldPrice { get; init; }
     public decimal? UnitWeight { get; init; }
@@ -44,7 +46,8 @@ public class GetProductSingleProfile : Profile
     public GetProductSingleProfile()
     {
         CreateMap<ProductSize, GetProductSingleSizeDto>();
-        CreateMap<Product, GetProductSingleDto>();
+        CreateMap<Product, GetProductSingleDto>()
+            .ForMember(dest => dest.DropTitulo, opt => opt.MapFrom(src => src.DropConfig == null ? null : src.DropConfig.Titulo));
     }
 }
 
@@ -85,6 +88,7 @@ public class GetProductSingleHandler : IRequestHandler<GetProductSingleRequest, 
         var entity = await _context
             .Product
             .AsNoTracking()
+            .Include(x => x.DropConfig)
             .Include(x => x.Sizes)
             .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 

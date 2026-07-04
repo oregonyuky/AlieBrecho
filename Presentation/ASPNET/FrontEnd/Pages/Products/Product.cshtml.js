@@ -6,6 +6,7 @@ const App = {
             id: '',
             name: '',
             categoryID: '',
+            dropConfigId: '',
             unitPrice: null,
             oldPrice: null,
             unitWeight: null,
@@ -37,6 +38,7 @@ const App = {
         const state = Vue.reactive({
             mainData: [],
             categories: [],
+            dropConfigs: [],
             deleteMode: false,
             mainTitle: 'Editar Produto',
             errors: {
@@ -86,6 +88,13 @@ const App = {
             getCategoryData: async () => {
                 try {
                     return await AxiosManager.get('/Category/GetCategoryList', {});
+                } catch (error) {
+                    throw error;
+                }
+            },
+            getDropConfigData: async () => {
+                try {
+                    return await AxiosManager.get('/drop-config', {});
                 } catch (error) {
                     throw error;
                 }
@@ -230,6 +239,7 @@ const App = {
                     id: data?.id ?? '',
                     name: data?.name ?? '',
                     categoryID: data?.categoryID ?? '',
+                    dropConfigId: data?.dropConfigId ?? '',
                     unitPrice: data?.unitPrice ?? null,
                     oldPrice: data?.oldPrice ?? null,
                     unitWeight: data?.unitWeight ?? null,
@@ -283,6 +293,7 @@ const App = {
                 id: state.id || null,
                 name: state.name,
                 categoryID: state.categoryID || null,
+                dropConfigId: state.dropConfigId || null,
                 unitPrice: state.unitPrice,
                 oldPrice: state.oldPrice,
                 unitWeight: state.unitWeight,
@@ -324,6 +335,11 @@ const App = {
                 const response = await services.getCategoryData();
 
                 state.categories = response?.data?.content?.data ?? [];
+            },
+            populateDropConfigData: async () => {
+                const response = await services.getDropConfigData();
+
+                state.dropConfigs = response?.data?.content?.data ?? [];
             },
             uploadImagesIfNeeded: async () => {
                 const upload = async (file, targetField) => {
@@ -390,6 +406,7 @@ const App = {
                             width: 260,
                             template: '<div class="product-name-cell"><img src="${imageURL}" alt="Produto" /><span>${name}</span></div>'
                         },
+                        { field: 'dropTitulo', headerText: 'Drop', width: 160 },
                         { field: 'unitPrice', headerText: 'Preco Unitario', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.unitPrice) },
                         { field: 'oldPrice', headerText: 'Preco Antigo', width: 130, valueAccessor: (_, data) => formatCurrencyBRL(data.oldPrice) },
                         { field: 'discountPercent', headerText: 'Desconto %', width: 130, format: 'N2' },
@@ -628,6 +645,7 @@ const App = {
                 await SecurityManager.validateToken();
 
                 await methods.populateCategoryData();
+                await methods.populateDropConfigData();
                 await methods.populateMainData();
                 await mainGrid.create(state.mainData);
 

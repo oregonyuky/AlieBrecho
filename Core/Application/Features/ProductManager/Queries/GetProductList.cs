@@ -21,6 +21,8 @@ public record GetProductListDto
     public string? Id { get; init; }
     public string? Name { get; init; }
     public string? CategoryID { get; init; }
+    public string? DropConfigId { get; init; }
+    public string? DropTitulo { get; init; }
     public decimal? UnitPrice { get; init; }
     public decimal? OldPrice { get; init; }
     public decimal? DiscountPercent { get; init; }
@@ -36,7 +38,8 @@ public class GetProductListProfile : Profile
     public GetProductListProfile()
     {
         CreateMap<ProductSize, GetProductListSizeDto>();
-        CreateMap<Product, GetProductListDto>();
+        CreateMap<Product, GetProductListDto>()
+            .ForMember(dest => dest.DropTitulo, opt => opt.MapFrom(src => src.DropConfig == null ? null : src.DropConfig.Titulo));
     }
 }
 
@@ -66,6 +69,7 @@ public class GetProductListHandler : IRequestHandler<GetProductListRequest, GetP
         var entities = await _context
             .Product
             .AsNoTracking()
+            .Include(x => x.DropConfig)
             .Include(x => x.Sizes)
             .ApplyIsDeletedFilter(request.IsDeleted)
             .ToListAsync(cancellationToken);

@@ -65,6 +65,12 @@ const App = {
                 methods.clearErrors();
                 state.isFormVisible = false;
             },
+            openForm: () => {
+                state.isFormVisible = true;
+                Vue.nextTick(() => {
+                    document.querySelector('#dropTitulo')?.focus();
+                });
+            },
             populateMainData: async () => {
                 const response = await services.getMainData();
                 const data = response?.data?.content?.data ?? [];
@@ -111,10 +117,7 @@ const App = {
         const handler = {
             handleNew: () => {
                 methods.resetForm();
-                state.isFormVisible = true;
-                Vue.nextTick(() => {
-                    document.querySelector('.drop-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
+                methods.openForm();
             },
             handleSubmit: async () => {
                 if (!methods.validate()) {
@@ -129,11 +132,16 @@ const App = {
                         : await services.createMainData();
 
                     if (response.data.code === 200) {
+                        const releasedProductsCount = response?.data?.content?.releasedProductsCount ?? 0;
+
                         await methods.populateMainData();
                         methods.resetForm();
                         Swal.fire({
                             icon: 'success',
                             title: 'Drop salvo com sucesso',
+                            text: releasedProductsCount > 0
+                                ? `${releasedProductsCount} produto(s) liberado(s).`
+                                : 'Nenhum produto vinculado precisava ser liberado.',
                             timer: 1100,
                             showConfirmButton: false
                         });
@@ -161,11 +169,8 @@ const App = {
                 state.subtitulo = drop.subtitulo ?? '';
                 state.dataLiberacao = toLocalInputValue(drop.dataLiberacaoBrasilia);
                 state.ativo = drop.ativo === true;
-                state.isFormVisible = true;
                 methods.clearErrors();
-                Vue.nextTick(() => {
-                    document.querySelector('.drop-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
+                methods.openForm();
             },
             handleDelete: async (drop) => {
                 const result = await Swal.fire({
@@ -212,11 +217,22 @@ const App = {
                 }
             },
             handleCancel: () => {
+                if (state.isSubmitting) {
+                    return;
+                }
+
                 methods.resetForm();
+            },
+            handleKeydown: (event) => {
+                if (event.key === 'Escape' && state.isFormVisible && !state.isSubmitting) {
+                    methods.resetForm();
+                }
             }
         };
 
         Vue.onMounted(async () => {
+            document.addEventListener('keydown', handler.handleKeydown);
+
             try {
                 await SecurityManager.authorizePage(['DropConfigs']);
                 await SecurityManager.validateToken();
@@ -224,6 +240,10 @@ const App = {
             } catch (e) {
                 console.error(e);
             }
+        });
+
+        Vue.onUnmounted(() => {
+            document.removeEventListener('keydown', handler.handleKeydown);
         });
 
         return {

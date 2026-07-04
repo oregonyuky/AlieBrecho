@@ -28,6 +28,11 @@ public class ProductConfiguration : BaseEntityConfiguration<Product>
             .HasForeignKey(x => x.CategoryID)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(x => x.DropConfig)
+            .WithMany(x => x.Products)
+            .HasForeignKey(x => x.DropConfigId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(x => x.Sizes)
             .WithOne(x => x.Product)
             .HasForeignKey(x => x.ProductId)
