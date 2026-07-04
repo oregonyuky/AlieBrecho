@@ -10,4 +10,6 @@ public enum PaymentStatus
     Paid = 1,
     [Description("Cancelled")]
     Cancelled = 2,
+    [Description("WaitingPayment")]
+    WaitingPayment = 3,
 }

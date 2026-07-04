@@ -10,6 +10,10 @@ public class Payment : BaseEntity
     public PaymentStatus? Status { get; set; }
     public DateTime? PaymentDateTime { get; set; }
     public decimal? Amount { get; set; }
+    public string? Provider { get; set; }
+    public string? CheckoutUrl { get; set; }
+    public string? ProviderTransactionId { get; set; }
+    public DateTime? PaidAt { get; set; }
     public string? PaymentTypeId { get; set; }
     public PaymentType? PaymentType { get; set; }
     public PaymentDetail? PaymentDetail { get; set; }

@@ -119,6 +119,7 @@ public static class DI
         EnsureOrderMelhorEnvioCartColumns(dataContext);
         EnsurePaidOrderProductsUnavailable(dataContext);
         EnsurePaidBagProductsUnavailable(dataContext);
+        EnsureInfinitePayPaymentColumns(dataContext);
         EnsureDropConfigTable(dataContext);
         EnsureProductDropConfigColumn(dataContext);
 
@@ -215,6 +216,59 @@ public static class DI
             if (shouldClose)
             {
                 connection.Close();
+            }
+        }
+    }
+
+    private static void EnsureInfinitePayPaymentColumns(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            foreach (var sql in new[]
+            {
+                "IF COL_LENGTH('dbo.Payment', 'Provider') IS NULL BEGIN ALTER TABLE [Payment] ADD [Provider] nvarchar(100) NULL; END",
+                "IF COL_LENGTH('dbo.Payment', 'CheckoutUrl') IS NULL BEGIN ALTER TABLE [Payment] ADD [CheckoutUrl] nvarchar(max) NULL; END",
+                "IF COL_LENGTH('dbo.Payment', 'ProviderTransactionId') IS NULL BEGIN ALTER TABLE [Payment] ADD [ProviderTransactionId] nvarchar(255) NULL; END",
+                "IF COL_LENGTH('dbo.Payment', 'PaidAt') IS NULL BEGIN ALTER TABLE [Payment] ADD [PaidAt] datetime2 NULL; END"
+            })
+            {
+                dataContext.Database.ExecuteSqlRaw(sql);
+            }
+
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "Provider" character varying(100);
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "CheckoutUrl" text;
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "ProviderTransactionId" character varying(255);
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "PaidAt" timestamp with time zone;
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            if (!SqliteColumnExists(dataContext, "Payment", "Provider"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "Provider" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "Payment", "CheckoutUrl"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "CheckoutUrl" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "Payment", "ProviderTransactionId"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "ProviderTransactionId" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "Payment", "PaidAt"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "PaidAt" TEXT NULL;""");
             }
         }
     }

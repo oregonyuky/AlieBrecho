@@ -2,6 +2,7 @@
 using Infrastructure.EmailManager;
 using Infrastructure.FileDocumentManager;
 using Infrastructure.FileImageManager;
+using Infrastructure.InfinitePayManager;
 using Infrastructure.LogManager.Serilogs;
 using Infrastructure.MelhorEnvioManager;
 using Infrastructure.SecurityManager.AspNetIdentity;
@@ -37,6 +38,8 @@ public static class DependencyInjection
         services.RegisterFileImageManager(configuration);
         //>>> Melhor Envio
         services.AddMelhorEnvio(configuration);
+        //>>> Infinite Pay
+        services.AddInfinitePay(configuration);
 
         return services;
     }
