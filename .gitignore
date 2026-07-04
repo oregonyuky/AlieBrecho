@@ -6,3 +6,4 @@ obj/
 *.env
 Migrations/
 appsettings.Development.json
+*.db

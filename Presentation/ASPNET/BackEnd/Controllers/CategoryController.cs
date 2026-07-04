@@ -81,7 +81,7 @@ public class CategoryController : BaseApiController
         });
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("GetCategoryList")]
     public async Task<ActionResult<ApiSuccessResult<GetCategoryListResult>>> GetCategoryListAsync(
         CancellationToken cancellationToken,
