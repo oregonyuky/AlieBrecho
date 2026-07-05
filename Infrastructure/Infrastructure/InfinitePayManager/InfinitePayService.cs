@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+using System.Globalization;
 using System.Text.Json;
 using Application.Common.Services.InfinitePayManager;
 using Infrastructure.Common;
@@ -9,22 +9,19 @@ namespace Infrastructure.InfinitePayManager;
 public class InfinitePayService : IInfinitePayService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly HttpClient _httpClient;
     private readonly InfinitePaySettings _settings;
 
     public InfinitePayService(HttpClient httpClient, IOptions<InfinitePaySettings> settings)
     {
-        _httpClient = httpClient;
         _settings = settings.Value;
     }
 
-    public async Task<InfinitePayCheckoutCreationResult> CreateCheckoutAsync(
+    public Task<InfinitePayCheckoutCreationResult> CreateCheckoutAsync(
         InfinitePayCreateCheckoutRequest request,
         CancellationToken cancellationToken = default)
     {
         var baseUrl = ConfigurationPlaceholderResolver.Resolve(_settings.BaseUrl);
         var handle = ConfigurationPlaceholderResolver.Resolve(_settings.Handle);
-        var path = ConfigurationPlaceholderResolver.Resolve(_settings.CreateCheckoutPath) ?? "checkouts";
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
@@ -36,193 +33,45 @@ public class InfinitePayService : IInfinitePayService
             throw new InvalidOperationException("InfinitePay: Handle nao configurado.");
         }
 
-        var endpoint = BuildEndpoint(baseUrl, path, handle);
-        var payload = request.Handle is null ? request with { Handle = handle } : request;
-        var response = await _httpClient.PostAsJsonAsync(endpoint, payload, JsonOptions, cancellationToken);
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var checkoutUrl = BuildCheckoutUrl(baseUrl, request.Handle ?? handle, request);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException(
-                $"Infinite Pay retornou erro {(int)response.StatusCode}: {GetApiErrorMessage(body)}");
-        }
-
-        var checkout = ReadCheckoutResponse(body);
-        var paymentUrl = checkout.PaymentUrl;
-        var pixQrCode = checkout.PixQrCode;
-        var pixCode = checkout.PixCode;
-
-        if (string.IsNullOrWhiteSpace(paymentUrl) && string.IsNullOrWhiteSpace(pixQrCode) && string.IsNullOrWhiteSpace(pixCode))
-        {
-            throw new InvalidOperationException(
-                $"Infinite Pay nao retornou URL de pagamento nem dados Pix. Resposta: {TrimForMessage(body)}");
-        }
-
-        return new InfinitePayCheckoutCreationResult(
-            paymentUrl,
-            checkout.ProviderTransactionId,
-            pixQrCode,
-            pixCode);
+        return Task.FromResult(new InfinitePayCheckoutCreationResult(
+            checkoutUrl,
+            request.OrderNsu,
+            null,
+            null));
     }
 
-    private static string BuildEndpoint(string baseUrl, string path, string handle)
+    private static string BuildCheckoutUrl(string baseUrl, string handle, InfinitePayCreateCheckoutRequest request)
     {
-        var normalizedBaseUrl = baseUrl.TrimEnd('/');
-        var normalizedPath = path.Trim('/');
+        var endpoint = $"{baseUrl.TrimEnd('/')}/{Uri.EscapeDataString(handle)}";
+        var query = new List<string>();
 
-        return normalizedPath.Contains("{handle}", StringComparison.OrdinalIgnoreCase)
-            ? $"{normalizedBaseUrl}/{normalizedPath.Replace("{handle}", Uri.EscapeDataString(handle), StringComparison.OrdinalIgnoreCase)}"
-            : $"{normalizedBaseUrl}/{Uri.EscapeDataString(handle)}/{normalizedPath}";
-    }
+        AddQuery(query, "order_nsu", request.OrderNsu);
+        AddQuery(query, "redirect_url", request.RedirectUrl);
+        AddQuery(query, "webhook_url", request.WebhookUrl);
+        AddQuery(query, "payment_method", request.PaymentMethod);
 
-    private static string GetApiErrorMessage(string responseBody)
-    {
-        if (string.IsNullOrWhiteSpace(responseBody))
-        {
-            return "resposta vazia.";
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(responseBody);
-            var root = document.RootElement;
-
-            foreach (var propertyName in new[] { "message", "error", "detail", "title" })
+        var itemsJson = JsonSerializer.Serialize(
+            request.Items.Select(item => new
             {
-                if (root.TryGetProperty(propertyName, out var property) &&
-                    property.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(property.GetString()))
-                {
-                    return property.GetString()!;
-                }
-            }
-        }
-        catch (JsonException)
-        {
-            return responseBody;
-        }
-
-        return responseBody;
-    }
-
-    private static CheckoutResponseData ReadCheckoutResponse(string body)
-    {
-        if (Uri.TryCreate(body.Trim().Trim('"'), UriKind.Absolute, out var directUrl))
-        {
-            return new CheckoutResponseData(directUrl.ToString(), null, null, null);
-        }
-
-        using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
-
-        return new CheckoutResponseData(
-            FindString(root, new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "payment_url",
-                "paymentUrl",
-                "checkout_url",
-                "checkoutUrl",
-                "url",
-                "link",
-                "link_url",
-                "linkUrl",
-                "payment_link",
-                "paymentLink",
-                "checkout_link",
-                "checkoutLink",
-                "secure_url",
-                "secureUrl"
+                name = item.Name,
+                quantity = item.Quantity < 1 ? 1 : item.Quantity,
+                price = item.Price.ToString("0.00", CultureInfo.InvariantCulture)
             }),
-            FindString(root, new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "pix_qr_code",
-                "pixQrCode",
-                "qr_code",
-                "qrCode",
-                "qrcode",
-                "qrCodeImage",
-                "qr_code_image"
-            }),
-            FindString(root, new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "pix_code",
-                "pixCode",
-                "br_code",
-                "brCode",
-                "copy_paste",
-                "copyPaste",
-                "copia_e_cola",
-                "copiaECopia",
-                "payload"
-            }),
-            FindString(root, new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "transaction_id",
-                "transactionId",
-                "provider_transaction_id",
-                "providerTransactionId",
-                "charge_id",
-                "chargeId",
-                "id"
-            }));
+            JsonOptions);
+        AddQuery(query, "items", itemsJson);
+
+        return query.Count == 0 ? endpoint : $"{endpoint}?{string.Join('&', query)}";
     }
 
-    private static string? FindString(JsonElement element, IReadOnlySet<string> names)
+    private static void AddQuery(List<string> query, string name, string? value)
     {
-        switch (element.ValueKind)
+        if (string.IsNullOrWhiteSpace(value))
         {
-            case JsonValueKind.Object:
-                foreach (var property in element.EnumerateObject())
-                {
-                    if (names.Contains(property.Name) &&
-                        property.Value.ValueKind == JsonValueKind.String &&
-                        !string.IsNullOrWhiteSpace(property.Value.GetString()))
-                    {
-                        return property.Value.GetString();
-                    }
-                }
-
-                foreach (var property in element.EnumerateObject())
-                {
-                    var value = FindString(property.Value, names);
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        return value;
-                    }
-                }
-
-                break;
-
-            case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray())
-                {
-                    var value = FindString(item, names);
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        return value;
-                    }
-                }
-
-                break;
-
+            return;
         }
 
-        return null;
+        query.Add($"{Uri.EscapeDataString(name)}={Uri.EscapeDataString(value)}");
     }
-
-    private static string TrimForMessage(string body)
-    {
-        if (string.IsNullOrWhiteSpace(body))
-        {
-            return "vazia.";
-        }
-
-        return body.Length <= 800 ? body : $"{body[..800]}...";
-    }
-
-    private sealed record CheckoutResponseData(
-        string? PaymentUrl,
-        string? PixQrCode,
-        string? PixCode,
-        string? ProviderTransactionId);
 }

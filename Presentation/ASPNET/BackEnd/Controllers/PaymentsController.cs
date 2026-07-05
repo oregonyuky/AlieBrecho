@@ -65,11 +65,20 @@ public class PaymentsController : ControllerBase
             return BadRequest("Este pedido ja esta pago.");
         }
 
+        var redirectUrl = ResolveSetting(_settings.RedirectUrl);
+        var webhookUrl = ResolveSetting(_settings.WebhookUrl);
+
+        var urlValidationError = ValidatePublicInfinitePayUrls(redirectUrl, webhookUrl);
+        if (urlValidationError is not null)
+        {
+            return BadRequest(urlValidationError);
+        }
+
         var checkoutRequest = new InfinitePayCreateCheckoutRequest
         {
             OrderNsu = order.Id,
-            RedirectUrl = ResolveSetting(_settings.RedirectUrl),
-            WebhookUrl = ResolveSetting(_settings.WebhookUrl),
+            RedirectUrl = redirectUrl,
+            WebhookUrl = webhookUrl,
             PaymentMethod = paymentMethod,
             Items = BuildItems(order)
         };
@@ -265,6 +274,48 @@ public class PaymentsController : ControllerBase
     private static string? ResolveSetting(string? value)
     {
         return Infrastructure.Common.ConfigurationPlaceholderResolver.Resolve(value);
+    }
+
+    private static string? ValidatePublicInfinitePayUrls(string? redirectUrl, string? webhookUrl)
+    {
+        if (string.IsNullOrWhiteSpace(redirectUrl))
+        {
+            return "InfinitePay: INFINITE_PAY_REDIRECT_URL nao configurada.";
+        }
+
+        if (string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            return "InfinitePay: INFINITE_PAY_WEBHOOK_URL nao configurada.";
+        }
+
+        if (!IsPublicHttpUrl(redirectUrl))
+        {
+            return "InfinitePay: INFINITE_PAY_REDIRECT_URL precisa ser uma URL publica HTTPS. Use o dominio de producao ou um tunel publico como ngrok.";
+        }
+
+        if (!IsPublicHttpUrl(webhookUrl))
+        {
+            return "InfinitePay: INFINITE_PAY_WEBHOOK_URL precisa ser uma URL publica HTTPS. Use o dominio de producao ou um tunel publico como ngrok.";
+        }
+
+        return null;
+    }
+
+    private static bool IsPublicHttpUrl(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return !string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(uri.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(uri.Host, "::1", StringComparison.OrdinalIgnoreCase);
     }
 }
 

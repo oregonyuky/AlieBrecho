@@ -2,8 +2,9 @@ using ASPNET.BackEnd;
 using ASPNET.BackEnd.Common.Middlewares;
 using ASPNET.FrontEnd;
 using DotNetEnv;
+using Microsoft.AspNetCore.DataProtection;
 
-Env.Load();
+LoadEnvironmentVariables();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,11 @@ if (!Directory.Exists(logPath))
 {
     Directory.CreateDirectory(logPath);
 }
+
+var dataProtectionPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "app_data", "dataprotection-keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
 
 builder.Services.AddBackEndServices(builder.Configuration);
 builder.Services.AddFrontEndServices();
@@ -38,3 +44,21 @@ app.MapFrontEndRoutes();
 app.MapBackEndRoutes();
 
 app.Run();
+
+static void LoadEnvironmentVariables()
+{
+    var candidates = new[]
+    {
+        Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+        Path.Combine(Directory.GetCurrentDirectory(), "Presentation", "ASPNET", ".env"),
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env"))
+    };
+
+    foreach (var path in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+    {
+        if (File.Exists(path))
+        {
+            Env.Load(path);
+        }
+    }
+}
