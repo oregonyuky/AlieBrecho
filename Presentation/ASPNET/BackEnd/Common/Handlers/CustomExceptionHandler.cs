@@ -46,6 +46,7 @@ public class CustomExceptionHandler : IExceptionHandler
             Error = new Error(ex.InnerException?.Message, ex.Source, ex.StackTrace, ex.GetType().Name)
         };
 
+        httpContext.Response.StatusCode = statusCode;
         httpContext.Response.ContentType = "application/json";
         await httpContext.Response.WriteAsJsonAsync(result);
     }

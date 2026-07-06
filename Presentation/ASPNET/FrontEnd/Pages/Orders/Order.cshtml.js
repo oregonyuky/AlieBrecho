@@ -137,6 +137,8 @@ const App = {
             markShippingCart: async (request) => AxiosManager.post('/Order/MarkShippingCart', request),
             buyShippingCart: async (request) => AxiosManager.post('/Order/BuyShippingCart', request),
             generatePurchasedShippingLabel: async (request) => AxiosManager.post('/Order/GeneratePurchasedShippingLabel', request),
+            createMercadoPagoPixPayment: async (request) => AxiosManager.post('/pix/criar-pagamento', request),
+            getMercadoPagoPixPaymentStatus: async (paymentId) => AxiosManager.get(`/pix/status/${encodeURIComponent(paymentId)}`, {}),
             downloadShippingLabel: async (labelId) => AxiosManager.get('/Order/DownloadShippingLabel', {
                 params: { labelId },
                 responseType: 'blob'
@@ -309,6 +311,38 @@ const App = {
             return `<div class="text-start">${parts.join('')}</div>`;
         };
 
+        const buildPixPaymentHtml = (content) => {
+            const qrCodeBase64 = content.qrCodeBase64 || content.qr_code_base64 || '';
+            const qrCode = content.qrCode || content.qr_code || '';
+            const expiresAt = content.expiracao || content.expiration || '';
+            const qrImage = qrCodeBase64
+                ? `data:image/png;base64,${qrCodeBase64.replace(/^data:image\/png;base64,/i, '')}`
+                : '';
+
+            return `
+                <div class="text-start">
+                    <div class="text-center mb-3">
+                        ${qrImage ? `<img src="${escapeHtml(qrImage)}" alt="QR Code Pix" class="img-fluid border rounded p-2" style="max-width:260px;">` : '<div class="alert alert-warning mb-0">QR Code nao retornado pelo Mercado Pago.</div>'}
+                    </div>
+                    <label class="form-label" for="pix-copy-code">Pix copia e cola</label>
+                    <textarea id="pix-copy-code" class="form-control mb-2" rows="4" readonly>${escapeHtml(qrCode)}</textarea>
+                    <button type="button" id="pix-copy-button" class="btn btn-outline-primary w-100 mb-3">
+                        Copiar Pix
+                    </button>
+                    <div class="d-flex align-items-center justify-content-center gap-2 text-muted mb-2">
+                        <span class="spinner-border spinner-border-sm" id="pix-status-spinner"></span>
+                        <span id="pix-status-text">Aguardando confirmacao do Mercado Pago...</span>
+                    </div>
+                    <div class="text-center small text-muted" data-expiration="${escapeHtml(expiresAt)}">
+                        Expira em <strong id="pix-countdown">--:--</strong>
+                    </div>
+                    <button type="button" id="pix-new-button" class="btn btn-primary w-100 mt-3 d-none">
+                        Gerar novo QR Code
+                    </button>
+                </div>
+            `;
+        };
+
         const resetLabel = () => {
             state.label = emptyLabel();
         };
@@ -472,6 +506,12 @@ const App = {
                             textAlign: 'Center',
                             template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Ver itens do pedido"><i class="fa fa-list"></i></button>'
                         },
+                        {
+                            headerText: 'Pix',
+                            width: 120,
+                            textAlign: 'Center',
+                            template: '<button type="button" class="btn btn-sm btn-outline-primary pix-payment-btn" title="Pagar com Pix via Mercado Pago"><i class="fa fa-qrcode"></i> Pix</button>'
+                        },
                         { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'dd/MM/yyyy HH:mm' },
                         {
                             headerText: 'Etiqueta',
@@ -506,6 +546,21 @@ const App = {
                                 event.stopPropagation();
                                 await methods.showOrderDetails(args.data.id);
                             });
+                        }
+
+                        const pixButton = args.row.querySelector('.pix-payment-btn');
+                        if (pixButton) {
+                            if (args.data.status === 'Paid') {
+                                pixButton.classList.remove('btn-outline-primary');
+                                pixButton.classList.add('btn-success');
+                                pixButton.innerHTML = '<i class="fa fa-check"></i> Pago';
+                                pixButton.disabled = true;
+                            } else {
+                                pixButton.addEventListener('click', async (event) => {
+                                    event.stopPropagation();
+                                    await methods.openPixPayment(args.data);
+                                });
+                            }
                         }
 
                         const labelButton = args.row.querySelector('.shipping-label-btn');
@@ -744,6 +799,152 @@ const App = {
                 } finally {
                     state.melhorEnvioBalance.isInserting = false;
                 }
+            },
+            openPixPayment: async (order) => {
+                if (!order?.id) return;
+
+                let pixResponse;
+                try {
+                    pixResponse = await services.createMercadoPagoPixPayment({
+                        orderId: order.id,
+                        description: `Pedido ${order.id}`
+                    });
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Pix',
+                        text: getApiErrorMessage(error, 'Nao foi possivel gerar o Pix no Mercado Pago.')
+                    });
+                    return;
+                }
+
+                const content = pixResponse?.data ?? {};
+                const paymentId = content.paymentId || content.payment_id;
+                if (!paymentId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Pix',
+                        text: 'O Mercado Pago nao retornou o ID do pagamento.'
+                    });
+                    return;
+                }
+
+                let pollTimer = null;
+                let countdownTimer = null;
+                let settled = false;
+
+                const stopTimers = () => {
+                    if (pollTimer) clearInterval(pollTimer);
+                    if (countdownTimer) clearInterval(countdownTimer);
+                    pollTimer = null;
+                    countdownTimer = null;
+                };
+
+                const updateExpiredUi = (message) => {
+                    const statusText = document.getElementById('pix-status-text');
+                    const spinner = document.getElementById('pix-status-spinner');
+                    const newButton = document.getElementById('pix-new-button');
+
+                    if (statusText) statusText.textContent = message;
+                    if (spinner) spinner.classList.add('d-none');
+                    if (newButton) newButton.classList.remove('d-none');
+                };
+
+                await Swal.fire({
+                    title: 'Pagamento Pix Mercado Pago',
+                    html: buildPixPaymentHtml(content),
+                    width: 560,
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonText: 'Fechar',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        const copyButton = document.getElementById('pix-copy-button');
+                        const copyInput = document.getElementById('pix-copy-code');
+                        const newButton = document.getElementById('pix-new-button');
+                        const countdown = document.getElementById('pix-countdown');
+                        const expiration = new Date(content.expiracao || content.expiration || '');
+
+                        if (copyButton && copyInput) {
+                            copyButton.addEventListener('click', async () => {
+                                try {
+                                    await navigator.clipboard.writeText(copyInput.value);
+                                } catch {
+                                    copyInput.select();
+                                    document.execCommand('copy');
+                                }
+
+                                copyButton.textContent = 'Pix copiado';
+                            });
+                        }
+
+                        if (newButton) {
+                            newButton.addEventListener('click', () => {
+                                stopTimers();
+                                Swal.close();
+                                setTimeout(() => methods.openPixPayment(order), 200);
+                            });
+                        }
+
+                        const updateCountdown = () => {
+                            if (!countdown || Number.isNaN(expiration.getTime())) {
+                                return;
+                            }
+
+                            const remaining = expiration.getTime() - Date.now();
+                            if (remaining <= 0) {
+                                countdown.textContent = 'expirado';
+                                updateExpiredUi('QR Code expirado.');
+                                stopTimers();
+                                return;
+                            }
+
+                            const minutes = Math.floor(remaining / 60000);
+                            const seconds = Math.floor((remaining % 60000) / 1000);
+                            countdown.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        };
+
+                        const pollStatus = async () => {
+                            if (settled) return;
+
+                            try {
+                                const statusResponse = await services.getMercadoPagoPixPaymentStatus(paymentId);
+                                const statusContent = statusResponse?.data ?? {};
+                                const status = String(statusContent.status || '').toLowerCase();
+
+                                if (status === 'approved') {
+                                    settled = true;
+                                    stopTimers();
+                                    Swal.close();
+
+                                    await methods.populateMainData();
+                                    mainGrid.refresh();
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Pagamento confirmado',
+                                        timer: 1800,
+                                        showConfirmButton: false
+                                    });
+                                } else if (['expired', 'cancelled', 'rejected'].includes(status)) {
+                                    settled = true;
+                                    stopTimers();
+                                    updateExpiredUi('Pagamento expirado ou cancelado.');
+                                }
+                            } catch (error) {
+                                const statusText = document.getElementById('pix-status-text');
+                                if (statusText) {
+                                    statusText.textContent = getApiErrorMessage(error, 'Nao foi possivel consultar o pagamento.');
+                                }
+                            }
+                        };
+
+                        updateCountdown();
+                        countdownTimer = setInterval(updateCountdown, 1000);
+                        pollTimer = setInterval(pollStatus, 5000);
+                    },
+                    willClose: stopTimers
+                });
             },
             handleCustomerChange: async () => {
                 const customer = state.customers.find(x => x.id === state.customerId);

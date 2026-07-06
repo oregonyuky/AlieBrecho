@@ -5,6 +5,7 @@ using Infrastructure.FileImageManager;
 using Infrastructure.InfinitePayManager;
 using Infrastructure.LogManager.Serilogs;
 using Infrastructure.MelhorEnvioManager;
+using Infrastructure.MercadoPagoManager;
 using Infrastructure.SecurityManager.AspNetIdentity;
 using Infrastructure.SecurityManager.Tokens;
 using Infrastructure.SeedManager;
@@ -40,6 +41,8 @@ public static class DependencyInjection
         services.AddMelhorEnvio(configuration);
         //>>> Infinite Pay
         services.AddInfinitePay(configuration);
+        //>>> Mercado Pago
+        services.AddMercadoPago(configuration);
 
         return services;
     }
