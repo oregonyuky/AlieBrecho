@@ -1,63 +1,595 @@
 @page
 @{
-    ViewData["Title"] = "Cliente";
+    ViewData["Title"] = "Clientes";
 }
 
 <style>
-    .page-summary-card {
-        border: 1px solid #e9ecef;
+    .customer-admin {
+        background: #f7f7f5;
+        color: #171717;
+        font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: calc(100vh - 120px);
+        padding: 28px;
+    }
+
+    .customer-page-header {
+        align-items: center;
+        display: flex;
+        gap: 18px;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+    .customer-page-title {
+        color: #161616;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0;
+    }
+
+    .customer-add-button {
+        align-items: center;
+        background: #2563eb;
+        border: 1px solid #2563eb;
+        border-radius: 10px;
+        color: #ffffff;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 18px;
+    }
+
+    .customer-add-button:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: #ffffff;
+    }
+
+    .customer-summary-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 26px;
+    }
+
+    .customer-summary-card {
+        background: #ffffff;
+        border: 0;
+        border-radius: 14px;
+        padding: 22px 24px;
+    }
+
+    .customer-summary-card__label {
+        color: #777b82;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .customer-summary-card__value {
+        color: #111827;
+        font-size: 30px;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .customer-summary-card__value--green {
+        color: #16a34a;
+    }
+
+    .customer-summary-card__value--red {
+        color: #dc2626;
+    }
+
+    .customer-filters {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) 220px;
+        margin-bottom: 24px;
+    }
+
+    .customer-filter-control {
+        background: #ffffff;
+        border: 1px solid #d8dce1;
+        border-radius: 10px;
+        color: #1f2937;
+        font-size: 14px;
+        min-height: 44px;
+        outline: none;
+        padding: 0 14px;
+        width: 100%;
+    }
+
+    .customer-filter-control:focus {
+        border-color: #9ca3af;
+        box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.16);
+    }
+
+    .customer-table-card {
+        background: #ffffff;
+        border: 1px solid #e1e5ea;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .customer-table {
+        border-collapse: collapse;
+        margin: 0;
+        width: 100%;
+    }
+
+    .customer-table thead th {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 14px 18px;
+        text-align: left;
+    }
+
+    .customer-table tbody td {
+        border-bottom: 1px solid #edf0f3;
+        color: #6b7280;
+        font-size: 14px;
+        padding: 12px 18px;
+        vertical-align: middle;
+    }
+
+    .customer-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .customer-table__name {
+        color: #171717;
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .customer-table__actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .customer-sort-button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 800;
+        gap: 7px;
+        padding: 0;
+    }
+
+    .customer-sort-button:hover {
+        color: #111827;
+    }
+
+    .customer-sort-icon {
+        color: #9ca3af;
+        font-size: 11px;
+        width: 11px;
+    }
+
+    .customer-sort-button--active .customer-sort-icon {
+        color: #2563eb;
+    }
+
+    .customer-status {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 7px 12px;
+        white-space: nowrap;
+    }
+
+    .customer-status--active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .customer-status--inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .customer-action-button,
+    .customer-cep-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        min-height: 36px;
+        justify-content: center;
+        padding: 0 12px;
+    }
+
+    .customer-action-button {
+        height: 36px;
+        margin-left: 8px;
+        padding: 0;
+        width: 36px;
+    }
+
+    .customer-action-button:hover,
+    .customer-cep-button:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .customer-action-button--danger {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+
+    .customer-action-button--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+
+    .customer-empty-row {
+        color: #9ca3af !important;
+        padding: 34px 22px !important;
+        text-align: center;
+    }
+
+    .customer-modal {
+        border: 1px solid #dde3ea;
+        border-radius: 8px;
+        border-top: 4px solid #222831;
+        box-shadow: 0 10px 28px rgba(31, 41, 51, 0.08);
+        overflow: hidden;
+    }
+
+    .customer-modal .modal-header,
+    .customer-modal .modal-footer {
+        background: #ffffff;
+        border-color: #e1e7ee;
+    }
+
+    .customer-modal .modal-title {
+        color: #222831;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .customer-modal form label,
+    .customer-address-grid__label {
+        color: #59636f;
+        font-size: 11px;
+        font-weight: 700;
+        margin: 0 0 5px;
+    }
+
+    .customer-modal form .form-control {
+        background: #fbfcfd;
+        border: 1px solid #cfd7df;
+        border-radius: 6px;
+        color: #18212c;
+        font-size: 14px;
+        font-weight: 700;
+        outline: none;
+        padding: 9px 12px;
+        width: 100%;
+    }
+
+    .customer-modal form .form-control:focus {
+        background: #ffffff;
+        border-color: #222831;
+        box-shadow: 0 0 0 3px rgba(34, 40, 49, 0.08);
+    }
+
+    .customer-modal form textarea.form-control {
+        min-height: 104px;
+        resize: vertical;
+    }
+
+    .customer-address-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .customer-address-grid__item {
+        background: #fbfcfd;
+        border: 1px solid #e1e7ee;
         border-radius: 8px;
         padding: 12px 14px;
-        background: #fff;
-        height: 100%;
     }
 
-    .page-summary-card .label {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-bottom: 4px;
+    .customer-address-grid__value {
+        color: #18212c;
+        font-size: 14px;
+        font-weight: 800;
+        min-height: 20px;
+        word-break: break-word;
     }
 
-    .page-summary-card .value {
-        font-size: 1.4rem;
-        font-weight: 700;
-        line-height: 1;
+    .customer-drop-btn {
+        align-items: center;
+        border: 1px solid #cfd7df;
+        border-radius: 7px;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 16px;
+    }
+
+    .customer-drop-btn--primary {
+        background: #222831;
+        border-color: #222831;
+        color: #ffffff;
+    }
+
+    .customer-drop-btn--ghost {
+        background: #ffffff;
+        color: #222831;
+    }
+
+    .customer-drop-btn--danger {
+        background: #ffffff;
+        color: #dc2626;
+    }
+
+    .customer-drop-btn--primary:hover {
+        background: #111827;
+        border-color: #111827;
+        color: #ffffff;
+    }
+
+    .customer-drop-btn--ghost:hover {
+        background: #f3f5f7;
+        border-color: #aeb8c3;
+        color: #222831;
+    }
+
+    .customer-drop-btn--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+
+    .customer-drop-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+
+    @@media (max-width: 900px) {
+        .customer-admin {
+            padding: 20px;
+        }
+
+        .customer-page-header {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .customer-add-button {
+            justify-content: center;
+        }
+
+        .customer-summary-grid,
+        .customer-filters,
+        .customer-address-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .customer-table-card {
+            overflow-x: auto;
+        }
+
+        .customer-table {
+            min-width: 1100px;
+        }
     }
 </style>
 
-<div id="app" v-cloak>
-    <div class="row mb-3">
-        <div class="col-12 col-md-4 mb-2">
-            <div class="page-summary-card">
-                <div class="label">Total de Clientes</div>
-                <div class="value">{{ state.summary.total }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4 mb-2">
-            <div class="page-summary-card">
-                <div class="label">Ativos</div>
-                <div class="value">{{ state.summary.active }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4 mb-2">
-            <div class="page-summary-card">
-                <div class="label">Inativos</div>
-                <div class="value">{{ state.summary.inactive }}</div>
-            </div>
-        </div>
-    </div>
+<div id="app" class="customer-admin" v-cloak>
+    <header class="customer-page-header">
+        <h1 class="customer-page-title">Clientes</h1>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="grid-container">
-                <div ref="mainGridRef"></div>
+        <button type="button" class="customer-add-button" v-on:click="handler.handleNew">
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            Adicionar cliente
+        </button>
+    </header>
+
+    <section class="customer-summary-grid" aria-label="Resumo de clientes">
+        <div class="customer-summary-card">
+            <div class="customer-summary-card__label">Total de clientes</div>
+            <div class="customer-summary-card__value">{{ state.summary.total }}</div>
+        </div>
+
+        <div class="customer-summary-card">
+            <div class="customer-summary-card__label">Ativos</div>
+            <div class="customer-summary-card__value customer-summary-card__value--green">{{ state.summary.active }}</div>
+        </div>
+
+        <div class="customer-summary-card">
+            <div class="customer-summary-card__label">Inativos</div>
+            <div class="customer-summary-card__value customer-summary-card__value--red">{{ state.summary.inactive }}</div>
+        </div>
+    </section>
+
+    <section class="customer-filters" aria-label="Filtros de clientes">
+        <input v-model="state.filters.search"
+               class="customer-filter-control"
+               type="search"
+               placeholder="Buscar cliente">
+
+        <select v-model="state.filters.status" class="customer-filter-control">
+            <option value="">Todos os status</option>
+            <option value="Active">Ativos</option>
+            <option value="Inactive">Inativos</option>
+        </select>
+    </section>
+
+    <section class="customer-table-card">
+        <table class="customer-table">
+            <thead>
+                <tr>
+                    <th>
+                        <button type="button"
+                                class="customer-sort-button"
+                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'name' }"
+                                v-on:click="handler.handleSort('name')">
+                            Nome
+                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('name')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="customer-sort-button"
+                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'cpf' }"
+                                v-on:click="handler.handleSort('cpf')">
+                            CPF
+                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('cpf')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="customer-sort-button"
+                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'phoneNumber' }"
+                                v-on:click="handler.handleSort('phoneNumber')">
+                            Telefone
+                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('phoneNumber')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="customer-sort-button"
+                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'emailAddress' }"
+                                v-on:click="handler.handleSort('emailAddress')">
+                            Email
+                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('emailAddress')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="customer-sort-button"
+                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'description' }"
+                                v-on:click="handler.handleSort('description')">
+                            Observacoes
+                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('description')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>CEP</th>
+                    <th>Status</th>
+                    <th class="text-right">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="customer in filteredCustomers" v-bind:key="customer.id">
+                    <td><span class="customer-table__name">{{ customer.name }}</span></td>
+                    <td>{{ customer.cpf || '-' }}</td>
+                    <td>{{ customer.phoneNumber || '-' }}</td>
+                    <td>{{ customer.emailAddress || '-' }}</td>
+                    <td>{{ customer.description || '-' }}</td>
+                    <td>
+                        <button type="button"
+                                class="customer-cep-button"
+                                v-on:click="handler.handleAddress(customer)">
+                            <i class="fa fa-map-marker-alt" aria-hidden="true"></i>
+                            {{ customer.postalCode || 'Ver endereco' }}
+                        </button>
+                    </td>
+                    <td>
+                        <span class="customer-status" v-bind:class="methods.getStatusClass(customer)">
+                            {{ methods.translateCustomerStatus(customer.customerStatus) }}
+                        </span>
+                    </td>
+                    <td class="customer-table__actions">
+                        <button type="button" class="customer-action-button" title="Editar" v-on:click="handler.handleEdit(customer)">
+                            <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="customer-action-button customer-action-button--danger" title="Excluir" v-on:click="handler.handleDelete(customer)">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr v-if="filteredCustomers.length === 0">
+                    <td colspan="8" class="customer-empty-row">Nenhum cliente encontrado.</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <div class="modal fade" ref="addressModalRef" id="AddressModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content customer-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title">Endereco do cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="customer-address-grid">
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">CEP</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.postalCode) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Rua</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.street) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Numero</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.number) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Bairro</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.neighborhood) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Complemento</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.complement) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Cidade</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.city) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Estado</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.stateRegion) }}</div>
+                        </div>
+                        <div class="customer-address-grid__item">
+                            <div class="customer-address-grid__label">Pais</div>
+                            <div class="customer-address-grid__value">{{ methods.valueOrDash(state.address.country) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="customer-drop-btn customer-drop-btn--ghost"
+                            data-bs-dismiss="modal">
+                        Fechar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content">
+            <div class="modal-content customer-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.mainTitle }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -70,12 +602,12 @@
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <label>Nome</label>
-                                <input v-model="state.name" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.name" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                                 <label class="text-danger">{{ state.errors.name }}</label>
                             </div>
                             <div class="col-md-6">
                                 <label>Status</label>
-                                <select v-model="state.customerStatus" class="form-control" :disabled="state.deleteMode">
+                                <select v-model="state.customerStatus" class="form-control" v-bind:disabled="state.deleteMode">
                                     <option value="Active">Ativo</option>
                                     <option value="Inactive">Inativo</option>
                                 </select>
@@ -83,103 +615,102 @@
                         </div>
 
                         <div class="row mb-2">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label>CPF</label>
-                                <input v-model="state.cpf" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.cpf" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label>Telefone</label>
-                                <input v-model="state.phoneNumber" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.phoneNumber" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label>Email</label>
-                                <input v-model="state.emailAddress" type="email" class="form-control" :disabled="state.deleteMode">
-                            </div>
-                            <div class="col-md-6">
-                                <label>Website</label>
-                                <input v-model="state.website" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.emailAddress" type="email" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-12">
-                                <label>Descricao</label>
-                                <textarea v-model="state.description" class="form-control" rows="2" :disabled="state.deleteMode"></textarea>
+                                <label>Observacoes</label>
+                                <textarea v-model="state.description" class="form-control" rows="2" v-bind:disabled="state.deleteMode"></textarea>
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <label>Rua</label>
-                                <input v-model="state.street" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.street" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                             <div class="col-md-2">
                                 <label>Numero</label>
-                                <input v-model="state.number" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.number" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                             <div class="col-md-4">
                                 <label>Bairro</label>
-                                <input v-model="state.neighborhood" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.neighborhood" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-4">
                                 <label>Complemento</label>
-                                <input v-model="state.complement" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.complement" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                             <div class="col-md-3">
                                 <label>Cidade</label>
-                                <input v-model="state.city" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.city" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                             <div class="col-md-2">
                                 <label>Estado</label>
-                                <input v-model="state.stateRegion" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.stateRegion" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                             <div class="col-md-3">
                                 <label>CEP</label>
-                                <input v-model="state.postalCode" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.postalCode" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-4">
                                 <label>Pais</label>
-                                <input v-model="state.country" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.country" type="text" class="form-control" v-bind:disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Website</label>
+                                <input v-model="state.website" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                             <div class="col-md-4">
                                 <label>Instagram</label>
-                                <input v-model="state.instagram" type="text" class="form-control" :disabled="state.deleteMode">
-                            </div>
-                            <div class="col-md-4">
-                                <label>Twitter/X</label>
-                                <input v-model="state.twitterX" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.instagram" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                         </div>
 
                         <div class="row mb-2">
                             <div class="col-md-4">
+                                <label>Twitter/X</label>
+                                <input v-model="state.twitterX" type="text" class="form-control" v-bind:disabled="state.deleteMode">
+                            </div>
+                            <div class="col-md-4">
                                 <label>TikTok</label>
-                                <input v-model="state.tikTok" type="text" class="form-control" :disabled="state.deleteMode">
+                                <input v-model="state.tikTok" type="text" class="form-control" v-bind:disabled="state.deleteMode">
                             </div>
                         </div>
                     </form>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button type="button"
+                            class="customer-drop-btn customer-drop-btn--ghost"
+                            data-bs-dismiss="modal">
                         Fechar
                     </button>
 
                     <button type="button"
                             id="MainSaveButton"
-                            class="btn"
-                            :class="state.deleteMode ? 'btn-danger' : 'btn-primary'"
+                            class="customer-drop-btn"
+                            v-bind:class="state.deleteMode ? 'customer-drop-btn--danger' : 'customer-drop-btn--primary'"
                             v-on:click="handler.handleSubmit"
-                            :disabled="state.isSubmitting">
+                            v-bind:disabled="state.isSubmitting">
 
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.isSubmitting"></span>
 

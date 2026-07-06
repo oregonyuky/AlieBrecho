@@ -1,14 +1,6 @@
 const App = {
     setup() {
-        const getInitialState = () => ({
-            mainData: [],
-            summary: {
-                total: 0,
-                active: 0,
-                inactive: 0
-            },
-            deleteMode: false,
-            mainTitle: 'Editar Cliente',
+        const emptyCustomer = () => ({
             id: '',
             name: '',
             description: '',
@@ -27,30 +19,47 @@ const App = {
             instagram: '',
             twitterX: '',
             tikTok: '',
-            customerStatus: 'Active',
+            customerStatus: 'Active'
+        });
+
+        const emptyAddress = () => ({
+            street: '',
+            number: '',
+            neighborhood: '',
+            complement: '',
+            city: '',
+            stateRegion: '',
+            postalCode: '',
+            country: ''
+        });
+
+        const state = Vue.reactive({
+            mainData: [],
+            summary: {
+                total: 0,
+                active: 0,
+                inactive: 0
+            },
+            filters: {
+                search: '',
+                status: ''
+            },
+            sort: {
+                field: 'name',
+                direction: 'asc'
+            },
+            address: emptyAddress(),
+            deleteMode: false,
+            mainTitle: 'Editar Cliente',
             errors: {
                 name: ''
             },
-            isSubmitting: false
+            isSubmitting: false,
+            ...emptyCustomer()
         });
 
-        const state = Vue.reactive(getInitialState());
-
-        const translateCustomerStatus = (status) => ({
-            Active: 'Ativo',
-            Inactive: 'Inativo'
-        }[status] ?? status);
-
-        const renderCustomerStatusBadge = (status) => {
-            if (status === 'Active') {
-                return '<span class="badge d-inline-flex align-items-center gap-1" style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;"><i class="fa fa-circle-check"></i> Ativo</span>';
-            }
-
-            return '<span class="badge d-inline-flex align-items-center gap-1" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600;"><i class="fa fa-circle-minus"></i> Inativo</span>';
-        };
-
-        const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
+        const addressModalRef = Vue.ref(null);
 
         const services = {
             getMainData: async () => AxiosManager.get('/Customer/GetCustomerList', {}),
@@ -81,142 +90,71 @@ const App = {
             customerStatus: state.customerStatus
         });
 
-        const fillStateFromRow = (row) => {
-            state.id = row.id ?? '';
-            state.name = row.name ?? '';
-            state.description = row.description ?? '';
-            state.cpf = row.cpf ?? '';
-            state.phoneNumber = row.phoneNumber ?? '';
-            state.emailAddress = row.emailAddress ?? '';
-            state.street = row.street ?? '';
-            state.number = row.number ?? '';
-            state.neighborhood = row.neighborhood ?? '';
-            state.complement = row.complement ?? '';
-            state.city = row.city ?? '';
-            state.stateRegion = row.state ?? '';
-            state.postalCode = row.postalCode ?? '';
-            state.country = row.country ?? '';
-            state.website = row.website ?? '';
-            state.instagram = row.instagram ?? '';
-            state.twitterX = row.twitterX ?? '';
-            state.tikTok = row.tikTok ?? '';
-            state.customerStatus = row.customerStatus ?? 'Active';
-        };
-
-        const resetForm = () => {
-            const initial = getInitialState();
-            Object.keys(initial).forEach((key) => {
-                state[key] = initial[key];
-            });
-        };
-
-        const mainGrid = {
-            obj: null,
-            create: async (dataSource) => {
-                mainGrid.obj = new ej.grids.Grid({
-                    height: '360px',
-                    dataSource: dataSource,
-                    allowFiltering: true,
-                    showColumnMenu: true,
-                    gridLines: 'None',
-                    allowSorting: true,
-                    allowPaging: true,
-                    allowExcelExport: true,
-                    allowSelection: true,
-                    allowResizing: true,
-                    filterSettings: { type: 'Menu' },
-                    pageSettings: { pageSize: 50 },
-                    selectionSettings: { type: 'Single' },
-                    columns: [
-                        { type: 'checkbox', width: 60 },
-                        { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'name', headerText: 'Nome', width: 180 },
-                        { field: 'cpf', headerText: 'CPF', width: 140 },
-                        { field: 'phoneNumber', headerText: 'Telefone', width: 150 },
-                        { field: 'emailAddress', headerText: 'Email', width: 220 },
-                        { field: 'description', headerText: 'Observacoes', width: 220 },
-                        { field: 'street', headerText: 'Rua', width: 220 },
-                        { field: 'number', headerText: 'Numero', width: 110 },
-                        { field: 'neighborhood', headerText: 'Bairro', width: 160 },
-                        { field: 'complement', headerText: 'Complemento', width: 180 },
-                        { field: 'city', headerText: 'Cidade', width: 160 },
-                        { field: 'state', headerText: 'Estado', width: 110 },
-                        { field: 'postalCode', headerText: 'CEP', width: 160 },
-                        { field: 'country', headerText: 'Pais', width: 140 },
-                        { field: 'customerStatusDisplay', headerText: 'Status', width: 120 },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
-                    ],
-                    toolbar: [
-                        'ExcelExport', 'Search',
-                        { type: 'Separator' },
-                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
-                    ],
-                    dataBound: function () {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    rowSelected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
-                    },
-                    rowDeselected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    rowDataBound: (args) => {
-                        const statusValue = args.data?.customerStatus;
-                        const statusText = translateCustomerStatus(statusValue);
-                        const statusCell = Array.from(args.row.cells)
-                            .find(cell => cell.textContent.trim() === statusText);
-
-                        if (statusCell) {
-                            statusCell.innerHTML = renderCustomerStatusBadge(statusValue);
-                        }
-                    },
-                    toolbarClick: (args) => {
-                        if (args.item.id?.toLowerCase().includes('excelexport')) {
-                            mainGrid.obj.excelExport({ fileName: 'Customers.xlsx' });
-                        }
-
-                        if (args.item.id === 'AddCustom') {
-                            resetForm();
-                            state.deleteMode = false;
-                            state.mainTitle = 'Adicionar Cliente';
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'EditCustom') {
-                            const selected = mainGrid.obj.getSelectedRecords()[0];
-                            if (!selected) return;
-
-                            state.deleteMode = false;
-                            state.mainTitle = 'Editar Cliente';
-                            fillStateFromRow(selected);
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'DeleteCustom') {
-                            const selected = mainGrid.obj.getSelectedRecords()[0];
-                            if (!selected) return;
-
-                            state.deleteMode = true;
-                            state.mainTitle = 'Excluir Cliente';
-                            fillStateFromRow(selected);
-                            mainModal.obj.show();
-                        }
-                    }
-                });
-
-                mainGrid.obj.appendTo(mainGridRef.value);
-            },
-            refresh: () => {
-                mainGrid.obj.setProperties({ dataSource: state.mainData });
-            }
-        };
-
         const methods = {
+            resetForm: () => {
+                Object.assign(state, emptyCustomer());
+                state.errors = { name: '' };
+            },
+            setFormData: (customer) => {
+                Object.assign(state, {
+                    id: customer?.id ?? '',
+                    name: customer?.name ?? '',
+                    description: customer?.description ?? '',
+                    cpf: customer?.cpf ?? '',
+                    phoneNumber: customer?.phoneNumber ?? '',
+                    emailAddress: customer?.emailAddress ?? '',
+                    street: customer?.street ?? '',
+                    number: customer?.number ?? '',
+                    neighborhood: customer?.neighborhood ?? '',
+                    complement: customer?.complement ?? '',
+                    city: customer?.city ?? '',
+                    stateRegion: customer?.state ?? customer?.stateRegion ?? '',
+                    postalCode: customer?.postalCode ?? '',
+                    country: customer?.country ?? '',
+                    website: customer?.website ?? '',
+                    instagram: customer?.instagram ?? '',
+                    twitterX: customer?.twitterX ?? '',
+                    tikTok: customer?.tikTok ?? '',
+                    customerStatus: customer?.customerStatus ?? 'Active'
+                });
+            },
+            setAddressData: (customer) => {
+                state.address = {
+                    street: customer?.street ?? '',
+                    number: customer?.number ?? '',
+                    neighborhood: customer?.neighborhood ?? '',
+                    complement: customer?.complement ?? '',
+                    city: customer?.city ?? '',
+                    stateRegion: customer?.state ?? customer?.stateRegion ?? '',
+                    postalCode: customer?.postalCode ?? '',
+                    country: customer?.country ?? ''
+                };
+            },
+            valueOrDash: (value) => value || '-',
+            translateCustomerStatus: (status) => ({
+                Active: 'Ativo',
+                Inactive: 'Inativo'
+            }[status] ?? status ?? '-'),
+            getStatusClass: (customer) => customer?.customerStatus === 'Active'
+                ? 'customer-status--active'
+                : 'customer-status--inactive',
+            getSortIcon: (field) => {
+                if (state.sort.field !== field) return 'fa-sort';
+
+                return state.sort.direction === 'asc'
+                    ? 'fa-sort-up'
+                    : 'fa-sort-down';
+            },
+            getSortValue: (customer, field) => {
+                if (field === 'name') return String(customer?.name ?? '').toLowerCase();
+                if (field === 'cpf') return String(customer?.cpf ?? '').toLowerCase();
+                if (field === 'phoneNumber') return String(customer?.phoneNumber ?? '').toLowerCase();
+                if (field === 'emailAddress') return String(customer?.emailAddress ?? '').toLowerCase();
+                if (field === 'description') return String(customer?.description ?? '').toLowerCase();
+                if (field === 'status') return methods.translateCustomerStatus(customer?.customerStatus).toLowerCase();
+
+                return '';
+            },
             updateSummaryCards: () => {
                 const total = state.mainData.length;
                 const active = state.mainData.filter(x => x?.customerStatus === 'Active').length;
@@ -227,11 +165,7 @@ const App = {
             populateMainData: async () => {
                 const response = await services.getMainData();
 
-                state.mainData = (response?.data?.content?.data ?? []).map((item) => ({
-                    ...item,
-                    customerStatusDisplay: translateCustomerStatus(item.customerStatus),
-                    createdAt: new Date(item.createdAt)
-                }));
+                state.mainData = response?.data?.content?.data ?? [];
 
                 methods.updateSummaryCards();
             }
@@ -247,7 +181,84 @@ const App = {
             }
         };
 
+        const addressModal = {
+            obj: null,
+            create: () => {
+                addressModal.obj = new bootstrap.Modal(addressModalRef.value);
+            }
+        };
+
+        Vue.watch(() => state.name, () => {
+            state.errors.name = '';
+        });
+
+        const filteredCustomers = Vue.computed(() => {
+            const search = state.filters.search.trim().toLowerCase();
+            const status = state.filters.status;
+
+            const customers = state.mainData.filter(customer => {
+                const searchableText = [
+                    customer?.name,
+                    customer?.cpf,
+                    customer?.phoneNumber,
+                    customer?.emailAddress,
+                    customer?.description,
+                    customer?.postalCode
+                ].map(value => String(value ?? '').toLowerCase()).join(' ');
+                const matchesSearch = !search || searchableText.includes(search);
+                const matchesStatus = !status || customer?.customerStatus === status;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            const direction = state.sort.direction === 'desc' ? -1 : 1;
+
+            return [...customers].sort((first, second) => {
+                const firstValue = methods.getSortValue(first, state.sort.field);
+                const secondValue = methods.getSortValue(second, state.sort.field);
+
+                return String(firstValue).localeCompare(String(secondValue), 'pt-BR', {
+                    numeric: true,
+                    sensitivity: 'base'
+                }) * direction;
+            });
+        });
+
         const handler = {
+            handleSort: (field) => {
+                if (state.sort.field === field) {
+                    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+                    return;
+                }
+
+                state.sort.field = field;
+                state.sort.direction = 'asc';
+            },
+            handleNew: () => {
+                methods.resetForm();
+                state.deleteMode = false;
+                state.mainTitle = 'Adicionar Cliente';
+
+                mainModal.obj.show();
+            },
+            handleEdit: (customer) => {
+                state.deleteMode = false;
+                state.mainTitle = 'Editar Cliente';
+                methods.setFormData(customer);
+
+                mainModal.obj.show();
+            },
+            handleDelete: (customer) => {
+                state.deleteMode = true;
+                state.mainTitle = 'Excluir Cliente';
+                methods.setFormData(customer);
+
+                mainModal.obj.show();
+            },
+            handleAddress: (customer) => {
+                methods.setAddressData(customer);
+                addressModal.obj.show();
+            },
             handleSubmit: async () => {
                 try {
                     state.isSubmitting = true;
@@ -263,7 +274,6 @@ const App = {
 
                         if (deleteResponse.data.code === 200) {
                             await methods.populateMainData();
-                            mainGrid.refresh();
 
                             Swal.fire({
                                 icon: 'success',
@@ -275,6 +285,12 @@ const App = {
                             setTimeout(() => {
                                 mainModal.obj.hide();
                             }, 1000);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Falha ao Excluir',
+                                text: deleteResponse.data.message ?? 'Erro'
+                            });
                         }
 
                         return;
@@ -287,7 +303,6 @@ const App = {
 
                     if (response.data.code === 200) {
                         await methods.populateMainData();
-                        mainGrid.refresh();
 
                         Swal.fire({
                             icon: 'success',
@@ -324,11 +339,17 @@ const App = {
                 await SecurityManager.validateToken();
 
                 await methods.populateMainData();
-                await mainGrid.create(state.mainData);
                 mainModal.create();
+                addressModal.create();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
-                    resetForm();
+                    methods.resetForm();
+                    state.deleteMode = false;
+                    state.mainTitle = 'Editar Cliente';
+                });
+
+                addressModalRef.value.addEventListener('hidden.bs.modal', () => {
+                    state.address = emptyAddress();
                 });
             } catch (e) {
                 console.error(e);
@@ -337,8 +358,10 @@ const App = {
 
         return {
             state,
-            mainGridRef,
             mainModalRef,
+            addressModalRef,
+            filteredCustomers,
+            methods,
             handler
         };
     }
