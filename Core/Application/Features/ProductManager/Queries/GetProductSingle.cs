@@ -14,6 +14,7 @@ public record GetProductSingleSizeDto
     public decimal? Bust { get; init; }
     public decimal? Sleeve { get; init; }
     public decimal? Length { get; init; }
+    public int? StockQuantity { get; init; }
 }
 
 public record GetProductSingleDto

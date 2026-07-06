@@ -17,6 +17,7 @@ public class UpdateProductSizeRequest
     public decimal? Bust { get; init; }
     public decimal? Sleeve { get; init; }
     public decimal? Length { get; init; }
+    public int? StockQuantity { get; init; }
 }
 
 public class UpdateProductRequest : IRequest<UpdateProductResult>
@@ -112,7 +113,8 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductRequest, Update
                 Size = size.Size ?? string.Empty,
                 Bust = size.Bust,
                 Sleeve = size.Sleeve,
-                Length = size.Length
+                Length = size.Length,
+                StockQuantity = size.StockQuantity
             });
         }
 

@@ -1,5 +1,12 @@
 const App = {
     setup() {
+        const emptyState = () => ({
+            id: '',
+            name: '',
+            description: '',
+            isActive: true
+        });
+
         const state = Vue.reactive({
             mainData: [],
             summary: {
@@ -7,30 +14,26 @@ const App = {
                 active: 0,
                 inactive: 0
             },
+            filters: {
+                search: '',
+                status: ''
+            },
+            sort: {
+                field: 'name',
+                direction: 'asc'
+            },
             deleteMode: false,
             mainTitle: 'Editar Categoria',
-            id: '',
-            name: '',
-            description: '',
-            isActive: true,
             errors: {
                 name: '',
                 description: ''
             },
-            isSubmitting: false
+            isSubmitting: false,
+            ...emptyState()
         });
 
-        const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
         const nameRef = Vue.ref(null);
-
-        const renderCategoryStatusBadge = (isActive) => {
-            if (isActive === true) {
-                return '<span class="badge d-inline-flex align-items-center gap-1" title="Ativa" style="background:#dcfce7;color:#166534;border:1px solid #86efac;font-weight:600;"><i class="fa fa-circle-check"></i> Ativa</span>';
-            }
-
-            return '<span class="badge d-inline-flex align-items-center gap-1" title="Inativa" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600;"><i class="fa fa-circle-minus"></i> Inativa</span>';
-        };
 
         const services = {
             getMainData: async () => {
@@ -71,114 +74,86 @@ const App = {
                 } catch (error) {
                     throw error;
                 }
-            },
-        };
-
-        const mainGrid = {
-            obj: null,
-            create: async (dataSource) => {
-                mainGrid.obj = new ej.grids.Grid({
-                    height: '240px',
-                    dataSource: dataSource,
-                    allowFiltering: true,
-                    showColumnMenu: true,
-                    gridLines: 'None',
-                    allowSorting: true,
-                    allowPaging: true,
-                    allowResizing: true,
-                    allowExcelExport: true,
-                    allowSelection: true,
-                    filterSettings: { type: 'Menu' },
-                    pageSettings: { pageSize: 50 },
-                    selectionSettings: { type: 'Single' },
-                    columns: [
-                        { type: 'checkbox', width: 60 },
-                        { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'name', headerText: 'Nome', width: 200 },
-                        { field: 'description', headerText: 'Descricao', width: 250 },
-                        {
-                            field: 'isActive',
-                            headerText: 'Ativo',
-                            width: 130,
-                            textAlign: 'Center',
-                            disableHtmlEncode: false,
-                            valueAccessor: (_, data) => renderCategoryStatusBadge(data?.isActive)
-                        },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
-                    ],
-                    toolbar: [
-                        'ExcelExport', 'Search',
-                        { type: 'Separator' },
-                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
-                    ],
-                    dataBound: function () {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    rowSelected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
-                    },
-                    rowDeselected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    toolbarClick: (args) => {
-                        if (args.item.id?.toLowerCase().includes('excelexport')) {
-                            mainGrid.obj.excelExport({ fileName: 'Categories.xlsx' });
-                        }
-
-                        if (args.item.id === 'AddCustom') {
-                            state.deleteMode = false;
-                            state.mainTitle = 'Adicionar Categoria';
-                            state.id = '';
-                            state.name = '';
-                            state.description = '';
-                            state.isActive = true;
-
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'EditCustom') {
-                            const selected = mainGrid.obj.getSelectedRecords()[0];
-                            if (!selected) return;
-
-                            state.deleteMode = false;
-                            state.mainTitle = 'Editar Categoria';
-                            state.id = selected.id ?? '';
-                            state.name = selected.name ?? '';
-                            state.description = selected.description ?? '';
-                            state.isActive = selected.isActive ?? true;
-
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'DeleteCustom') {
-                            const selected = mainGrid.obj.getSelectedRecords()[0];
-                            if (!selected) return;
-
-                            state.deleteMode = true;
-                            state.mainTitle = 'Excluir Categoria';
-                            state.id = selected.id ?? '';
-                            state.name = selected.name ?? '';
-                            state.description = selected.description ?? '';
-                            state.isActive = selected.isActive ?? true;
-
-                            mainModal.obj.show();
-                        }
-                    }
-                });
-
-                mainGrid.obj.appendTo(mainGridRef.value);
-            },
-            refresh: () => {
-                mainGrid.obj.setProperties({ dataSource: state.mainData });
             }
         };
 
         const methods = {
+            resetForm: () => {
+                Object.assign(state, emptyState());
+                state.errors = {
+                    name: '',
+                    description: ''
+                };
+            },
+            setFormData: (category) => {
+                Object.assign(state, {
+                    id: category?.id ?? '',
+                    name: category?.name ?? '',
+                    description: category?.description ?? '',
+                    isActive: category?.isActive ?? true
+                });
+            },
+            getStatusLabel: (category) => category?.isActive === true ? 'Ativa' : 'Inativa',
+            getStatusClass: (category) => category?.isActive === true
+                ? 'category-status--active'
+                : 'category-status--inactive',
+            getSortIcon: (field) => {
+                if (state.sort.field !== field) return 'fa-sort';
+
+                return state.sort.direction === 'asc'
+                    ? 'fa-sort-up'
+                    : 'fa-sort-down';
+            },
+            getSortValue: (category, field) => {
+                if (field === 'name') return String(category?.name ?? '').toLowerCase();
+                if (field === 'description') return String(category?.description ?? '').toLowerCase();
+                if (field === 'status') return methods.getStatusLabel(category).toLowerCase();
+
+                if (field === 'createdAt') {
+                    const rawDate = category?.createdAt
+                        ?? category?.createdAtUtc
+                        ?? category?.insertedAt
+                        ?? category?.createdDate
+                        ?? category?.dateCreated
+                        ?? category?.creationDate;
+                    const date = rawDate ? new Date(rawDate) : null;
+
+                    return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+                }
+
+                return '';
+            },
+            formatInsertedDate: (category) => {
+                const rawDate = category?.createdAt
+                    ?? category?.createdAtUtc
+                    ?? category?.insertedAt
+                    ?? category?.createdDate
+                    ?? category?.dateCreated
+                    ?? category?.creationDate;
+
+                if (!rawDate) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                const date = new Date(rawDate);
+                if (Number.isNaN(date.getTime())) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                return {
+                    date: date.toLocaleDateString('pt-BR'),
+                    time: date.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                };
+            },
             updateSummaryCards: () => {
                 const total = state.mainData.length;
                 const active = state.mainData.filter(x => x?.isActive === true).length;
@@ -189,10 +164,7 @@ const App = {
             populateMainData: async () => {
                 const response = await services.getMainData();
 
-                state.mainData = response?.data?.content?.data.map(item => ({
-                    ...item,
-                    createdAt: new Date(item.createdAt)
-                }));
+                state.mainData = response?.data?.content?.data ?? [];
 
                 methods.updateSummaryCards();
             }
@@ -226,7 +198,71 @@ const App = {
             nameText.refresh();
         });
 
+        const filteredCategories = Vue.computed(() => {
+            const search = state.filters.search.trim().toLowerCase();
+            const status = state.filters.status;
+
+            const categories = state.mainData.filter(category => {
+                const name = String(category?.name ?? '').toLowerCase();
+                const description = String(category?.description ?? '').toLowerCase();
+                const matchesSearch = !search
+                    || name.includes(search)
+                    || description.includes(search);
+                const matchesStatus = !status
+                    || (status === 'active' && category?.isActive === true)
+                    || (status === 'inactive' && category?.isActive !== true);
+
+                return matchesSearch && matchesStatus;
+            });
+
+            const direction = state.sort.direction === 'desc' ? -1 : 1;
+
+            return [...categories].sort((first, second) => {
+                const firstValue = methods.getSortValue(first, state.sort.field);
+                const secondValue = methods.getSortValue(second, state.sort.field);
+
+                if (typeof firstValue === 'number' && typeof secondValue === 'number') {
+                    return (firstValue - secondValue) * direction;
+                }
+
+                return String(firstValue).localeCompare(String(secondValue), 'pt-BR', {
+                    numeric: true,
+                    sensitivity: 'base'
+                }) * direction;
+            });
+        });
+
         const handler = {
+            handleSort: (field) => {
+                if (state.sort.field === field) {
+                    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+                    return;
+                }
+
+                state.sort.field = field;
+                state.sort.direction = 'asc';
+            },
+            handleNew: () => {
+                state.deleteMode = false;
+                state.mainTitle = 'Adicionar Categoria';
+                methods.resetForm();
+
+                mainModal.obj.show();
+            },
+            handleEdit: (category) => {
+                state.deleteMode = false;
+                state.mainTitle = 'Editar Categoria';
+                methods.setFormData(category);
+
+                mainModal.obj.show();
+            },
+            handleDelete: (category) => {
+                state.deleteMode = true;
+                state.mainTitle = 'Excluir Categoria';
+                methods.setFormData(category);
+
+                mainModal.obj.show();
+            },
             handleSubmit: async () => {
                 try {
                     state.isSubmitting = true;
@@ -237,7 +273,6 @@ const App = {
 
                         if (deleteResponse.data.code === 200) {
                             await methods.populateMainData();
-                            mainGrid.refresh();
 
                             Swal.fire({
                                 icon: 'success',
@@ -260,7 +295,6 @@ const App = {
                         return;
                     }
 
-                    // validation
                     let isValid = true;
                     state.errors.name = '';
 
@@ -286,7 +320,6 @@ const App = {
 
                     if (response.data.code === 200) {
                         await methods.populateMainData();
-                        mainGrid.refresh();
 
                         Swal.fire({
                             icon: 'success',
@@ -324,19 +357,14 @@ const App = {
                 await SecurityManager.validateToken();
 
                 await methods.populateMainData();
-                await mainGrid.create(state.mainData);
 
                 nameText.create();
                 mainModal.create();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
-                    state.id = '';
-                    state.name = '';
-                    state.description = '';
-                    state.isActive = true;
+                    methods.resetForm();
                     state.deleteMode = false;
                     state.mainTitle = 'Editar Categoria';
-                    state.errors = { name: '', description: '' };
                 });
 
             } catch (e) {
@@ -346,9 +374,10 @@ const App = {
 
         return {
             state,
-            mainGridRef,
             mainModalRef,
             nameRef,
+            filteredCategories,
+            methods,
             handler
         };
     }

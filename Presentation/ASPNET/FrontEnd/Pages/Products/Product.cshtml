@@ -1,83 +1,691 @@
 @page
 @{
-    ViewData["Title"] = "Produto";
+    ViewData["Title"] = "Produtos";
 }
 
 <style>
+    .product-admin {
+        background: #f7f7f5;
+        color: #171717;
+        font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: calc(100vh - 120px);
+        padding: 28px;
+    }
+
+    .product-page-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .product-page-title {
+        color: #161616;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0;
+    }
+
+    .product-add-button {
+        align-items: center;
+        background: #2563eb;
+        border: 1px solid #2563eb;
+        border-radius: 10px;
+        color: #ffffff;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 18px;
+    }
+
+    .product-add-button:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: #ffffff;
+    }
+
+    .product-summary-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 26px;
+    }
+
     .product-summary-card {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 12px 14px;
         background: #fff;
-        height: 100%;
+        border: 0;
+        border-radius: 14px;
+        padding: 22px 24px;
     }
 
-    .product-summary-card .label {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-bottom: 4px;
-    }
-
-    .product-summary-card .value {
-        font-size: 1.4rem;
+    .product-summary-card__label {
+        color: #777b82;
+        font-size: 13px;
         font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .product-summary-card__value {
+        color: #111827;
+        font-size: 30px;
+        font-weight: 900;
         line-height: 1;
     }
 
-    .product-name-cell {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+    .product-summary-card__value--green {
+        color: #16a34a;
     }
 
-    .product-name-cell img {
-        width: 32px;
-        height: 32px;
+    .product-summary-card__value--amber {
+        color: #d97706;
+    }
+
+    .product-summary-card__value--red {
+        color: #dc2626;
+    }
+
+    .product-filters {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) 260px;
+        margin-bottom: 24px;
+    }
+
+    .product-filter-control {
+        background: #ffffff;
+        border: 1px solid #d8dce1;
+        border-radius: 10px;
+        color: #1f2937;
+        font-size: 14px;
+        min-height: 44px;
+        outline: none;
+        padding: 0 14px;
+        width: 100%;
+    }
+
+    .product-filter-control:focus {
+        border-color: #9ca3af;
+        box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.16);
+    }
+
+    .product-table-card {
+        background: #ffffff;
+        border: 1px solid #e1e5ea;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .product-table {
+        border-collapse: collapse;
+        margin: 0;
+        width: 100%;
+    }
+
+    .product-table thead th {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 14px 18px;
+        text-align: left;
+    }
+
+    .product-sort-button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 800;
+        gap: 7px;
+        padding: 0;
+    }
+
+    .product-sort-button:hover {
+        color: #111827;
+    }
+
+    .product-sort-icon {
+        color: #9ca3af;
+        font-size: 11px;
+        width: 11px;
+    }
+
+    .product-sort-button--active .product-sort-icon {
+        color: #2563eb;
+    }
+
+    .product-table tbody td {
+        border-bottom: 1px solid #edf0f3;
+        color: #6b7280;
+        font-size: 14px;
+        padding: 12px 18px;
+        vertical-align: middle;
+    }
+
+    .product-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .product-table__price {
+        color: #111827 !important;
+        font-weight: 800;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .product-table__date {
+        color: #4b5563;
+        font-weight: 800;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .product-table__time {
+        color: #9ca3af;
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    .product-table__actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .product-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .product-cell__thumb {
+        align-items: center;
+        background: #eef0f2;
+        border-radius: 8px;
+        display: inline-flex;
+        flex: 0 0 40px;
+        height: 40px;
+        justify-content: center;
+        overflow: hidden;
+        width: 40px;
+    }
+
+    .product-cell__thumb img {
+        height: 100%;
         object-fit: cover;
-        border-radius: 4px;
-        border: 1px solid #ddd;
+        width: 100%;
+    }
+
+    .product-cell__name {
+        color: #171717;
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .product-status {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 7px 12px;
+        white-space: nowrap;
+    }
+
+    .product-status--published {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .product-status--low {
+        background: #ffedd5;
+        color: #9a3412;
+    }
+
+    .product-status--soldout {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .product-action-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        height: 36px;
+        justify-content: center;
+        margin-left: 8px;
+        width: 36px;
+    }
+
+    .product-action-button:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .product-action-button--danger {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+
+    .product-action-button--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+
+    .product-empty-row {
+        color: #9ca3af !important;
+        padding: 34px 22px !important;
+        text-align: center;
+    }
+
+    .product-scroll-indicator {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #e1e5ea;
+        border-radius: 999px;
+        box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+        color: #4b5563;
+        display: flex;
+        height: 38px;
+        justify-content: center;
+        margin: 18px auto 0;
+        width: 38px;
+    }
+
+    .product-modal {
+        border: 1px solid #dde3ea;
+        border-radius: 8px;
+        border-top: 4px solid #222831;
+        box-shadow: 0 10px 28px rgba(31, 41, 51, 0.08);
+        overflow: hidden;
+    }
+
+    .product-modal .modal-header,
+    .product-modal .modal-footer {
+        background: #ffffff;
+        border-color: #e1e7ee;
+    }
+
+    .product-modal .modal-title {
+        color: #222831;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .product-modal form label {
+        color: #59636f;
+        font-size: 11px;
+        font-weight: 700;
+        margin: 0 0 5px;
+    }
+
+    .product-modal form .form-control {
+        background: #fbfcfd;
+        border: 1px solid #cfd7df;
+        border-radius: 6px;
+        color: #18212c;
+        font-size: 14px;
+        font-weight: 700;
+        outline: none;
+        padding: 9px 12px;
+        width: 100%;
+    }
+
+    .product-modal form .form-control:focus {
+        background: #ffffff;
+        border-color: #222831;
+        box-shadow: 0 0 0 3px rgba(34, 40, 49, 0.08);
+    }
+
+    .product-tabs {
+        border-bottom: 1px solid #e1e7ee;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+    }
+
+    .product-tab-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #cfd7df;
+        border-radius: 8px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 36px;
+        padding: 0 14px;
+    }
+
+    .product-tab-button.active {
+        background: #222831;
+        border-color: #222831;
+        color: #ffffff;
+    }
+
+    .product-tab-badge {
+        align-items: center;
+        background: #eef2ff;
+        border-radius: 999px;
+        color: #3730a3;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 900;
+        height: 20px;
+        justify-content: center;
+        min-width: 20px;
+        padding: 0 6px;
+    }
+
+    .product-tab-button.active .product-tab-badge {
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
+    }
+
+    .product-tab-panel {
+        display: none;
+    }
+
+    .product-tab-panel.active {
+        display: block;
+    }
+
+    .product-modal form textarea.form-control {
+        min-height: 104px;
+        resize: vertical;
+    }
+
+    .product-modal .form-check {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        min-height: 42px;
+        overflow: visible;
+        padding-left: 0;
+    }
+
+    .product-modal .form-check-input {
+        accent-color: #222831;
+        flex: 0 0 18px;
+        float: none;
+        height: 18px;
+        margin: 0;
+        position: static;
+        width: 18px;
+    }
+
+    .product-modal .form-check-label {
+        color: #18212c;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.2;
+        margin: 0;
+        user-select: none;
+    }
+
+    .product-drop-btn {
+        align-items: center;
+        border: 1px solid #cfd7df;
+        border-radius: 7px;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 16px;
+    }
+
+    .product-drop-btn--primary {
+        background: #222831;
+        border-color: #222831;
+        color: #ffffff;
+    }
+
+    .product-drop-btn--ghost {
+        background: #ffffff;
+        color: #222831;
+    }
+
+    .product-drop-btn--danger {
+        background: #ffffff;
+        color: #dc2626;
+    }
+
+    .product-drop-btn--primary:hover {
+        background: #111827;
+        border-color: #111827;
+        color: #ffffff;
+    }
+
+    .product-drop-btn--ghost:hover {
+        background: #f3f5f7;
+        border-color: #aeb8c3;
+        color: #222831;
+    }
+
+    .product-drop-btn--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+
+    .product-drop-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+
+    @@media (max-width: 900px) {
+        .product-admin {
+            padding: 20px;
+        }
+
+        .product-page-header {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .product-add-button {
+            justify-content: center;
+        }
+
+        .product-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .product-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .product-table-card {
+            overflow-x: auto;
+        }
+
+        .product-table {
+            min-width: 920px;
+        }
+    }
+
+    @@media (max-width: 520px) {
+        .product-summary-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
-<div id="app" v-cloak>
-    <div class="row mb-3">
-        <div class="col-12 col-md-6 col-xl-3 mb-2">
-            <div class="product-summary-card">
-                <div class="label">Total de Produtos</div>
-                <div class="value">{{ state.summary.totalProducts }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3 mb-2">
-            <div class="product-summary-card">
-                <div class="label">Publicados</div>
-                <div class="value">{{ state.summary.publishedProducts }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3 mb-2">
-            <div class="product-summary-card">
-                <div class="label">Estoque Baixo</div>
-                <div class="value">{{ state.summary.lowStockProducts }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3 mb-2">
-            <div class="product-summary-card">
-                <div class="label">Esgotados</div>
-                <div class="value">{{ state.summary.outOfStockProducts }}</div>
-            </div>
-        </div>
-    </div>
+<div id="app" class="product-admin" v-cloak>
+    <header class="product-page-header">
+        <h1 class="product-page-title">Produtos</h1>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="grid-container">
-                <div ref="mainGridRef"></div>
-            </div>
+        <button type="button" class="product-add-button" v-on:click="handler.handleNew">
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            Adicionar produto
+        </button>
+    </header>
+
+    <section class="product-summary-grid" aria-label="Resumo de produtos">
+        <div class="product-summary-card">
+            <div class="product-summary-card__label">Total de produtos</div>
+            <div class="product-summary-card__value">{{ state.summary.totalProducts }}</div>
         </div>
-    </div>
+
+        <div class="product-summary-card">
+            <div class="product-summary-card__label">Publicados</div>
+            <div class="product-summary-card__value product-summary-card__value--green">{{ state.summary.publishedProducts }}</div>
+        </div>
+
+        <div class="product-summary-card">
+            <div class="product-summary-card__label">Vendidos</div>
+            <div class="product-summary-card__value product-summary-card__value--amber">{{ state.summary.soldProducts }}</div>
+        </div>
+
+        <div class="product-summary-card">
+            <div class="product-summary-card__label">Nao Publicados</div>
+            <div class="product-summary-card__value product-summary-card__value--red">{{ state.summary.unpublishedProducts }}</div>
+        </div>
+    </section>
+
+    <section class="product-filters" aria-label="Filtros de produtos">
+        <input v-model="state.filters.search"
+               class="product-filter-control"
+               type="search"
+               placeholder="Buscar produto">
+
+        <select v-model="state.filters.categoryId" class="product-filter-control">
+            <option value="">Todas as categorias</option>
+            <option v-for="category in state.categories"
+                    v-bind:key="category.id"
+                    v-bind:value="category.id">
+                {{ category.name }}
+            </option>
+        </select>
+    </section>
+
+    <section class="product-table-card">
+        <table class="product-table">
+            <thead>
+                <tr>
+                    <th>
+                        <button type="button"
+                                class="product-sort-button"
+                                v-bind:class="{ 'product-sort-button--active': state.sort.field === 'name' }"
+                                v-on:click="handler.handleSort('name')">
+                            Produto
+                            <i class="fa product-sort-icon" v-bind:class="methods.getSortIcon('name')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="product-sort-button"
+                                v-bind:class="{ 'product-sort-button--active': state.sort.field === 'category' }"
+                                v-on:click="handler.handleSort('category')">
+                            Categoria
+                            <i class="fa product-sort-icon" v-bind:class="methods.getSortIcon('category')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="product-sort-button"
+                                v-bind:class="{ 'product-sort-button--active': state.sort.field === 'createdAt' }"
+                                v-on:click="handler.handleSort('createdAt')">
+                            Inserido em
+                            <i class="fa product-sort-icon" v-bind:class="methods.getSortIcon('createdAt')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th class="text-right">
+                        <button type="button"
+                                class="product-sort-button"
+                                v-bind:class="{ 'product-sort-button--active': state.sort.field === 'unitPrice' }"
+                                v-on:click="handler.handleSort('unitPrice')">
+                            Preco
+                            <i class="fa product-sort-icon" v-bind:class="methods.getSortIcon('unitPrice')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th class="text-right">
+                        <button type="button"
+                                class="product-sort-button"
+                                v-bind:class="{ 'product-sort-button--active': state.sort.field === 'discountPercent' }"
+                                v-on:click="handler.handleSort('discountPercent')">
+                            Desconto
+                            <i class="fa product-sort-icon" v-bind:class="methods.getSortIcon('discountPercent')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="product-sort-button"
+                                v-bind:class="{ 'product-sort-button--active': state.sort.field === 'status' }"
+                                v-on:click="handler.handleSort('status')">
+                            Status
+                            <i class="fa product-sort-icon" v-bind:class="methods.getSortIcon('status')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th class="text-right">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="product in filteredProducts" v-bind:key="product.id">
+                    <td>
+                        <div class="product-cell">
+                            <span class="product-cell__thumb">
+                                <img v-if="product.mainImageURL" v-bind:src="product.imageURL" alt="">
+                            </span>
+                            <span class="product-cell__name">{{ product.name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ methods.getCategoryName(product) }}</td>
+                    <td>
+                        <span class="product-table__date">
+                            {{ methods.formatInsertedDate(product).date }}
+                            <span class="product-table__time">{{ methods.formatInsertedDate(product).time }}</span>
+                        </span>
+                    </td>
+                    <td class="product-table__price">{{ methods.formatCurrencyBRL(product.unitPrice) }}</td>
+                    <td class="product-table__price">{{ methods.formatDiscount(product.discountPercent) }}</td>
+                    <td>
+                        <span class="product-status" v-bind:class="methods.getStatusClass(product)">
+                            {{ methods.getStatusLabel(product) }}
+                        </span>
+                    </td>
+                    <td class="product-table__actions">
+                        <button type="button" class="product-action-button" title="Editar" v-on:click="handler.handleEdit(product)">
+                            <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="product-action-button product-action-button--danger" title="Excluir" v-on:click="handler.handleDelete(product)">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr v-if="filteredProducts.length === 0">
+                    <td colspan="7" class="product-empty-row">Nenhum produto encontrado.</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <button type="button" class="product-scroll-indicator" aria-label="Rolar para mais produtos">
+        <i class="fa fa-chevron-down" aria-hidden="true"></i>
+    </button>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content">
+            <div class="modal-content product-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.mainTitle }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -87,9 +695,39 @@
                     <input type="hidden" v-model="state.id" />
 
                     <form id="MainForm">
+                        <div class="product-tabs" role="tablist" aria-label="Secoes do formulario de produto">
+                            <button type="button"
+                                    class="product-tab-button"
+                                    v-bind:class="{ active: state.activeProductTab === 'general' }"
+                                    v-on:click="state.activeProductTab = 'general'">
+                                Geral
+                            </button>
+                            <button type="button"
+                                    class="product-tab-button"
+                                    v-bind:class="{ active: state.activeProductTab === 'images' }"
+                                    v-on:click="state.activeProductTab = 'images'">
+                                Imagens
+                            </button>
+                            <button type="button"
+                                    class="product-tab-button"
+                                    v-bind:class="{ active: state.activeProductTab === 'descriptions' }"
+                                    v-on:click="state.activeProductTab = 'descriptions'">
+                                Descricoes
+                            </button>
+                            <button type="button"
+                                    class="product-tab-button"
+                                    v-bind:class="{ active: state.activeProductTab === 'sizes' }"
+                                    v-on:click="state.activeProductTab = 'sizes'">
+                                Tamanhos e Estoque
+                                <span class="product-tab-badge">{{ state.sizes.length }}</span>
+                            </button>
+                        </div>
+
+                        <section class="product-tab-panel"
+                                 v-bind:class="{ active: state.activeProductTab === 'general' }">
                         <div class="row mb-2">
                             <div class="col-md-6">
-                                <label>Nome</label>
+                                <label>Nome do Produto</label>
                                 <input ref="nameRef"
                                        v-model="state.name"
                                        type="text"
@@ -113,7 +751,7 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label>Drop</label>
+                                <label>Drop/Colecao</label>
                                 <select v-model="state.dropConfigId"
                                         class="form-control"
                                         v-bind:disabled="state.deleteMode">
@@ -137,7 +775,7 @@
                                        v-bind:disabled="state.deleteMode">
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-md-3" v-if="state.id">
                                 <label>Preco Antigo</label>
                                 <input v-model.number="state.oldPrice"
                                        type="number"
@@ -155,7 +793,7 @@
                                        v-bind:disabled="state.deleteMode">
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-md-3" v-if="state.id">
                                 <label>Percentual de Desconto</label>
                                 <input v-model.number="state.discountPercent"
                                        type="number"
@@ -165,6 +803,29 @@
                             </div>
                         </div>
 
+                        <div class="row mb-2">
+                            <div class="col-md-3 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="ProductAvailable"
+                                       v-model="state.productAvailable"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="form-check-label" for="ProductAvailable">Disponivel</label>
+                            </div>
+
+                            <div class="col-md-3 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="AddBadge"
+                                       v-model="state.addBadge"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="form-check-label" for="AddBadge">Adicionar Destaque</label>
+                            </div>
+                        </div>
+                        </section>
+
+                        <section class="product-tab-panel"
+                                 v-bind:class="{ active: state.activeProductTab === 'images' }">
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <label>Imagem Principal</label>
@@ -191,24 +852,6 @@
                                        type="text"
                                        class="form-control"
                                        v-bind:disabled="state.deleteMode">
-                            </div>
-                        </div>
-
-                        <div class="row mb-2">
-                            <div class="col-md-6">
-                                <label>Descricao Curta</label>
-                                <textarea v-model="state.shortDescription"
-                                          class="form-control"
-                                          rows="2"
-                                          v-bind:disabled="state.deleteMode"></textarea>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label>Descricao Longa</label>
-                                <textarea v-model="state.longDescription"
-                                          class="form-control"
-                                          rows="2"
-                                          v-bind:disabled="state.deleteMode"></textarea>
                             </div>
                         </div>
 
@@ -289,24 +932,25 @@
                                 </div>
                             </div>
                         </div>
+                        </section>
 
+                        <section class="product-tab-panel"
+                                 v-bind:class="{ active: state.activeProductTab === 'descriptions' }">
                         <div class="row mb-2">
-                            <div class="col-md-3 form-check">
-                                <input type="checkbox"
-                                       class="form-check-input"
-                                       id="ProductAvailable"
-                                       v-model="state.productAvailable"
-                                       v-bind:disabled="state.deleteMode">
-                                <label class="form-check-label" for="ProductAvailable">Disponivel</label>
+                            <div class="col-md-6">
+                                <label>Descricao Curta</label>
+                                <textarea v-model="state.shortDescription"
+                                          class="form-control"
+                                          rows="2"
+                                          v-bind:disabled="state.deleteMode"></textarea>
                             </div>
 
-                            <div class="col-md-3 form-check">
-                                <input type="checkbox"
-                                       class="form-check-input"
-                                       id="AddBadge"
-                                       v-model="state.addBadge"
-                                       v-bind:disabled="state.deleteMode">
-                                <label class="form-check-label" for="AddBadge">Adicionar Destaque</label>
+                            <div class="col-md-6">
+                                <label>Descricao Longa</label>
+                                <textarea v-model="state.longDescription"
+                                          class="form-control"
+                                          rows="2"
+                                          v-bind:disabled="state.deleteMode"></textarea>
                             </div>
                         </div>
 
@@ -319,16 +963,18 @@
                                           v-bind:disabled="state.deleteMode"></textarea>
                             </div>
                         </div>
+                        </section>
 
-                        <hr />
-
+                        <section class="product-tab-panel"
+                                 v-bind:class="{ active: state.activeProductTab === 'sizes' }">
                         <div class="row mb-2">
                             <div class="col-12 d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">Tamanhos</h6>
                                 <button type="button"
-                                        class="btn btn-sm btn-outline-primary"
+                                        class="product-drop-btn product-drop-btn--primary"
                                         v-on:click="handler.addSize"
                                         v-bind:disabled="state.deleteMode">
+                                    <i class="fa fa-plus" aria-hidden="true"></i>
                                     Adicionar Tamanho
                                 </button>
                             </div>
@@ -342,7 +988,7 @@
                                         <th>Busto</th>
                                         <th>Manga</th>
                                         <th>Comprimento</th>
-                                        <th style="width: 80px;">Acao</th>
+                                        <th style="width: 110px;">Acao</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -376,7 +1022,7 @@
                                         </td>
                                         <td>
                                             <button type="button"
-                                                    class="btn btn-sm btn-outline-danger"
+                                                    class="product-drop-btn product-drop-btn--danger"
                                                     v-on:click="handler.removeSize(index)"
                                                     v-bind:disabled="state.deleteMode">
                                                 Remover
@@ -389,20 +1035,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        </section>
                     </form>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button"
-                            class="btn btn-secondary"
+                            class="product-drop-btn product-drop-btn--ghost"
                             data-bs-dismiss="modal">
                         Fechar
                     </button>
 
                     <button type="button"
                             id="MainSaveButton"
-                            class="btn"
-                            v-bind:class="state.deleteMode ? 'btn-danger' : 'btn-primary'"
+                            class="product-drop-btn"
+                            v-bind:class="state.deleteMode ? 'product-drop-btn--danger' : 'product-drop-btn--primary'"
                             v-on:click="handler.handleSubmit"
                             v-bind:disabled="state.isSubmitting">
 

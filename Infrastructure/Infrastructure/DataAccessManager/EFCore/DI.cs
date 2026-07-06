@@ -122,8 +122,39 @@ public static class DI
         EnsureInfinitePayPaymentColumns(dataContext);
         EnsureDropConfigTable(dataContext);
         EnsureProductDropConfigColumn(dataContext);
+        EnsureProductSizeStockQuantityColumn(dataContext);
 
         return host;
+    }
+
+    private static void EnsureProductSizeStockQuantityColumn(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.ProductSize', 'StockQuantity') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [ProductSize] ADD [StockQuantity] int NULL;
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "ProductSize"
+                                               ADD COLUMN IF NOT EXISTS "StockQuantity" integer;
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite() && !SqliteColumnExists(dataContext, "ProductSize", "StockQuantity"))
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "ProductSize" ADD COLUMN "StockQuantity" INTEGER NULL;
+                                               """);
+        }
     }
 
     private static void EnsureProductDropConfigColumn(DataContext dataContext)

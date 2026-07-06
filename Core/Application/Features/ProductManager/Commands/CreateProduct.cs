@@ -16,6 +16,7 @@ public class CreateProductSizeRequest
     public decimal? Bust { get; init; }
     public decimal? Sleeve { get; init; }
     public decimal? Length { get; init; }
+    public int? StockQuantity { get; init; }
 }
 
 public class CreateProductRequest : IRequest<CreateProductResult>
@@ -100,7 +101,8 @@ public class CreateProductHandler : IRequestHandler<CreateProductRequest, Create
                 Size = size.Size ?? string.Empty,
                 Bust = size.Bust,
                 Sleeve = size.Sleeve,
-                Length = size.Length
+                Length = size.Length,
+                StockQuantity = size.StockQuantity
             });
         }
 

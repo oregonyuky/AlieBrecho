@@ -14,6 +14,7 @@ public record GetProductListSizeDto
     public decimal? Bust { get; init; }
     public decimal? Sleeve { get; init; }
     public decimal? Length { get; init; }
+    public int? StockQuantity { get; init; }
 }
 
 public record GetProductListDto
@@ -23,6 +24,7 @@ public record GetProductListDto
     public string? CategoryID { get; init; }
     public string? DropConfigId { get; init; }
     public string? DropTitulo { get; init; }
+    public DateTime? CreatedAtUtc { get; init; }
     public decimal? UnitPrice { get; init; }
     public decimal? OldPrice { get; init; }
     public decimal? DiscountPercent { get; init; }

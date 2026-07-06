@@ -12,4 +12,5 @@ public class ProductSize : BaseEntity
     public decimal? Bust { get; set; } //Busto
     public decimal? Sleeve { get; set; } //Manga
     public decimal? Length { get; set; } //Comprimento
+    public int? StockQuantity { get; set; } //Estoque
 }

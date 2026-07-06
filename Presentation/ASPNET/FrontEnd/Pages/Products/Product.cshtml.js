@@ -11,7 +11,7 @@ const App = {
             oldPrice: null,
             unitWeight: null,
             discountPercent: null,
-            productAvailable: true,
+            productAvailable: false,
             mainImageURL: '',
             mainImageFile: null,
             mainImagePreviewURL: '',
@@ -48,8 +48,19 @@ const App = {
                 totalProducts: 0,
                 publishedProducts: 0,
                 lowStockProducts: 0,
-                outOfStockProducts: 0
+                outOfStockProducts: 0,
+                soldProducts: 0,
+                unpublishedProducts: 0
             },
+            filters: {
+                search: '',
+                categoryId: ''
+            },
+            sort: {
+                field: 'name',
+                direction: 'asc'
+            },
+            activeProductTab: 'general',
             isSubmitting: false,
             ...emptyState()
         });
@@ -146,28 +157,122 @@ const App = {
         };
 
         const methods = {
-            updateSummaryCards: () => {
-                const normalizedStock = (item) => {
-                    const possibleStock = Number(
-                        item?.stockQuantity
-                        ?? item?.quantity
-                        ?? item?.stock
-                        ?? item?.currentStock
-                        ?? NaN
-                    );
+            normalizedStock: (item) => {
+                const possibleStock = Number(
+                    item?.stockQuantity
+                    ?? item?.quantity
+                    ?? item?.stock
+                    ?? item?.currentStock
+                    ?? NaN
+                );
 
-                    return Number.isFinite(possibleStock) ? possibleStock : null;
+                return Number.isFinite(possibleStock) ? possibleStock : null;
+            },
+            formatCurrencyBRL: (value) => formatCurrencyBRL(value),
+            formatInsertedDate: (product) => {
+                const rawDate = product?.createdAt
+                    ?? product?.createdAtUtc
+                    ?? product?.insertedAt
+                    ?? product?.createdDate
+                    ?? product?.dateCreated
+                    ?? product?.creationDate;
+
+                if (!rawDate) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                const date = new Date(rawDate);
+                if (Number.isNaN(date.getTime())) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                return {
+                    date: date.toLocaleDateString('pt-BR'),
+                    time: date.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
                 };
+            },
+            formatDiscount: (value) => {
+                const discount = Number(value ?? 0);
 
+                if (!Number.isFinite(discount) || discount <= 0) return '-';
+
+                return `${discount.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                })}%`;
+            },
+            getSortIcon: (field) => {
+                if (state.sort.field !== field) return 'fa-sort';
+
+                return state.sort.direction === 'asc'
+                    ? 'fa-sort-up'
+                    : 'fa-sort-down';
+            },
+            getCategoryName: (product) => {
+                if (product?.categoryName) return product.categoryName;
+                if (product?.category?.name) return product.category.name;
+
+                const productCategoryId = product?.categoryID ?? product?.categoryId;
+                const category = state.categories.find(item => String(item.id) === String(productCategoryId));
+                return category?.name ?? '-';
+            },
+            getStatusLabel: (product) => {
+                const stock = methods.normalizedStock(product);
+
+                if (stock !== null && stock <= 0) return 'Esgotado';
+                if (stock !== null && stock > 0 && stock <= LOW_STOCK_THRESHOLD) return 'Estoque baixo';
+                if (product?.productAvailable === true) return 'Publicado';
+
+                return 'Esgotado';
+            },
+            getStatusClass: (product) => {
+                const label = methods.getStatusLabel(product);
+
+                if (label === 'Publicado') return 'product-status--published';
+                if (label === 'Estoque baixo') return 'product-status--low';
+
+                return 'product-status--soldout';
+            },
+            getSortValue: (product, field) => {
+                if (field === 'name') return String(product?.name ?? '').toLowerCase();
+                if (field === 'category') return methods.getCategoryName(product).toLowerCase();
+                if (field === 'unitPrice') return Number(product?.unitPrice ?? 0);
+                if (field === 'discountPercent') return Number(product?.discountPercent ?? 0);
+                if (field === 'status') return methods.getStatusLabel(product).toLowerCase();
+
+                if (field === 'createdAt') {
+                    const rawDate = product?.createdAt
+                        ?? product?.createdAtUtc
+                        ?? product?.insertedAt
+                        ?? product?.createdDate
+                        ?? product?.dateCreated
+                        ?? product?.creationDate;
+                    const date = rawDate ? new Date(rawDate) : null;
+
+                    return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+                }
+
+                return '';
+            },
+            updateSummaryCards: () => {
                 const totalProducts = state.mainData.length;
                 const publishedProducts = state.mainData.filter(x => x?.productAvailable === true).length;
                 const lowStockProducts = state.mainData.filter(item => {
-                    const stock = normalizedStock(item);
+                    const stock = methods.normalizedStock(item);
                     return stock !== null && stock > 0 && stock <= LOW_STOCK_THRESHOLD;
                 }).length;
 
                 let outOfStockProducts = state.mainData.filter(item => {
-                    const stock = normalizedStock(item);
+                    const stock = methods.normalizedStock(item);
                     return stock !== null && stock <= 0;
                 }).length;
 
@@ -175,11 +280,25 @@ const App = {
                     outOfStockProducts = state.mainData.filter(x => x?.productAvailable === false).length;
                 }
 
+                const soldProducts = state.mainData.reduce((total, item) => {
+                    const sold = Number(
+                        item?.soldQuantity
+                        ?? item?.quantitySold
+                        ?? item?.itemsSold
+                        ?? item?.totalSold
+                        ?? 0
+                    );
+
+                    return total + (Number.isFinite(sold) ? sold : 0);
+                }, 0);
+
                 state.summary = {
                     totalProducts,
                     publishedProducts,
                     lowStockProducts,
-                    outOfStockProducts
+                    outOfStockProducts,
+                    soldProducts,
+                    unpublishedProducts: state.mainData.filter(x => x?.productAvailable !== true).length
                 };
             },
             resetForm: () => {
@@ -238,13 +357,13 @@ const App = {
                 Object.assign(state, {
                     id: data?.id ?? '',
                     name: data?.name ?? '',
-                    categoryID: data?.categoryID ?? '',
+                    categoryID: data?.categoryID ?? data?.categoryId ?? '',
                     dropConfigId: data?.dropConfigId ?? '',
                     unitPrice: data?.unitPrice ?? null,
                     oldPrice: data?.oldPrice ?? null,
                     unitWeight: data?.unitWeight ?? null,
                     discountPercent: data?.discountPercent ?? null,
-                    productAvailable: data?.productAvailable ?? true,
+                    productAvailable: data?.productAvailable ?? false,
                     mainImageURL: data?.mainImageURL ?? '',
                     mainImageFile: null,
                     mainImagePreviewURL: '',
@@ -269,7 +388,8 @@ const App = {
                         size: size.size ?? '',
                         bust: size.bust ?? null,
                         sleeve: size.sleeve ?? null,
-                        length: size.length ?? null
+                        length: size.length ?? null,
+                        stockQuantity: size.stockQuantity ?? null
                     }))
                 });
 
@@ -315,7 +435,8 @@ const App = {
                         size: size.size,
                         bust: size.bust,
                         sleeve: size.sleeve,
-                        length: size.length
+                        length: size.length,
+                        stockQuantity: size.stockQuantity
                     }))
             }),
             populateMainData: async () => {
@@ -448,6 +569,7 @@ const App = {
                             state.deleteMode = false;
                             state.mainTitle = 'Adicionar Produto';
                             methods.resetForm();
+                            state.activeProductTab = 'general';
 
                             mainModal.obj.show();
                         }
@@ -462,6 +584,7 @@ const App = {
                             state.deleteMode = false;
                             state.mainTitle = 'Editar Produto';
                             methods.setFormData(product);
+                            state.activeProductTab = 'general';
 
                             mainModal.obj.show();
                         }
@@ -476,6 +599,7 @@ const App = {
                             state.deleteMode = true;
                             state.mainTitle = 'Excluir Produto';
                             methods.setFormData(product);
+                            state.activeProductTab = 'general';
 
                             mainModal.obj.show();
                         }
@@ -485,7 +609,9 @@ const App = {
                 mainGrid.obj.appendTo(mainGridRef.value);
             },
             refresh: () => {
-                mainGrid.obj.setProperties({ dataSource: state.mainData });
+                if (mainGrid.obj) {
+                    mainGrid.obj.setProperties({ dataSource: state.mainData });
+                }
             }
         };
 
@@ -517,7 +643,79 @@ const App = {
             nameText.refresh();
         });
 
+        const filteredProducts = Vue.computed(() => {
+            const search = state.filters.search.trim().toLowerCase();
+            const categoryId = String(state.filters.categoryId || '');
+
+            const products = state.mainData.filter(product => {
+                const productName = String(product?.name ?? '').toLowerCase();
+                const categoryName = methods.getCategoryName(product).toLowerCase();
+                const matchesSearch = !search
+                    || productName.includes(search)
+                    || categoryName.includes(search);
+                const productCategoryId = product?.categoryID ?? product?.categoryId;
+                const matchesCategory = !categoryId || String(productCategoryId) === categoryId;
+
+                return matchesSearch && matchesCategory;
+            });
+
+            const direction = state.sort.direction === 'desc' ? -1 : 1;
+
+            return [...products].sort((first, second) => {
+                const firstValue = methods.getSortValue(first, state.sort.field);
+                const secondValue = methods.getSortValue(second, state.sort.field);
+
+                if (typeof firstValue === 'number' && typeof secondValue === 'number') {
+                    return (firstValue - secondValue) * direction;
+                }
+
+                return String(firstValue).localeCompare(String(secondValue), 'pt-BR', {
+                    numeric: true,
+                    sensitivity: 'base'
+                }) * direction;
+            });
+        });
+
         const handler = {
+            handleSort: (field) => {
+                if (state.sort.field === field) {
+                    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+                    return;
+                }
+
+                state.sort.field = field;
+                state.sort.direction = 'asc';
+            },
+            handleNew: () => {
+                state.deleteMode = false;
+                state.mainTitle = 'Adicionar Produto';
+                state.activeProductTab = 'general';
+                methods.resetForm();
+
+                mainModal.obj.show();
+            },
+            handleEdit: async (product) => {
+                const response = await services.getSingleData(product.id);
+                const singleProduct = response?.data?.content?.data;
+
+                state.deleteMode = false;
+                state.mainTitle = 'Editar Produto';
+                state.activeProductTab = 'general';
+                methods.setFormData(singleProduct);
+
+                mainModal.obj.show();
+            },
+            handleDelete: async (product) => {
+                const response = await services.getSingleData(product.id);
+                const singleProduct = response?.data?.content?.data;
+
+                state.deleteMode = true;
+                state.mainTitle = 'Excluir Produto';
+                state.activeProductTab = 'general';
+                methods.setFormData(singleProduct);
+
+                mainModal.obj.show();
+            },
             handleMainImageChange: (event) => {
                 const file = event.target.files?.[0] ?? null;
 
@@ -544,7 +742,8 @@ const App = {
                     size: '',
                     bust: null,
                     sleeve: null,
-                    length: null
+                    length: null,
+                    stockQuantity: null
                 });
             },
             removeSize: (index) => {
@@ -647,7 +846,6 @@ const App = {
                 await methods.populateCategoryData();
                 await methods.populateDropConfigData();
                 await methods.populateMainData();
-                await mainGrid.create(state.mainData);
 
                 nameText.create();
                 mainModal.create();
@@ -656,6 +854,7 @@ const App = {
                     methods.resetForm();
                     state.deleteMode = false;
                     state.mainTitle = 'Editar Produto';
+                    state.activeProductTab = 'general';
                 });
 
             } catch (e) {
@@ -673,6 +872,8 @@ const App = {
             picture2FileRef,
             picture3FileRef,
             picture4FileRef,
+            filteredProducts,
+            methods,
             handler
         };
     }
