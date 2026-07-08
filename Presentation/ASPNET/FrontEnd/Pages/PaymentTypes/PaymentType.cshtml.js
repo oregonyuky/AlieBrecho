@@ -1,5 +1,7 @@
 const App = {
     setup() {
+        const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
         const state = Vue.reactive({
             mainData: [],
             deleteMode: false,
@@ -61,6 +63,36 @@ const App = {
             }
         };
 
+        const parseUtcDate = (rawDate) => {
+            if (!rawDate) return null;
+
+            if (typeof rawDate === 'string') {
+                const hasTimeZone = /Z$/i.test(rawDate) || /[+-]\d{2}:\d{2}$/.test(rawDate);
+                const utcDateText = hasTimeZone ? rawDate : `${rawDate}Z`;
+                const parsedDate = new Date(utcDateText);
+
+                return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+            }
+
+            const parsedDate = new Date(rawDate);
+
+            return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+        };
+
+        const formatBrasiliaDateTime = (rawDate) => {
+            const date = parseUtcDate(rawDate);
+            if (!date) return '-';
+
+            return date.toLocaleString('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE,
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
         const mainGrid = {
             obj: null,
             create: async (dataSource) => {
@@ -83,7 +115,7 @@ const App = {
                         { field: 'typeName', headerText: 'Nome do Tipo', width: 200 },
                         { field: 'description', headerText: 'Descricao', width: 250 },
                         { field: 'isActive', headerText: 'Ativo', width: 120 },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
+                        { field: 'createdAt', headerText: 'Criado Em', width: 180, valueAccessor: (_, data) => formatBrasiliaDateTime(data?.createdAt) }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
@@ -162,7 +194,7 @@ const App = {
                 const response = await services.getMainData();
                 state.mainData = response?.data?.content?.data.map(item => ({
                     ...item,
-                    createdAt: new Date(item.createdAt)
+                    createdAt: parseUtcDate(item.createdAt)
                 }));
             }
         };

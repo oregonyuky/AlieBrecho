@@ -359,6 +359,30 @@
         color: #166534;
     }
 
+    .order-action-button--bag {
+        background: #fdf2f8;
+        border-color: #f9a8d4;
+        color: #be185d;
+    }
+
+    .order-action-button--bag:hover:not(:disabled) {
+        background: #fce7f3;
+        border-color: #f472b6;
+        color: #9d174d;
+    }
+
+    .order-action-button--bag-finalize {
+        background: #fff7ed;
+        border-color: #fdba74;
+        color: #c2410c;
+    }
+
+    .order-action-button--bag-finalize:hover:not(:disabled) {
+        background: #ffedd5;
+        border-color: #fb923c;
+        color: #9a3412;
+    }
+
     .order-action-button:disabled {
         cursor: not-allowed;
         opacity: 0.65;
@@ -629,7 +653,8 @@
                     </td>
                     <td>
                         <button type="button"
-                                class="order-action-button order-action-button--success"
+                                class="order-action-button"
+                                v-bind:class="methods.getShippingLabelButtonClass(order)"
                                 v-bind:title="methods.getShippingLabelTitle(order)"
                                 v-bind:disabled="order.status !== 'Paid'"
                                 v-on:click.stop="methods.openShippingLabel(order)">
@@ -948,7 +973,7 @@
         <div class="modal-dialog modal-dialog-scrollable modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Carrinho Melhor Envio</h5>
+                    <h5 class="modal-title">Sacolinha Melhor Envio</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -958,11 +983,11 @@
                     </div>
 
                     <div class="alert alert-success" v-if="state.label.labelId && !state.label.error">
-                        Frete adicionado ao carrinho com sucesso. Codigo: {{ state.label.labelId }}
+                        Frete adicionado a sacolinha com sucesso. Codigo: {{ state.label.labelId }}
                     </div>
 
                     <div class="alert alert-info" v-if="state.label.checkoutAt && !state.label.error">
-                        Frete comprado no Melhor Envio.
+                        Sacolinha finalizada no Melhor Envio.
                     </div>
 
                     <div class="alert alert-success" v-if="state.label.generatedAt && !state.label.error">
@@ -1012,12 +1037,16 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button" class="btn btn-outline-success" v-if="!state.label.labelId" v-on:click="methods.markShippingCart" v-bind:disabled="state.label.isGenerating">
-                        Ja esta no carrinho
+                        <i class="fa fa-shopping-bag me-1" aria-hidden="true"></i>
+                        Ja esta na sacolinha
                     </button>
                     <button type="button" class="btn btn-success" v-if="state.label.labelId && !state.label.checkoutAt" v-on:click="methods.buyShippingCart" v-bind:disabled="state.label.isBuying || state.label.isGenerating">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isBuying"></span>
-                        <span v-if="state.label.isBuying">Comprando...</span>
-                        <span v-else>Comprar frete</span>
+                        <span v-if="state.label.isBuying">Finalizando...</span>
+                        <span v-else>
+                            <i class="fa fa-shopping-bag me-1" aria-hidden="true"></i>
+                            Finalizar sacolinha
+                        </span>
                     </button>
                     <button type="button" class="btn btn-success" v-if="state.label.labelId && state.label.checkoutAt && !state.label.generatedAt" v-on:click="methods.generatePurchasedShippingLabel" v-bind:disabled="state.label.isGeneratingPurchased || state.label.isBuying || state.label.isGenerating">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isGeneratingPurchased"></span>
@@ -1027,7 +1056,10 @@
                     <button type="button" class="btn btn-primary" v-on:click="handler.handleGenerateShippingLabel" v-bind:disabled="state.label.isGenerating || !!state.label.labelId">
                         <span class="spinner-border spinner-border-sm me-2" v-if="state.label.isGenerating"></span>
                         <span v-if="state.label.isGenerating">Adicionando...</span>
-                        <span v-else>Adicionar ao carrinho</span>
+                        <span v-else>
+                            <i class="fa fa-shopping-bag me-1" aria-hidden="true"></i>
+                            Adicionar a sacolinha
+                        </span>
                     </button>
                 </div>
             </div>

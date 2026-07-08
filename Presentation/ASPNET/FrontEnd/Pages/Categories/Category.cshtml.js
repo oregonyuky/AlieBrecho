@@ -1,5 +1,7 @@
 const App = {
     setup() {
+        const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
         const emptyState = () => ({
             id: '',
             name: '',
@@ -78,6 +80,21 @@ const App = {
         };
 
         const methods = {
+            parseUtcDate: (rawDate) => {
+                if (!rawDate) return null;
+
+                if (typeof rawDate === 'string') {
+                    const hasTimeZone = /Z$/i.test(rawDate) || /[+-]\d{2}:\d{2}$/.test(rawDate);
+                    const utcDateText = hasTimeZone ? rawDate : `${rawDate}Z`;
+                    const parsedDate = new Date(utcDateText);
+
+                    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+                }
+
+                const parsedDate = new Date(rawDate);
+
+                return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+            },
             resetForm: () => {
                 Object.assign(state, emptyState());
                 state.errors = {
@@ -116,7 +133,7 @@ const App = {
                         ?? category?.createdDate
                         ?? category?.dateCreated
                         ?? category?.creationDate;
-                    const date = rawDate ? new Date(rawDate) : null;
+                    const date = methods.parseUtcDate(rawDate);
 
                     return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
                 }
@@ -138,8 +155,8 @@ const App = {
                     };
                 }
 
-                const date = new Date(rawDate);
-                if (Number.isNaN(date.getTime())) {
+                const date = methods.parseUtcDate(rawDate);
+                if (!date) {
                     return {
                         date: '-',
                         time: ''
@@ -147,8 +164,11 @@ const App = {
                 }
 
                 return {
-                    date: date.toLocaleDateString('pt-BR'),
+                    date: date.toLocaleDateString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE
+                    }),
                     time: date.toLocaleTimeString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE,
                         hour: '2-digit',
                         minute: '2-digit'
                     })

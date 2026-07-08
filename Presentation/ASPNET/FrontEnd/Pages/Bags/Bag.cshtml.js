@@ -1,5 +1,7 @@
 const App = {
     setup() {
+        const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
         const state = Vue.reactive({
             mainData: [],
             summary: {
@@ -65,11 +67,41 @@ const App = {
             }
         };
 
+        const parseUtcDate = (rawDate) => {
+            if (!rawDate) return null;
+
+            if (typeof rawDate === 'string') {
+                const hasTimeZone = /Z$/i.test(rawDate) || /[+-]\d{2}:\d{2}$/.test(rawDate);
+                const utcDateText = hasTimeZone ? rawDate : `${rawDate}Z`;
+                const parsedDate = new Date(utcDateText);
+
+                return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+            }
+
+            const parsedDate = new Date(rawDate);
+
+            return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+        };
+
         const formatDateTimeValue = (value) => {
             if (!value) return '';
-            const date = new Date(value);
+            const date = parseUtcDate(value);
+            if (!date) return '';
             const pad = (n) => String(n).padStart(2, '0');
-            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+            const parts = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).formatToParts(date).reduce((result, part) => {
+                result[part.type] = part.value;
+                return result;
+            }, {});
+
+            return `${parts.year}-${parts.month}-${parts.day}T${pad(parts.hour)}:${pad(parts.minute)}`;
         };
 
         const formatCurrency = (value) =>
@@ -98,8 +130,8 @@ const App = {
                 state.mainData = (response?.data?.content?.data ?? []).map((item) => ({
                     ...item,
                     statusDisplay: translateBagStatus(item.status),
-                    createdAt: item.createdAt ? new Date(item.createdAt) : null,
-                    lastInteractionAt: item.lastInteractionAt ? new Date(item.lastInteractionAt) : null
+                    createdAt: parseUtcDate(item.createdAt),
+                    lastInteractionAt: parseUtcDate(item.lastInteractionAt)
                 }));
                 state.pagination.page = Math.min(state.pagination.page, Math.max(totalPages.value, 1));
                 methods.updateSummaryCards();
@@ -112,8 +144,8 @@ const App = {
                     };
                 }
 
-                const date = new Date(value);
-                if (Number.isNaN(date.getTime())) {
+                const date = parseUtcDate(value);
+                if (!date) {
                     return {
                         date: '-',
                         time: ''
@@ -121,8 +153,11 @@ const App = {
                 }
 
                 return {
-                    date: date.toLocaleDateString('pt-BR'),
+                    date: date.toLocaleDateString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE
+                    }),
                     time: date.toLocaleTimeString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE,
                         hour: '2-digit',
                         minute: '2-digit'
                     })
@@ -145,8 +180,8 @@ const App = {
             }[status] || 'bag-status--active'),
             getSortValue: (bag, field) => {
                 if (field === 'createdAt') {
-                    const date = new Date(bag?.createdAt);
-                    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+                    const date = parseUtcDate(bag?.createdAt);
+                    return date ? date.getTime() : 0;
                 }
 
                 if (field === 'customerName') return String(bag?.customerName ?? '').toLowerCase();

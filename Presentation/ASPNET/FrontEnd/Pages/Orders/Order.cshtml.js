@@ -1,5 +1,7 @@
 const App = {
     setup() {
+        const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
         const emptyPayment = () => ({
             id: '',
             name: '',
@@ -114,7 +116,7 @@ const App = {
             Shipped: 'Enviado',
             Delivered: 'Entregue',
             Cancelled: 'Cancelado',
-            LabelGenerated: 'Frete no carrinho'
+            LabelGenerated: 'Frete na sacolinha'
         };
 
         const translateStatus = (status) => statusLabels[status] ?? status;
@@ -497,6 +499,22 @@ const App = {
             }
         };
 
+        const parseUtcDate = (rawDate) => {
+            if (!rawDate) return null;
+
+            if (typeof rawDate === 'string') {
+                const hasTimeZone = /Z$/i.test(rawDate) || /[+-]\d{2}:\d{2}$/.test(rawDate);
+                const utcDateText = hasTimeZone ? rawDate : `${rawDate}Z`;
+                const parsedDate = new Date(utcDateText);
+
+                return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+            }
+
+            const parsedDate = new Date(rawDate);
+
+            return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+        };
+
         const methods = {
             updateSummaryCards: () => {
                 const total = state.mainData.length;
@@ -510,15 +528,15 @@ const App = {
                 const response = await services.getMainData();
                 state.mainData = (response?.data?.content?.data ?? []).map(item => ({
                     ...item,
-                    orderDate: new Date(item.orderDate),
-                    createdAt: new Date(item.createdAt)
+                    orderDate: parseUtcDate(item.orderDate),
+                    createdAt: parseUtcDate(item.createdAt)
                 }));
                 state.pagination.page = Math.min(state.pagination.page, Math.max(totalPages.value, 1));
                 methods.updateSummaryCards();
             },
             formatOrderDate: (order) => {
-                const date = new Date(order?.orderDate);
-                if (Number.isNaN(date.getTime())) {
+                const date = parseUtcDate(order?.orderDate);
+                if (!date) {
                     return {
                         date: '-',
                         time: ''
@@ -526,8 +544,11 @@ const App = {
                 }
 
                 return {
-                    date: date.toLocaleDateString('pt-BR'),
+                    date: date.toLocaleDateString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE
+                    }),
                     time: date.toLocaleTimeString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE,
                         hour: '2-digit',
                         minute: '2-digit'
                     })
@@ -552,8 +573,8 @@ const App = {
             }[status] || 'order-status--pending'),
             getSortValue: (order, field) => {
                 if (field === 'orderDate') {
-                    const date = new Date(order?.orderDate);
-                    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+                    const date = parseUtcDate(order?.orderDate);
+                    return date ? date.getTime() : 0;
                 }
 
                 if (field === 'customerName') return String(order?.customerName ?? '').toLowerCase();
@@ -591,25 +612,33 @@ const App = {
                 if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'Etiqueta gerada no Melhor Envio';
                 if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'Gerar etiqueta no Melhor Envio';
                 if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) {
-                    return `Comprar frete${order.melhorEnvioCartId ? ': ' + order.melhorEnvioCartId : ''}`;
+                    return `Finalizar sacolinha${order.melhorEnvioCartId ? ': ' + order.melhorEnvioCartId : ''}`;
                 }
 
-                return 'Adicionar frete ao carrinho';
+                return 'Adicionar frete a sacolinha';
             },
             getShippingLabelIcon: (order) => {
                 if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'fa-check';
                 if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'fa-tag';
-                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'fa-credit-card';
+                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'fa-shopping-bag';
 
-                return 'fa-shopping-cart';
+                return 'fa-shopping-bag';
+            },
+            getShippingLabelButtonClass: (order) => {
+                if (order?.status !== 'Paid') return '';
+                if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'order-action-button--success';
+                if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'order-action-button--success';
+                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'order-action-button--bag-finalize';
+
+                return 'order-action-button--bag';
             },
             getShippingLabelText: (order) => {
                 if (order?.status !== 'Paid') return 'Indisponivel';
                 if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'Gerada';
                 if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'Gerar';
-                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'Comprar';
+                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'Finalizar';
 
-                return 'Carrinho';
+                return 'Sacolinha';
             },
             getPagerText: () => {
                 const total = sortedOrders.value.length;
@@ -932,10 +961,10 @@ const App = {
 
                 const confirm = await Swal.fire({
                     icon: 'question',
-                    title: 'Comprar frete?',
-                    text: `Comprar o frete no Melhor Envio para o pedido ${state.label.orderId}?`,
+                    title: 'Finalizar sacolinha?',
+                    text: `Finalizar a sacolinha do Melhor Envio para o pedido ${state.label.orderId}?`,
                     showCancelButton: true,
-                    confirmButtonText: 'Comprar',
+                    confirmButtonText: 'Finalizar',
                     cancelButtonText: 'Cancelar'
                 });
 
@@ -962,7 +991,7 @@ const App = {
 
                     await methods.loadMelhorEnvioBalance();
                 } catch (error) {
-                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel comprar o frete.');
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel finalizar a sacolinha.');
                 } finally {
                     state.label.isBuying = false;
                 }
@@ -1031,16 +1060,16 @@ const App = {
                 if (!state.label.orderId || state.label.labelId) return;
 
                 const result = await Swal.fire({
-                    title: 'Codigo do carrinho',
+                    title: 'Codigo da sacolinha',
                     input: 'text',
                     inputLabel: 'Informe o codigo/id retornado pelo Melhor Envio',
-                    inputPlaceholder: 'Ex: etiqueta ou order id do carrinho',
+                    inputPlaceholder: 'Ex: etiqueta ou order id da sacolinha',
                     showCancelButton: true,
                     confirmButtonText: 'Marcar',
                     cancelButtonText: 'Cancelar',
                     inputValidator: (value) => {
                         if (!value || !value.trim()) {
-                            return 'Informe o codigo do carrinho.';
+                            return 'Informe o codigo da sacolinha.';
                         }
                         return null;
                     }
@@ -1073,7 +1102,7 @@ const App = {
 
                     await methods.loadMelhorEnvioBalance();
                 } catch (error) {
-                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel marcar o pedido como adicionado ao carrinho.');
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel marcar o pedido como adicionado a sacolinha.');
                 } finally {
                     state.label.isGenerating = false;
                 }
@@ -1296,10 +1325,10 @@ const App = {
                     await methods.loadMelhorEnvioBalance();
 
                     if (!state.label.labelId) {
-                        state.label.error = 'Frete adicionado ao carrinho, mas o Melhor Envio nao retornou o codigo da etiqueta.';
+                        state.label.error = 'Frete adicionado a sacolinha, mas o Melhor Envio nao retornou o codigo da etiqueta.';
                     }
                 } catch (error) {
-                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel adicionar o frete ao carrinho.');
+                    state.label.error = getApiErrorMessage(error, 'Nao foi possivel adicionar o frete a sacolinha.');
                 } finally {
                     state.label.isGenerating = false;
                 }
@@ -1359,16 +1388,31 @@ const App = {
 
         const formatDateTimeValue = (value) => {
             if (!value) return '';
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return '';
-            return date.toISOString().slice(0, 16);
+            const date = parseUtcDate(value);
+            if (!date) return '';
+
+            const parts = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).formatToParts(date).reduce((result, part) => {
+                result[part.type] = part.value;
+                return result;
+            }, {});
+
+            return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
         };
 
         const formatDate = (value) => {
             if (!value) return '';
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return '';
+            const date = parseUtcDate(value);
+            if (!date) return '';
             return date.toLocaleString('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE,
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',

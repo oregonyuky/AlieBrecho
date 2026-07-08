@@ -1,5 +1,7 @@
 ﻿const App = {
     setup() {
+        const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
         const state = Vue.reactive({
             mainData: [],
             secondaryData: [],
@@ -270,13 +272,43 @@
             },
         };
 
+        const parseUtcDate = (rawDate) => {
+            if (!rawDate) return null;
+
+            if (typeof rawDate === 'string') {
+                const hasTimeZone = /Z$/i.test(rawDate) || /[+-]\d{2}:\d{2}$/.test(rawDate);
+                const utcDateText = hasTimeZone ? rawDate : `${rawDate}Z`;
+                const parsedDate = new Date(utcDateText);
+
+                return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+            }
+
+            const parsedDate = new Date(rawDate);
+
+            return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+        };
+
+        const formatBrasiliaDateTime = (rawDate) => {
+            const date = parseUtcDate(rawDate);
+            if (!date) return '-';
+
+            return date.toLocaleString('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE,
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
         const methods = {
             populateMainData: async () => {
                 try {
                     const response = await services.getMainData();
                     state.mainData = response?.data?.content?.data.map(item => ({
                         ...item,
-                        createdAt: new Date(item.createdAt)
+                        createdAt: parseUtcDate(item.createdAt)
                     }));
                 } catch (error) {
                     console.error("Error populating main data:", error);
@@ -492,7 +524,7 @@
                         { field: 'emailConfirmed', headerText: 'Email Confirmado', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
                         { field: 'isBlocked', headerText: 'Bloqueado', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
                         { field: 'isDeleted', headerText: 'Excluido', textAlign: 'Center', width: 150, minWidth: 150, type: 'boolean', displayAsCheckBox: true },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 150, format: 'dd/MM/yyyy HH:mm' }
+                        { field: 'createdAt', headerText: 'Criado Em', width: 150, valueAccessor: (_, data) => formatBrasiliaDateTime(data?.createdAt) }
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',

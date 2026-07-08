@@ -4,60 +4,538 @@
 }
 
 <style>
-    .page-summary-card {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 12px 14px;
-        background: #fff;
-        height: 100%;
+    .shipping-admin {
+        background: #f7f7f5;
+        color: #171717;
+        font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: calc(100vh - 120px);
+        padding: 28px;
     }
 
-    .page-summary-card .label {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-bottom: 4px;
+    .shipping-page-header {
+        align-items: center;
+        display: flex;
+        gap: 18px;
+        justify-content: space-between;
+        margin-bottom: 24px;
     }
 
-    .page-summary-card .value {
-        font-size: 1.4rem;
+    .shipping-page-title {
+        color: #161616;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0;
+    }
+
+    .shipping-add-button {
+        align-items: center;
+        background: #2563eb;
+        border: 1px solid #2563eb;
+        border-radius: 10px;
+        color: #ffffff;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 18px;
+    }
+
+    .shipping-add-button:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: #ffffff;
+    }
+
+    .shipping-summary-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 26px;
+    }
+
+    .shipping-summary-card {
+        background: #ffffff;
+        border: 0;
+        border-radius: 14px;
+        padding: 22px 24px;
+    }
+
+    .shipping-summary-card__label {
+        color: #777b82;
+        font-size: 13px;
         font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .shipping-summary-card__value {
+        color: #111827;
+        font-size: 30px;
+        font-weight: 900;
         line-height: 1;
+    }
+
+    .shipping-summary-card__value--green {
+        color: #16a34a;
+    }
+
+    .shipping-summary-card__value--red {
+        color: #dc2626;
+    }
+
+    .shipping-filters {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) 240px;
+        margin-bottom: 24px;
+    }
+
+    .shipping-filter-control {
+        background: #ffffff;
+        border: 1px solid #d8dce1;
+        border-radius: 10px;
+        color: #1f2937;
+        font-size: 14px;
+        min-height: 44px;
+        outline: none;
+        padding: 0 14px;
+        width: 100%;
+    }
+
+    .shipping-filter-control:focus {
+        border-color: #9ca3af;
+        box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.16);
+    }
+
+    .shipping-table-card {
+        background: #ffffff;
+        border: 1px solid #e1e5ea;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .shipping-table {
+        border-collapse: collapse;
+        margin: 0;
+        width: 100%;
+    }
+
+    .shipping-table thead th {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 14px 18px;
+        text-align: left;
+    }
+
+    .shipping-table tbody td {
+        border-bottom: 1px solid #edf0f3;
+        color: #6b7280;
+        font-size: 14px;
+        padding: 12px 18px;
+        vertical-align: middle;
+    }
+
+    .shipping-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .shipping-sort-button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 800;
+        gap: 7px;
+        padding: 0;
+    }
+
+    .shipping-sort-button:hover {
+        color: #111827;
+    }
+
+    .shipping-sort-icon {
+        color: #9ca3af;
+        font-size: 11px;
+        width: 11px;
+    }
+
+    .shipping-sort-button--active .shipping-sort-icon {
+        color: #2563eb;
+    }
+
+    .shipping-table__strong {
+        color: #111827 !important;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .shipping-table__date {
+        color: #4b5563;
+        font-weight: 800;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .shipping-table__time {
+        color: #9ca3af;
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    .shipping-status {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 7px 12px;
+        white-space: nowrap;
+    }
+
+    .shipping-status--active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .shipping-status--inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .shipping-table__actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .shipping-action-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        height: 36px;
+        justify-content: center;
+        margin-left: 8px;
+        width: 36px;
+    }
+
+    .shipping-action-button:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .shipping-action-button--danger {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+
+    .shipping-action-button--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+
+    .shipping-empty-row {
+        color: #9ca3af !important;
+        padding: 34px 22px !important;
+        text-align: center;
+    }
+
+    .shipping-modal {
+        border: 1px solid #dde3ea;
+        border-radius: 8px;
+        border-top: 4px solid #222831;
+        box-shadow: 0 10px 28px rgba(31, 41, 51, 0.08);
+        overflow: hidden;
+    }
+
+    .shipping-modal .modal-header,
+    .shipping-modal .modal-footer {
+        background: #ffffff;
+        border-color: #e1e7ee;
+    }
+
+    .shipping-modal .modal-title {
+        color: #222831;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .shipping-modal form label {
+        color: #59636f;
+        font-size: 11px;
+        font-weight: 700;
+        margin: 0 0 5px;
+    }
+
+    .shipping-modal form .form-control {
+        background: #fbfcfd;
+        border: 1px solid #cfd7df;
+        border-radius: 6px;
+        color: #18212c;
+        font-size: 14px;
+        font-weight: 700;
+        outline: none;
+        padding: 9px 12px;
+        width: 100%;
+    }
+
+    .shipping-modal form .form-control:focus {
+        background: #ffffff;
+        border-color: #222831;
+        box-shadow: 0 0 0 3px rgba(34, 40, 49, 0.08);
+    }
+
+    .shipping-modal .form-check {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        min-height: 42px;
+        overflow: visible;
+        padding-left: 0;
+    }
+
+    .shipping-modal .form-check-input {
+        accent-color: #222831;
+        flex: 0 0 18px;
+        float: none;
+        height: 18px;
+        margin: 0;
+        position: static;
+        width: 18px;
+    }
+
+    .shipping-modal .form-check-label {
+        color: #18212c;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.2;
+        margin: 0;
+        user-select: none;
+    }
+
+    .shipping-drop-btn {
+        align-items: center;
+        border: 1px solid #cfd7df;
+        border-radius: 7px;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 16px;
+    }
+
+    .shipping-drop-btn--primary {
+        background: #222831;
+        border-color: #222831;
+        color: #ffffff;
+    }
+
+    .shipping-drop-btn--ghost {
+        background: #ffffff;
+        color: #222831;
+    }
+
+    .shipping-drop-btn--danger {
+        background: #ffffff;
+        color: #dc2626;
+    }
+
+    .shipping-drop-btn--primary:hover {
+        background: #111827;
+        border-color: #111827;
+        color: #ffffff;
+    }
+
+    .shipping-drop-btn--ghost:hover {
+        background: #f3f5f7;
+        border-color: #aeb8c3;
+        color: #222831;
+    }
+
+    .shipping-drop-btn--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #dc2626;
+    }
+
+    .shipping-drop-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+
+    @@media (max-width: 900px) {
+        .shipping-admin {
+            padding: 20px;
+        }
+
+        .shipping-page-header {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .shipping-add-button {
+            justify-content: center;
+        }
+
+        .shipping-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .shipping-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .shipping-table-card {
+            overflow-x: auto;
+        }
+
+        .shipping-table {
+            min-width: 920px;
+        }
     }
 </style>
 
-<div id="app">
-    <div class="row mb-3">
-        <div class="col-12 col-md-4 mb-2">
-            <div class="page-summary-card">
-                <div class="label">Total de Caixas</div>
-                <div class="value">{{ state.summary.total }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4 mb-2">
-            <div class="page-summary-card">
-                <div class="label">Ativas</div>
-                <div class="value">{{ state.summary.active }}</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4 mb-2">
-            <div class="page-summary-card">
-                <div class="label">Inativas</div>
-                <div class="value">{{ state.summary.inactive }}</div>
-            </div>
-        </div>
-    </div>
+<div id="app" class="shipping-admin" v-cloak>
+    <header class="shipping-page-header">
+        <h1 class="shipping-page-title">Caixas de Envio</h1>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="grid-container">
-                <div ref="mainGridRef"></div>
-            </div>
+        <button type="button" class="shipping-add-button" v-on:click="handler.handleNew">
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            Adicionar caixa
+        </button>
+    </header>
+
+    <section class="shipping-summary-grid" aria-label="Resumo de caixas de envio">
+        <div class="shipping-summary-card">
+            <div class="shipping-summary-card__label">Total de caixas</div>
+            <div class="shipping-summary-card__value">{{ state.summary.total }}</div>
         </div>
-    </div>
+
+        <div class="shipping-summary-card">
+            <div class="shipping-summary-card__label">Ativas</div>
+            <div class="shipping-summary-card__value shipping-summary-card__value--green">{{ state.summary.active }}</div>
+        </div>
+
+        <div class="shipping-summary-card">
+            <div class="shipping-summary-card__label">Inativas</div>
+            <div class="shipping-summary-card__value shipping-summary-card__value--red">{{ state.summary.inactive }}</div>
+        </div>
+    </section>
+
+    <section class="shipping-filters" aria-label="Filtros de caixas de envio">
+        <input v-model="state.filters.search"
+               class="shipping-filter-control"
+               type="search"
+               placeholder="Buscar por dimensao, peso ou seguro">
+
+        <select v-model="state.filters.status" class="shipping-filter-control">
+            <option value="">Todos os status</option>
+            <option value="active">Ativas</option>
+            <option value="inactive">Inativas</option>
+        </select>
+    </section>
+
+    <section class="shipping-table-card">
+        <table class="shipping-table">
+            <thead>
+                <tr>
+                    <th>
+                        <button type="button"
+                                class="shipping-sort-button"
+                                v-bind:class="{ 'shipping-sort-button--active': state.sort.field === 'dimensions' }"
+                                v-on:click="handler.handleSort('dimensions')">
+                            Dimensoes
+                            <i class="fa shipping-sort-icon" v-bind:class="methods.getSortIcon('dimensions')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="shipping-sort-button"
+                                v-bind:class="{ 'shipping-sort-button--active': state.sort.field === 'weight' }"
+                                v-on:click="handler.handleSort('weight')">
+                            Peso
+                            <i class="fa shipping-sort-icon" v-bind:class="methods.getSortIcon('weight')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="shipping-sort-button"
+                                v-bind:class="{ 'shipping-sort-button--active': state.sort.field === 'insuranceValue' }"
+                                v-on:click="handler.handleSort('insuranceValue')">
+                            Seguro
+                            <i class="fa shipping-sort-icon" v-bind:class="methods.getSortIcon('insuranceValue')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="shipping-sort-button"
+                                v-bind:class="{ 'shipping-sort-button--active': state.sort.field === 'createdAt' }"
+                                v-on:click="handler.handleSort('createdAt')">
+                            Criado em
+                            <i class="fa shipping-sort-icon" v-bind:class="methods.getSortIcon('createdAt')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="shipping-sort-button"
+                                v-bind:class="{ 'shipping-sort-button--active': state.sort.field === 'isActive' }"
+                                v-on:click="handler.handleSort('isActive')">
+                            Status
+                            <i class="fa shipping-sort-icon" v-bind:class="methods.getSortIcon('isActive')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th class="text-right">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="box in filteredShippingBoxes" v-bind:key="box.id">
+                    <td class="shipping-table__strong">{{ methods.formatDimensions(box) }}</td>
+                    <td>{{ methods.formatNumber(box.weight) }} kg</td>
+                    <td class="shipping-table__strong">{{ methods.formatCurrencyBRL(box.insuranceValue) }}</td>
+                    <td>
+                        <span class="shipping-table__date">
+                            {{ methods.formatBrasiliaDateTime(box.createdAt).date }}
+                            <span class="shipping-table__time">{{ methods.formatBrasiliaDateTime(box.createdAt).time }} Brasilia</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span class="shipping-status" v-bind:class="methods.getStatusClass(box)">
+                            {{ methods.getStatusLabel(box) }}
+                        </span>
+                    </td>
+                    <td class="shipping-table__actions">
+                        <button type="button" class="shipping-action-button" title="Editar" v-on:click="handler.handleEdit(box)">
+                            <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="shipping-action-button shipping-action-button--danger" title="Excluir" v-on:click="handler.handleDelete(box)">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr v-if="filteredShippingBoxes.length === 0">
+                    <td colspan="6" class="shipping-empty-row">Nenhuma caixa de envio encontrada.</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-md">
-            <div class="modal-content">
+            <div class="modal-content shipping-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.mainTitle }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -67,11 +545,10 @@
                     <input type="hidden" v-model="state.id" />
 
                     <form id="MainForm">
-
                         <div class="row mb-2">
                             <div class="col-4">
                                 <label>Largura (cm)</label>
-                                <input v-model="state.width"
+                                <input v-model.number="state.width"
                                        type="number"
                                        class="form-control"
                                        v-bind:disabled="state.deleteMode">
@@ -80,7 +557,7 @@
 
                             <div class="col-4">
                                 <label>Comprimento (cm)</label>
-                                <input v-model="state.length"
+                                <input v-model.number="state.length"
                                        type="number"
                                        class="form-control"
                                        v-bind:disabled="state.deleteMode">
@@ -89,7 +566,7 @@
 
                             <div class="col-4">
                                 <label>Altura (cm)</label>
-                                <input v-model="state.height"
+                                <input v-model.number="state.height"
                                        type="number"
                                        class="form-control"
                                        v-bind:disabled="state.deleteMode">
@@ -100,7 +577,7 @@
                         <div class="row mb-2">
                             <div class="col-6">
                                 <label>Peso (kg)</label>
-                                <input v-model="state.weight"
+                                <input v-model.number="state.weight"
                                        type="number"
                                        step="0.01"
                                        class="form-control"
@@ -110,7 +587,7 @@
 
                             <div class="col-6">
                                 <label>Valor do Seguro</label>
-                                <input v-model="state.insuranceValue"
+                                <input v-model.number="state.insuranceValue"
                                        type="number"
                                        step="0.01"
                                        class="form-control"
@@ -131,21 +608,20 @@
                                 </label>
                             </div>
                         </div>
-
                     </form>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button"
-                            class="btn btn-secondary"
+                            class="shipping-drop-btn shipping-drop-btn--ghost"
                             data-bs-dismiss="modal">
                         Fechar
                     </button>
 
                     <button type="button"
                             id="MainSaveButton"
-                            class="btn"
-                            v-bind:class="state.deleteMode ? 'btn-danger' : 'btn-primary'"
+                            class="shipping-drop-btn"
+                            v-bind:class="state.deleteMode ? 'shipping-drop-btn--danger' : 'shipping-drop-btn--primary'"
                             v-on:click="handler.handleSubmit"
                             v-bind:disabled="state.isSubmitting">
 
@@ -167,5 +643,5 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/ShippingBoxes/ShippingBox.cshtml.js?v=20260516"></script>
+    <script src="~/FrontEnd/Pages/ShippingBoxes/ShippingBox.cshtml.js?v=20260708-2"></script>
 }

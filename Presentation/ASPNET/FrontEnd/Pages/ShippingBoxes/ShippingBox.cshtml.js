@@ -1,5 +1,17 @@
 const App = {
     setup() {
+        const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
+
+        const emptyState = () => ({
+            id: '',
+            width: null,
+            length: null,
+            height: null,
+            weight: null,
+            insuranceValue: null,
+            isActive: true
+        });
+
         const state = Vue.reactive({
             mainData: [],
             summary: {
@@ -7,15 +19,16 @@ const App = {
                 active: 0,
                 inactive: 0
             },
+            filters: {
+                search: '',
+                status: ''
+            },
+            sort: {
+                field: 'createdAt',
+                direction: 'desc'
+            },
             deleteMode: false,
             mainTitle: 'Editar Caixa de Envio',
-            id: '',
-            width: null,
-            length: null,
-            height: null,
-            weight: null,
-            insuranceValue: null,
-            isActive: true,
             errors: {
                 width: '',
                 length: '',
@@ -23,10 +36,10 @@ const App = {
                 weight: '',
                 insuranceValue: ''
             },
-            isSubmitting: false
+            isSubmitting: false,
+            ...emptyState()
         });
 
-        const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
 
         const services = {
@@ -44,143 +57,6 @@ const App = {
             }
         };
 
-        const mainGrid = {
-            obj: null,
-            create: async (dataSource) => {
-                mainGrid.obj = new ej.grids.Grid({
-                    height: '240px',
-                    dataSource: dataSource,
-                    allowFiltering: true,
-                    showColumnMenu: true,
-                    gridLines: 'None',
-                    allowSorting: true,
-                    allowPaging: true,
-                    allowResizing: true,
-                    allowExcelExport: true,
-                    allowSelection: true,
-                    filterSettings: { type: 'Menu' },
-                    pageSettings: { pageSize: 50 },
-                    selectionSettings: { type: 'Single' },
-                    columns: [
-                        { type: 'checkbox', width: 60 },
-                        { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'width', headerText: 'Largura', width: 120 },
-                        { field: 'length', headerText: 'Comprimento', width: 120 },
-                        { field: 'height', headerText: 'Altura', width: 120 },
-                        { field: 'weight', headerText: 'Peso', width: 120 },
-                        { field: 'insuranceValue', headerText: 'Seguro', width: 140 },
-                        {
-                            field: 'isActive',
-                            headerText: 'Ativo',
-                            width: 100,
-                            textAlign: 'Center',
-                            disableHtmlEncode: false,
-                            valueAccessor: (_, data) =>
-                                data?.isActive === true
-                                    ? '<span title="Sim" style="color:#198754;font-size:16px;">&#10004;</span>'
-                                    : '<span title="Nao" style="color:#dc3545;font-size:16px;">&#10006;</span>'
-                        },
-                        { field: 'createdAt', headerText: 'Criado Em', width: 180, format: 'dd/MM/yyyy HH:mm' }
-                    ],
-                    toolbar: [
-                        'ExcelExport', 'Search',
-                        { type: 'Separator' },
-                        { text: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
-                    ],
-                    dataBound: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    rowSelected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
-                    },
-                    rowDeselected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    toolbarClick: (args) => {
-                        if (args.item.id?.toLowerCase().includes('excelexport')) {
-                            mainGrid.obj.excelExport({ fileName: 'ShippingBoxes.xlsx' });
-                        }
-
-                        const selected = mainGrid.obj.getSelectedRecords()[0];
-
-                        if (args.item.id === 'AddCustom') {
-                            Object.assign(state, {
-                                deleteMode: false,
-                                mainTitle: 'Adicionar Caixa de Envio',
-                                id: '',
-                                width: null,
-                                length: null,
-                                height: null,
-                                weight: null,
-                                insuranceValue: null,
-                                isActive: true
-                            });
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'EditCustom' && selected) {
-                            Object.assign(state, {
-                                deleteMode: false,
-                                mainTitle: 'Editar Caixa de Envio',
-                                id: selected.id,
-                                width: selected.width,
-                                length: selected.length,
-                                height: selected.height,
-                                weight: selected.weight,
-                                insuranceValue: selected.insuranceValue,
-                                isActive: selected.isActive
-                            });
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'DeleteCustom' && selected) {
-                            Object.assign(state, {
-                                deleteMode: true,
-                                mainTitle: 'Excluir Caixa de Envio',
-                                id: selected.id,
-                                width: selected.width,
-                                length: selected.length,
-                                height: selected.height,
-                                weight: selected.weight,
-                                insuranceValue: selected.insuranceValue,
-                                isActive: selected.isActive
-                            });
-                            mainModal.obj.show();
-                        }
-                    }
-                });
-
-                mainGrid.obj.appendTo(mainGridRef.value);
-            },
-            refresh: () => {
-                mainGrid.obj.setProperties({ dataSource: state.mainData });
-            }
-        };
-
-        const methods = {
-            updateSummaryCards: () => {
-                const total = state.mainData.length;
-                const active = state.mainData.filter(x => x?.isActive === true).length;
-                const inactive = total - active;
-
-                state.summary = { total, active, inactive };
-            },
-            populateMainData: async () => {
-                const response = await services.getMainData();
-                state.mainData = response?.data?.content?.data.map(item => ({
-                    ...item,
-                    createdAt: new Date(item.createdAt)
-                }));
-
-                methods.updateSummaryCards();
-            }
-        };
-
         const mainModal = {
             obj: null,
             create: () => {
@@ -191,7 +67,226 @@ const App = {
             }
         };
 
+        const methods = {
+            formatNumber: (value) => {
+                const number = Number(value ?? 0);
+
+                return number.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                });
+            },
+            formatCurrencyBRL: (value) =>
+                Number(value || 0).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }),
+            formatDimensions: (box) => {
+                const width = methods.formatNumber(box?.width);
+                const length = methods.formatNumber(box?.length);
+                const height = methods.formatNumber(box?.height);
+
+                return `${width} x ${length} x ${height} cm`;
+            },
+            parseUtcDate: (rawDate) => {
+                if (!rawDate) {
+                    return null;
+                }
+
+                if (typeof rawDate === 'string') {
+                    const hasTimeZone = /Z$/i.test(rawDate) || /[+-]\d{2}:\d{2}$/.test(rawDate);
+                    const utcDateText = hasTimeZone ? rawDate : `${rawDate}Z`;
+                    const parsedDate = new Date(utcDateText);
+
+                    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+                }
+
+                const parsedDate = new Date(rawDate);
+
+                return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+            },
+            formatBrasiliaDateTime: (rawDate) => {
+                const date = methods.parseUtcDate(rawDate);
+
+                if (!date) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                return {
+                    date: date.toLocaleDateString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE
+                    }),
+                    time: date.toLocaleTimeString('pt-BR', {
+                        timeZone: BRASILIA_TIME_ZONE,
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                };
+            },
+            getStatusLabel: (box) => box?.isActive === true ? 'Ativa' : 'Inativa',
+            getStatusClass: (box) => box?.isActive === true
+                ? 'shipping-status--active'
+                : 'shipping-status--inactive',
+            getSortIcon: (field) => {
+                if (state.sort.field !== field) return 'fa-sort';
+
+                return state.sort.direction === 'asc'
+                    ? 'fa-sort-up'
+                    : 'fa-sort-down';
+            },
+            getSortValue: (box, field) => {
+                if (field === 'dimensions') {
+                    return Number(box?.width ?? 0) * Number(box?.length ?? 0) * Number(box?.height ?? 0);
+                }
+
+                if (field === 'weight') return Number(box?.weight ?? 0);
+                if (field === 'insuranceValue') return Number(box?.insuranceValue ?? 0);
+                if (field === 'isActive') return box?.isActive === true ? 1 : 0;
+
+                if (field === 'createdAt') {
+                    const date = methods.parseUtcDate(box?.createdAt);
+                    return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+                }
+
+                return '';
+            },
+            updateSummaryCards: () => {
+                const total = state.mainData.length;
+                const active = state.mainData.filter(x => x?.isActive === true).length;
+                const inactive = total - active;
+
+                state.summary = { total, active, inactive };
+            },
+            populateMainData: async () => {
+                const response = await services.getMainData();
+                state.mainData = response?.data?.content?.data ?? [];
+
+                methods.updateSummaryCards();
+            },
+            resetForm: () => {
+                Object.assign(state, emptyState());
+                state.errors = {
+                    width: '',
+                    length: '',
+                    height: '',
+                    weight: '',
+                    insuranceValue: ''
+                };
+            },
+            setFormData: (box) => {
+                Object.assign(state, {
+                    id: box?.id ?? '',
+                    width: box?.width ?? null,
+                    length: box?.length ?? null,
+                    height: box?.height ?? null,
+                    weight: box?.weight ?? null,
+                    insuranceValue: box?.insuranceValue ?? null,
+                    isActive: box?.isActive ?? true
+                });
+            },
+            buildPayload: () => ({
+                id: state.id,
+                width: state.width,
+                length: state.length,
+                height: state.height,
+                weight: state.weight,
+                insuranceValue: state.insuranceValue,
+                isActive: state.isActive
+            }),
+            validateForm: () => {
+                let isValid = true;
+                state.errors = {
+                    width: '',
+                    length: '',
+                    height: '',
+                    weight: '',
+                    insuranceValue: ''
+                };
+
+                ['width', 'length', 'height', 'weight', 'insuranceValue'].forEach((field) => {
+                    const value = Number(state[field]);
+
+                    if (!Number.isFinite(value) || value < 0) {
+                        state.errors[field] = 'Informe um valor valido.';
+                        isValid = false;
+                    }
+                });
+
+                return isValid;
+            }
+        };
+
+        const filteredShippingBoxes = Vue.computed(() => {
+            const search = state.filters.search.trim().toLowerCase();
+            const status = state.filters.status;
+
+            const boxes = state.mainData.filter(box => {
+                const haystack = [
+                    methods.formatDimensions(box),
+                    methods.formatNumber(box?.weight),
+                    methods.formatCurrencyBRL(box?.insuranceValue),
+                    methods.getStatusLabel(box)
+                ].join(' ').toLowerCase();
+
+                const matchesSearch = !search || haystack.includes(search);
+                const matchesStatus = !status
+                    || (status === 'active' && box?.isActive === true)
+                    || (status === 'inactive' && box?.isActive !== true);
+
+                return matchesSearch && matchesStatus;
+            });
+
+            const direction = state.sort.direction === 'desc' ? -1 : 1;
+
+            return [...boxes].sort((first, second) => {
+                const firstValue = methods.getSortValue(first, state.sort.field);
+                const secondValue = methods.getSortValue(second, state.sort.field);
+
+                if (typeof firstValue === 'number' && typeof secondValue === 'number') {
+                    return (firstValue - secondValue) * direction;
+                }
+
+                return String(firstValue).localeCompare(String(secondValue), 'pt-BR', {
+                    numeric: true,
+                    sensitivity: 'base'
+                }) * direction;
+            });
+        });
+
         const handler = {
+            handleSort: (field) => {
+                if (state.sort.field === field) {
+                    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+                    return;
+                }
+
+                state.sort.field = field;
+                state.sort.direction = 'asc';
+            },
+            handleNew: () => {
+                state.deleteMode = false;
+                state.mainTitle = 'Adicionar Caixa de Envio';
+                methods.resetForm();
+
+                mainModal.obj.show();
+            },
+            handleEdit: (box) => {
+                state.deleteMode = false;
+                state.mainTitle = 'Editar Caixa de Envio';
+                methods.setFormData(box);
+
+                mainModal.obj.show();
+            },
+            handleDelete: (box) => {
+                state.deleteMode = true;
+                state.mainTitle = 'Excluir Caixa de Envio';
+                methods.setFormData(box);
+
+                mainModal.obj.show();
+            },
             handleSubmit: async () => {
                 try {
                     state.isSubmitting = true;
@@ -199,15 +294,9 @@ const App = {
                     if (state.deleteMode) {
                         await services.deleteMainData(state.id);
                     } else {
-                        const payload = {
-                            id: state.id,
-                            width: state.width,
-                            length: state.length,
-                            height: state.height,
-                            weight: state.weight,
-                            insuranceValue: state.insuranceValue,
-                            isActive: state.isActive
-                        };
+                        if (!methods.validateForm()) return;
+
+                        const payload = methods.buildPayload();
 
                         if (state.id) {
                             await services.updateMainData(payload);
@@ -217,12 +306,11 @@ const App = {
                     }
 
                     await methods.populateMainData();
-                    mainGrid.refresh();
                     mainModal.obj.hide();
 
                     Swal.fire({
                         icon: 'success',
-                        title: 'Sucesso',
+                        title: state.deleteMode ? 'Excluido com Sucesso' : 'Salvo com Sucesso',
                         timer: 1000,
                         showConfirmButton: false
                     });
@@ -244,14 +332,20 @@ const App = {
             await SecurityManager.validateToken();
 
             await methods.populateMainData();
-            await mainGrid.create(state.mainData);
             mainModal.create();
+
+            mainModalRef.value.addEventListener('hidden.bs.modal', () => {
+                methods.resetForm();
+                state.deleteMode = false;
+                state.mainTitle = 'Editar Caixa de Envio';
+            });
         });
 
         return {
             state,
-            mainGridRef,
             mainModalRef,
+            filteredShippingBoxes,
+            methods,
             handler
         };
     }
