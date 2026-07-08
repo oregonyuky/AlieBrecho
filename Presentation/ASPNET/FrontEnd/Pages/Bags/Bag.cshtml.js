@@ -21,10 +21,17 @@ const App = {
             allItemsPaid: false,
             notes: '',
             bagStatuses: ['Active', 'Closed', 'Expired', 'Abandoned', 'ReadyToShip', 'Shipped'],
+            sort: {
+                field: 'createdAt',
+                direction: 'desc'
+            },
+            pagination: {
+                page: 1,
+                pageSize: 30
+            },
             isSubmitting: false
         });
 
-        const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
 
         const bagStatusLabels = {
@@ -45,74 +52,7 @@ const App = {
         };
 
         const mainGrid = {
-            obj: null,
-            create: async (dataSource) => {
-                mainGrid.obj = new ej.grids.Grid({
-                    height: '280px',
-                    dataSource,
-                    allowFiltering: true,
-                    showColumnMenu: true,
-                    gridLines: 'None',
-                    filterSettings: { type: 'Menu' },
-                    allowSorting: true,
-                    allowPaging: true,
-                    allowSelection: true,
-                    allowResizing: true,
-                    pageSettings: { pageSize: 30 },
-                    selectionSettings: { type: 'Single', mode: 'Row' },
-                    columns: [
-                        { type: 'checkbox', width: 60 },
-                        { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'customerName', headerText: 'Cliente', width: 180 },
-                        { field: 'statusDisplay', headerText: 'Status', width: 120 },
-                        { field: 'totalItemsValue', headerText: 'Total dos Itens', width: 130, format: 'C2' },
-                        { field: 'shippingCost', headerText: 'Frete', width: 120, format: 'C2' },
-                        { field: 'totalWeight', headerText: 'Peso', width: 110 },
-                        { field: 'itemCount', headerText: 'Itens', width: 90 },
-                        {
-                            headerText: 'Detalhes', width: 120, textAlign: 'Center', template: '<button type="button" class="btn btn-sm btn-outline-primary bag-detail-btn" title="Ver itens da sacola"><i class="fa fa-list"></i></button>'
-                        },
-                        { field: 'lastInteractionAt', headerText: 'Ultima Interacao', width: 180, format: 'dd/MM/yyyy HH:mm' }
-                    ],
-                    toolbar: [
-                        'Search',
-                        { type: 'Separator' },
-                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' }
-                    ],
-                    dataBound: function () {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                    },
-                    rowSelected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
-                    },
-                    rowDeselected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                    },
-                    rowDataBound: (args) => {
-                        const button = args.row.querySelector('.bag-detail-btn');
-                        if (button) {
-                            button.addEventListener('click', async (event) => {
-                                event.stopPropagation();
-                                await methods.showBagDetails(args.data.id);
-                            });
-                        }
-                    },
-                    toolbarClick: async (args) => {
-                        if (args.item.id === 'EditCustom') {
-                            const selected = mainGrid.obj.getSelectedRecords()[0];
-                            if (!selected) return;
-
-                            await methods.loadBag(selected.id);
-                            mainModal.obj.show();
-                        }
-                    }
-                });
-
-                mainGrid.obj.appendTo(mainGridRef.value);
-            },
-            refresh: () => {
-                mainGrid.obj.setProperties({ dataSource: state.mainData });
-            }
+            refresh: () => {}
         };
 
         const mainModal = {
@@ -132,6 +72,18 @@ const App = {
             return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
         };
 
+        const formatCurrency = (value) =>
+            Number(value || 0).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+
+        const formatNumber = (value, decimals = 2) =>
+            Number(value || 0).toLocaleString('pt-BR', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+
         const methods = {
             updateSummaryCards: () => {
                 const total = state.mainData.length;
@@ -146,9 +98,69 @@ const App = {
                 state.mainData = (response?.data?.content?.data ?? []).map((item) => ({
                     ...item,
                     statusDisplay: translateBagStatus(item.status),
+                    createdAt: item.createdAt ? new Date(item.createdAt) : null,
                     lastInteractionAt: item.lastInteractionAt ? new Date(item.lastInteractionAt) : null
                 }));
+                state.pagination.page = Math.min(state.pagination.page, Math.max(totalPages.value, 1));
                 methods.updateSummaryCards();
+            },
+            formatDateTime: (value) => {
+                if (!value) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                return {
+                    date: date.toLocaleDateString('pt-BR'),
+                    time: date.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                };
+            },
+            getSortIcon: (field) => {
+                if (state.sort.field !== field) return 'fa-sort';
+
+                return state.sort.direction === 'asc'
+                    ? 'fa-sort-up'
+                    : 'fa-sort-down';
+            },
+            getStatusClass: (status) => ({
+                Active: 'bag-status--active',
+                Closed: 'bag-status--closed',
+                Expired: 'bag-status--expired',
+                Abandoned: 'bag-status--abandoned',
+                ReadyToShip: 'bag-status--readytoship',
+                Shipped: 'bag-status--shipped'
+            }[status] || 'bag-status--active'),
+            getSortValue: (bag, field) => {
+                if (field === 'createdAt') {
+                    const date = new Date(bag?.createdAt);
+                    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+                }
+
+                if (field === 'customerName') return String(bag?.customerName ?? '').toLowerCase();
+                if (field === 'status') return translateBagStatus(bag?.status).toLowerCase();
+
+                return '';
+            },
+            getPagerText: () => {
+                const total = sortedBags.value.length;
+                if (!total) return 'Nenhuma sacola';
+
+                const start = ((state.pagination.page - 1) * state.pagination.pageSize) + 1;
+                const end = Math.min(start + state.pagination.pageSize - 1, total);
+                return `${start}-${end} de ${total} sacolas`;
             },
             loadBag: async (id) => {
                 const response = await services.getSingleData(id);
@@ -214,7 +226,60 @@ const App = {
             }
         };
 
+        const sortedBags = Vue.computed(() => {
+            const direction = state.sort.direction === 'desc' ? -1 : 1;
+
+            return [...state.mainData].sort((first, second) => {
+                const firstValue = methods.getSortValue(first, state.sort.field);
+                const secondValue = methods.getSortValue(second, state.sort.field);
+
+                if (typeof firstValue === 'number' && typeof secondValue === 'number') {
+                    return (firstValue - secondValue) * direction;
+                }
+
+                return String(firstValue).localeCompare(String(secondValue), 'pt-BR', {
+                    numeric: true,
+                    sensitivity: 'base'
+                }) * direction;
+            });
+        });
+
+        const totalPages = Vue.computed(() =>
+            Math.max(Math.ceil(sortedBags.value.length / state.pagination.pageSize), 1)
+        );
+
+        const pagedBags = Vue.computed(() => {
+            if (state.pagination.page > totalPages.value) {
+                state.pagination.page = totalPages.value;
+            }
+
+            const start = (state.pagination.page - 1) * state.pagination.pageSize;
+            return sortedBags.value.slice(start, start + state.pagination.pageSize);
+        });
+
         const handler = {
+            handleSort: (field) => {
+                if (state.sort.field === field) {
+                    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.sort.field = field;
+                    state.sort.direction = field === 'createdAt' ? 'desc' : 'asc';
+                }
+
+                state.pagination.page = 1;
+            },
+            handlePreviousPage: () => {
+                state.pagination.page = Math.max(state.pagination.page - 1, 1);
+            },
+            handleNextPage: () => {
+                state.pagination.page = Math.min(state.pagination.page + 1, totalPages.value);
+            },
+            handleEdit: async (bag) => {
+                if (!bag?.id) return;
+
+                await methods.loadBag(bag.id);
+                mainModal.obj.show();
+            },
             handleSubmit: async () => {
                 try {
                     state.isSubmitting = true;
@@ -259,15 +324,19 @@ const App = {
 
         Vue.onMounted(async () => {
             await methods.populateMainData();
-            await mainGrid.create(state.mainData);
             mainModal.create();
         });
 
         return {
             state,
-            mainGridRef,
             mainModalRef,
+            sortedBags,
+            pagedBags,
+            totalPages,
             translateBagStatus,
+            formatCurrency,
+            formatNumber,
+            methods,
             handler
         };
     }

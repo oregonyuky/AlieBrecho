@@ -4,25 +4,111 @@
 }
 
 <style>
+    .order-admin {
+        background: #f7f7f5;
+        color: #171717;
+        font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: calc(100vh - 120px);
+        padding: 28px;
+    }
+
+    .order-page-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .order-page-title {
+        color: #161616;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0;
+    }
+
+    .order-header-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .order-add-button {
+        align-items: center;
+        background: #2563eb;
+        border: 1px solid #2563eb;
+        border-radius: 10px;
+        color: #ffffff;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 18px;
+    }
+
+    .order-add-button:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        color: #ffffff;
+    }
+
+    .order-secondary-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 14px;
+    }
+
+    .order-secondary-button:hover:not(:disabled) {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .order-secondary-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    .order-secondary-button--danger {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+
+    .order-secondary-button--danger:hover:not(:disabled) {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+
     .page-summary-card {
-        border: 1px solid var(--summary-border, #e9ecef);
-        border-radius: 8px;
-        padding: 12px 14px;
         background: var(--summary-bg, #fff);
+        border: 0;
+        border-radius: 14px;
         color: var(--summary-text, #111827);
         height: 100%;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        padding: 22px 24px;
     }
 
     .page-summary-card .label {
-        font-size: 0.8rem;
         color: var(--summary-muted, #6c757d);
-        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 10px;
     }
 
     .page-summary-card .value {
-        font-size: 1.4rem;
-        font-weight: 700;
+        font-size: 30px;
+        font-weight: 900;
         line-height: 1;
     }
 
@@ -74,9 +160,314 @@
         --summary-muted: #a21caf;
         --summary-text: #701a75;
     }
+
+    .order-table-card {
+        background: #ffffff;
+        border: 1px solid #e1e5ea;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .order-table {
+        border-collapse: collapse;
+        margin: 0;
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .order-table thead th {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 13px 12px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .order-sort-button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 800;
+        gap: 7px;
+        padding: 0;
+        text-align: left;
+    }
+
+    .order-sort-button:hover {
+        color: #111827;
+    }
+
+    .order-sort-icon {
+        color: #9ca3af;
+        font-size: 11px;
+        width: 11px;
+    }
+
+    .order-sort-button--active .order-sort-icon {
+        color: #2563eb;
+    }
+
+    .order-table tbody td {
+        border-bottom: 1px solid #edf0f3;
+        color: #6b7280;
+        font-size: 13px;
+        padding: 11px 12px;
+        vertical-align: middle;
+    }
+
+    .order-table tbody tr:nth-child(even) td {
+        background: #fbfcfd;
+    }
+
+    .order-table tbody tr:hover td {
+        background: #f3f6fb;
+    }
+
+    .order-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .order-table__date {
+        color: #4b5563;
+        font-weight: 800;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .order-table__time {
+        color: #9ca3af;
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    .order-table__customer {
+        color: #171717;
+        display: block;
+        font-size: 14px;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .order-table__muted {
+        color: #9ca3af;
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    .order-table__actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .order-total-cell {
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+
+    .order-total-cell__main {
+        color: #111827;
+        display: block;
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .order-total-cell__detail {
+        color: #9ca3af;
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .order-status {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 7px 10px;
+        white-space: nowrap;
+    }
+
+    .order-status--pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .order-status--paid,
+    .order-status--delivered,
+    .order-status--label-generated {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .order-status--dispatched {
+        background: #e0f2fe;
+        color: #075985;
+    }
+
+    .order-status--shipped {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .order-status--cancelled {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .order-action-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 11px;
+        white-space: nowrap;
+    }
+
+    .order-action-button:hover:not(:disabled) {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .order-action-button--success {
+        border-color: #bbf7d0;
+        color: #15803d;
+    }
+
+    .order-action-button--success:hover:not(:disabled) {
+        background: #f0fdf4;
+        border-color: #86efac;
+        color: #166534;
+    }
+
+    .order-action-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
+
+    .order-row-action-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        height: 36px;
+        justify-content: center;
+        width: 36px;
+    }
+
+    .order-row-action-button:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .order-row-action-button--danger {
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+
+    .order-row-action-button--danger:hover {
+        background: #fff1f2;
+        border-color: #fca5a5;
+        color: #b91c1c;
+    }
+
+    .order-empty-row {
+        color: #9ca3af !important;
+        padding: 34px 22px !important;
+        text-align: center;
+    }
+
+    .order-pager {
+        align-items: center;
+        background: #ffffff;
+        border-top: 1px solid #edf0f3;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        padding: 14px 18px;
+    }
+
+    .order-pager__text {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .order-pager__actions {
+        display: inline-flex;
+        gap: 8px;
+    }
+
+    @@media (max-width: 1100px) {
+        .order-admin {
+            padding: 20px;
+        }
+
+        .order-page-header {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .order-header-actions {
+            justify-content: stretch;
+        }
+
+        .order-add-button,
+        .order-secondary-button {
+            justify-content: center;
+        }
+
+        .order-table-card {
+            overflow-x: auto;
+        }
+
+        .order-table {
+            min-width: 1240px;
+        }
+    }
+
+    @@media (max-width: 520px) {
+        .order-header-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
-<div id="app" v-cloak>
+<div id="app" class="order-admin" v-cloak>
+    <header class="order-page-header">
+        <h1 class="order-page-title">Pedidos</h1>
+
+        <div class="order-header-actions">
+            <button type="button" class="order-add-button" v-on:click="handler.handleNew">
+                <i class="fa fa-plus" aria-hidden="true"></i>
+                Adicionar pedido
+            </button>
+        </div>
+    </header>
+
     <div class="row mb-3">
         <div class="col-12 col-md-6 col-xl-3 mb-2">
             <div class="page-summary-card summary-total">
@@ -134,13 +525,149 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="grid-container">
-                <div ref="mainGridRef"></div>
+    <section class="order-table-card">
+        <table class="order-table">
+            <colgroup>
+                <col style="width: 130px;">
+                <col style="width: 170px;">
+                <col style="width: 120px;">
+                <col style="width: 150px;">
+                <col style="width: 170px;">
+                <col style="width: 150px;">
+                <col style="width: 92px;">
+                <col style="width: 135px;">
+                <col style="width: 74px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>
+                        <button type="button"
+                                class="order-sort-button"
+                                v-bind:class="{ 'order-sort-button--active': state.sort.field === 'orderDate' }"
+                                v-on:click="handler.handleSort('orderDate')">
+                            Data do Pedido
+                            <i class="fa order-sort-icon" v-bind:class="methods.getSortIcon('orderDate')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="order-sort-button"
+                                v-bind:class="{ 'order-sort-button--active': state.sort.field === 'customerName' }"
+                                v-on:click="handler.handleSort('customerName')">
+                            Nome do Cliente
+                            <i class="fa order-sort-icon" v-bind:class="methods.getSortIcon('customerName')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="order-sort-button"
+                                v-bind:class="{ 'order-sort-button--active': state.sort.field === 'status' }"
+                                v-on:click="handler.handleSort('status')">
+                            Status
+                            <i class="fa order-sort-icon" v-bind:class="methods.getSortIcon('status')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>Total</th>
+                    <th>Caixa de Papelão</th>
+                    <th>Formas de Pagamento</th>
+                    <th>Itens</th>
+                    <th>Etiqueta</th>
+                    <th class="text-right">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="order in pagedOrders"
+                    v-bind:key="order.id">
+                    <td>
+                        <span class="order-table__date">
+                            {{ methods.formatOrderDate(order).date }}
+                            <span class="order-table__time">{{ methods.formatOrderDate(order).time }}</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span class="order-table__customer" v-bind:title="order.customerName || '-'">{{ order.customerName || '-' }}</span>
+                        <span class="order-table__muted" v-if="order.shippingPostCode">CEP {{ order.shippingPostCode }}</span>
+                    </td>
+                    <td>
+                        <span class="order-status" v-bind:class="methods.getStatusClass(order.status)">
+                            {{ translateStatus(order.status) }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="order-total-cell"
+                              v-bind:title="methods.getTotalTitle(order)">
+                            <span class="order-total-cell__main">{{ formatCurrency(methods.getOrderFinalTotal(order)) }}</span>
+                            <span class="order-total-cell__detail">Roupas: {{ formatCurrency(methods.getOrderItemsTotal(order)) }}</span>
+                            <span class="order-total-cell__detail">Frete: {{ formatCurrency(methods.getOrderShippingCost(order)) }}</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span v-bind:title="methods.formatRowShippingBoxData(order)">
+                            {{ methods.formatRowShippingBoxData(order) || '-' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span>{{ order.paymentTypeName || '-' }}</span>
+                        <button type="button"
+                                class="order-action-button mt-1"
+                                v-if="order.status !== 'Paid'"
+                                title="Pagar com Pix via Mercado Pago"
+                                v-on:click.stop="methods.openPixPayment(order)">
+                            <i class="fa fa-qrcode" aria-hidden="true"></i>
+                            Pix
+                        </button>
+                        <span class="order-table__muted" v-else>Pago</span>
+                    </td>
+                    <td>
+                        <button type="button"
+                                class="order-action-button"
+                                title="Ver itens do pedido"
+                                v-on:click.stop="methods.showOrderDetails(order.id)">
+                            <i class="fa fa-list" aria-hidden="true"></i>
+                            Ver
+                        </button>
+                    </td>
+                    <td>
+                        <button type="button"
+                                class="order-action-button order-action-button--success"
+                                v-bind:title="methods.getShippingLabelTitle(order)"
+                                v-bind:disabled="order.status !== 'Paid'"
+                                v-on:click.stop="methods.openShippingLabel(order)">
+                            <i class="fa" v-bind:class="methods.getShippingLabelIcon(order)" aria-hidden="true"></i>
+                            {{ methods.getShippingLabelText(order) }}
+                        </button>
+                    </td>
+                    <td class="order-table__actions">
+                        <button type="button"
+                                class="order-row-action-button order-row-action-button--danger"
+                                title="Excluir"
+                                v-on:click.stop="handler.handleDelete(order)">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr v-if="pagedOrders.length === 0">
+                    <td colspan="9" class="order-empty-row">Nenhum pedido encontrado.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="order-pager" v-if="sortedOrders.length > 0">
+            <span class="order-pager__text">
+                {{ methods.getPagerText() }}
+            </span>
+            <div class="order-pager__actions">
+                <button type="button" class="order-secondary-button" v-on:click="handler.handlePreviousPage" v-bind:disabled="state.pagination.page === 1">
+                    <i class="fa fa-chevron-left" aria-hidden="true"></i>
+                    Anterior
+                </button>
+                <button type="button" class="order-secondary-button" v-on:click="handler.handleNextPage" v-bind:disabled="state.pagination.page >= totalPages">
+                    Proxima
+                    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
-    </div>
+    </section>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-scrollable modal-xl">

@@ -14,6 +14,7 @@ public record GetOrderListDto
     public string? CustomerId { get; init; }
     public string? CustomerName { get; init; }
     public string? Status { get; init; }
+    public decimal? ItemsTotal { get; init; }
     public decimal? TotalAmount { get; init; }
     public decimal? TotalWithShipping { get; init; }
     public decimal? Discount { get; init; }
@@ -48,10 +49,11 @@ public class GetOrderListProfile : Profile
         CreateMap<Order, GetOrderListDto>()
             .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.ItemsTotal, opt => opt.MapFrom(src => src.OrderDetails.Where(x => !x.IsDeleted).Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity))))
             .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.Payment != null && src.Payment.Status != null ? src.Payment.Status.ToString() : null))
             .ForMember(dest => dest.PaymentTypeName, opt => opt.MapFrom(src => src.Payment != null && src.Payment.PaymentType != null ? src.Payment.PaymentType.TypeName : null))
             .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))
-            .ForMember(dest => dest.TotalWithShipping, opt => opt.MapFrom(src => (src.TotalAmount ?? 0m) + ShippingCostCalculator.Calculate(src.ShippingBox)))
+            .ForMember(dest => dest.TotalWithShipping, opt => opt.MapFrom(src => src.OrderDetails.Where(x => !x.IsDeleted).Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity)) + ShippingCostCalculator.Calculate(src.ShippingBox)))
             .ForMember(dest => dest.ShippingBoxData, opt => opt.MapFrom(src => FormatShippingBoxData(src.ShippingBox)))
             .ForMember(dest => dest.ShippingBoxWidth, opt => opt.MapFrom(src => src.ShippingBox != null ? src.ShippingBox.Width : null))
             .ForMember(dest => dest.ShippingBoxLength, opt => opt.MapFrom(src => src.ShippingBox != null ? src.ShippingBox.Length : null))
@@ -113,6 +115,7 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
                 .ThenInclude(x => x!.PaymentType)
             .Include(x => x.ShippingBox)
             .Include(x => x.ShippingDetail)
+            .Include(x => x.OrderDetails)
             .ApplyIsDeletedFilter(request.IsDeleted)
             .AsQueryable();
 
@@ -121,6 +124,10 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
 
         for (var i = 0; i < entities.Count; i++)
         {
+            var itemsTotal = entities[i].OrderDetails
+                .Where(x => !x.IsDeleted)
+                .Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity));
+
             var shippingCost = await _shippingCostService.CalculateAsync(
                 entities[i].ShippingBox,
                 entities[i].ShippingDetail?.PostCode,
@@ -128,8 +135,9 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
 
             dtos[i] = dtos[i] with
             {
+                ItemsTotal = itemsTotal,
                 ShippingCost = shippingCost,
-                TotalWithShipping = (entities[i].TotalAmount ?? 0m) + shippingCost
+                TotalWithShipping = itemsTotal + shippingCost
             };
         }
 

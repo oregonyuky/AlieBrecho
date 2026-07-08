@@ -4,28 +4,301 @@
 }
 
 <style>
+    .bag-admin {
+        background: #f7f7f5;
+        color: #171717;
+        font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: calc(100vh - 120px);
+        padding: 28px;
+    }
+
+    .bag-page-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 24px;
+    }
+
+    .bag-page-title {
+        color: #161616;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0;
+    }
+
     .page-summary-card {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 12px 14px;
         background: #fff;
+        border: 0;
+        border-radius: 14px;
         height: 100%;
+        padding: 22px 24px;
     }
 
     .page-summary-card .label {
-        font-size: 0.8rem;
         color: #6c757d;
-        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 10px;
     }
 
     .page-summary-card .value {
-        font-size: 1.4rem;
-        font-weight: 700;
+        color: #111827;
+        font-size: 30px;
+        font-weight: 900;
         line-height: 1;
+    }
+
+    .bag-table-card {
+        background: #ffffff;
+        border: 1px solid #e1e5ea;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .bag-table {
+        border-collapse: collapse;
+        margin: 0;
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .bag-table thead th {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 13px 12px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .bag-sort-button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 800;
+        gap: 7px;
+        padding: 0;
+        text-align: left;
+    }
+
+    .bag-sort-button:hover {
+        color: #111827;
+    }
+
+    .bag-sort-icon {
+        color: #9ca3af;
+        font-size: 11px;
+        width: 11px;
+    }
+
+    .bag-sort-button--active .bag-sort-icon {
+        color: #2563eb;
+    }
+
+    .bag-table tbody td {
+        border-bottom: 1px solid #edf0f3;
+        color: #6b7280;
+        font-size: 13px;
+        padding: 11px 12px;
+        vertical-align: middle;
+    }
+
+    .bag-table tbody tr:nth-child(even) td {
+        background: #fbfcfd;
+    }
+
+    .bag-table tbody tr:hover td {
+        background: #f3f6fb;
+    }
+
+    .bag-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .bag-table__date {
+        color: #4b5563;
+        font-weight: 800;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .bag-table__time,
+    .bag-table__muted {
+        color: #9ca3af;
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    .bag-table__customer {
+        color: #171717;
+        display: block;
+        font-size: 14px;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bag-table__price {
+        color: #111827;
+        display: block;
+        font-size: 14px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .bag-status {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 7px 10px;
+        white-space: nowrap;
+    }
+
+    .bag-status--active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .bag-status--closed,
+    .bag-status--readytoship,
+    .bag-status--shipped {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .bag-status--expired,
+    .bag-status--abandoned {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .bag-action-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 12px;
+        font-weight: 800;
+        gap: 7px;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 11px;
+        white-space: nowrap;
+    }
+
+    .bag-action-button:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .bag-row-action-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        height: 36px;
+        justify-content: center;
+        width: 36px;
+    }
+
+    .bag-row-action-button:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .bag-table__actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .bag-empty-row {
+        color: #9ca3af !important;
+        padding: 34px 22px !important;
+        text-align: center;
+    }
+
+    .bag-pager {
+        align-items: center;
+        background: #ffffff;
+        border-top: 1px solid #edf0f3;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        padding: 14px 18px;
+    }
+
+    .bag-pager__text {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .bag-pager__actions {
+        display: inline-flex;
+        gap: 8px;
+    }
+
+    .bag-secondary-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 14px;
+    }
+
+    .bag-secondary-button:hover:not(:disabled) {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .bag-secondary-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    @@media (max-width: 1100px) {
+        .bag-admin {
+            padding: 20px;
+        }
+
+        .bag-table-card {
+            overflow-x: auto;
+        }
+
+        .bag-table {
+            min-width: 1080px;
+        }
     }
 </style>
 
-<div id="app" v-cloak>
+<div id="app" class="bag-admin" v-cloak>
+    <header class="bag-page-header">
+        <h1 class="bag-page-title">Sacolas</h1>
+    </header>
+
     <div class="row mb-3">
         <div class="col-12 col-md-6 col-xl-3 mb-2">
             <div class="page-summary-card">
@@ -53,13 +326,123 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="grid-container">
-                <div ref="mainGridRef"></div>
+    <section class="bag-table-card">
+        <table class="bag-table">
+            <colgroup>
+                <col style="width: 130px;">
+                <col style="width: 180px;">
+                <col style="width: 120px;">
+                <col style="width: 145px;">
+                <col style="width: 110px;">
+                <col style="width: 90px;">
+                <col style="width: 150px;">
+                <col style="width: 92px;">
+                <col style="width: 74px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>
+                        <button type="button"
+                                class="bag-sort-button"
+                                v-bind:class="{ 'bag-sort-button--active': state.sort.field === 'createdAt' }"
+                                v-on:click="handler.handleSort('createdAt')">
+                            Criada em
+                            <i class="fa bag-sort-icon" v-bind:class="methods.getSortIcon('createdAt')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="bag-sort-button"
+                                v-bind:class="{ 'bag-sort-button--active': state.sort.field === 'customerName' }"
+                                v-on:click="handler.handleSort('customerName')">
+                            Nome do Cliente
+                            <i class="fa bag-sort-icon" v-bind:class="methods.getSortIcon('customerName')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="bag-sort-button"
+                                v-bind:class="{ 'bag-sort-button--active': state.sort.field === 'status' }"
+                                v-on:click="handler.handleSort('status')">
+                            Status
+                            <i class="fa bag-sort-icon" v-bind:class="methods.getSortIcon('status')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>Total</th>
+                    <th>Peso</th>
+                    <th>Itens</th>
+                    <th>Última Interação</th>
+                    <th>Detalhes</th>
+                    <th class="text-right">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="bag in pagedBags" v-bind:key="bag.id">
+                    <td>
+                        <span class="bag-table__date">
+                            {{ methods.formatDateTime(bag.createdAt).date }}
+                            <span class="bag-table__time">{{ methods.formatDateTime(bag.createdAt).time }}</span>
+                        </span>
+                    </td>
+                    <td>
+                        <span class="bag-table__customer" v-bind:title="bag.customerName || '-'">{{ bag.customerName || '-' }}</span>
+                        <span class="bag-table__muted" v-if="bag.allItemsPaid">Itens pagos</span>
+                    </td>
+                    <td>
+                        <span class="bag-status" v-bind:class="methods.getStatusClass(bag.status)">
+                            {{ translateBagStatus(bag.status) }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="bag-table__price">{{ formatCurrency(bag.totalItemsValue) }}</span>
+                        <span class="bag-table__muted">Frete: {{ formatCurrency(bag.shippingCost) }}</span>
+                    </td>
+                    <td>{{ formatNumber(bag.totalWeight, 3) }} kg</td>
+                    <td>{{ bag.itemCount || 0 }}</td>
+                    <td>
+                        <span class="bag-table__date">
+                            {{ methods.formatDateTime(bag.lastInteractionAt).date }}
+                            <span class="bag-table__time">{{ methods.formatDateTime(bag.lastInteractionAt).time }}</span>
+                        </span>
+                    </td>
+                    <td>
+                        <button type="button"
+                                class="bag-action-button"
+                                title="Ver itens da sacola"
+                                v-on:click.stop="methods.showBagDetails(bag.id)">
+                            <i class="fa fa-list" aria-hidden="true"></i>
+                            Ver
+                        </button>
+                    </td>
+                    <td class="bag-table__actions">
+                        <button type="button"
+                                class="bag-row-action-button"
+                                title="Editar"
+                                v-on:click.stop="handler.handleEdit(bag)">
+                            <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr v-if="pagedBags.length === 0">
+                    <td colspan="9" class="bag-empty-row">Nenhuma sacola encontrada.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="bag-pager" v-if="sortedBags.length > 0">
+            <span class="bag-pager__text">{{ methods.getPagerText() }}</span>
+            <div class="bag-pager__actions">
+                <button type="button" class="bag-secondary-button" v-on:click="handler.handlePreviousPage" v-bind:disabled="state.pagination.page === 1">
+                    <i class="fa fa-chevron-left" aria-hidden="true"></i>
+                    Anterior
+                </button>
+                <button type="button" class="bag-secondary-button" v-on:click="handler.handleNextPage" v-bind:disabled="state.pagination.page >= totalPages">
+                    Proxima
+                    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                </button>
             </div>
         </div>
-    </div>
+    </section>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-scrollable modal-lg">

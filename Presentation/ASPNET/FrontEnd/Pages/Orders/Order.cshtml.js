@@ -69,7 +69,7 @@ const App = {
                 error: ''
             },
             deleteMode: false,
-            mainTitle: 'Editar Pedido',
+            mainTitle: 'Pedido',
             id: '',
             customerId: '',
             status: 'Pending',
@@ -94,6 +94,14 @@ const App = {
                 customerId: '',
                 orderDetails: ''
             },
+            sort: {
+                field: 'orderDate',
+                direction: 'desc'
+            },
+            pagination: {
+                page: 1,
+                pageSize: 30
+            },
             isSubmitting: false
         });
 
@@ -111,15 +119,8 @@ const App = {
 
         const translateStatus = (status) => statusLabels[status] ?? status;
 
-        const mainGridRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
         const labelModalRef = Vue.ref(null);
-
-        const formatCurrencyBRL = (value) =>
-            Number(value || 0).toLocaleString('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            });
 
         const services = {
             getMainData: async () => AxiosManager.get('/Order/GetOrderList', {}),
@@ -197,7 +198,7 @@ const App = {
         };
 
         const formatCurrency = (value) =>
-            Number(value || 0).toLocaleString(undefined, {
+            Number(value || 0).toLocaleString('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
             });
@@ -473,174 +474,7 @@ const App = {
         });
 
         const mainGrid = {
-            obj: null,
-            create: async (dataSource) => {
-                mainGrid.obj = new ej.grids.Grid({
-                    height: '360px',
-                    dataSource: dataSource,
-                    allowFiltering: true,
-                    showColumnMenu: true,
-                    gridLines: 'None',
-                    filterSettings: { type: 'Menu' },
-                    allowSorting: true,
-                    allowPaging: true,
-                    allowExcelExport: true,
-                    allowSelection: true,
-                    allowResizing: true,
-                    pageSettings: { pageSize: 30 },
-                    selectionSettings: { type: 'Single', mode: 'Row' },
-                    columns: [
-                        { type: 'checkbox', width: 60 },
-                        { field: 'id', isPrimaryKey: true, visible: false },
-                        { field: 'customerName', headerText: 'Nome do cliente', width: 180 },
-                        { field: 'status', headerText: 'Status', width: 120 },
-                        { field: 'totalAmount', headerText: 'Total', width: 120, valueAccessor: (_, data) => formatCurrencyBRL(data.totalAmount) },
-                        { field: 'shippingCost', headerText: 'Frete', width: 120, valueAccessor: (_, data) => formatCurrencyBRL(data.shippingCost) },
-                        { field: 'shippingBoxData', headerText: 'Caixa de Papelao', width: 200 },
-                        { field: 'totalWithShipping', headerText: 'Total + Frete', width: 150, valueAccessor: (_, data) => formatCurrencyBRL(data.totalWithShipping) },
-                        { field: 'paymentTypeName', headerText: 'Formas de Pagamento', width: 150 },
-                        { field: 'shippingPostCode', headerText: 'CEP', width: 140 },
-                        {
-                            headerText: 'Itens',
-                            width: 120,
-                            textAlign: 'Center',
-                            template: '<button type="button" class="btn btn-sm btn-outline-primary order-detail-btn" title="Ver itens do pedido"><i class="fa fa-list"></i></button>'
-                        },
-                        {
-                            headerText: 'Pix',
-                            width: 120,
-                            textAlign: 'Center',
-                            template: '<button type="button" class="btn btn-sm btn-outline-primary pix-payment-btn" title="Pagar com Pix via Mercado Pago"><i class="fa fa-qrcode"></i> Pix</button>'
-                        },
-                        { field: 'orderDate', headerText: 'Data do Pedido', width: 180, format: 'dd/MM/yyyy HH:mm' },
-                        {
-                            headerText: 'Etiqueta',
-                            width: 130,
-                            textAlign: 'Center',
-                            template: '<button type="button" class="btn btn-sm btn-outline-success shipping-label-btn" title="Adicionar frete ao carrinho"><i class="fa fa-shopping-cart"></i> Carrinho</button>'
-                        }
-                    ],
-                    toolbar: [
-                        'ExcelExport', 'Search',
-                        { type: 'Separator' },
-                        { text: 'Adicionar', tooltipText: 'Adicionar', prefixIcon: 'e-add', id: 'AddCustom' },
-                        { text: 'Editar', tooltipText: 'Editar', prefixIcon: 'e-edit', id: 'EditCustom' },
-                        { text: 'Excluir', tooltipText: 'Excluir', prefixIcon: 'e-delete', id: 'DeleteCustom' }
-                    ],
-                    dataBound: function () {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    rowSelected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
-                    },
-                    rowDeselected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
-                    },
-                    rowDataBound: (args) => {
-                        const button = args.row.querySelector('.order-detail-btn');
-                        if (button) {
-                            button.addEventListener('click', async (event) => {
-                                event.stopPropagation();
-                                await methods.showOrderDetails(args.data.id);
-                            });
-                        }
-
-                        const pixButton = args.row.querySelector('.pix-payment-btn');
-                        if (pixButton) {
-                            if (args.data.status === 'Paid') {
-                                pixButton.classList.remove('btn-outline-primary');
-                                pixButton.classList.add('btn-success');
-                                pixButton.innerHTML = '<i class="fa fa-check"></i> Pago';
-                                pixButton.disabled = true;
-                            } else {
-                                pixButton.addEventListener('click', async (event) => {
-                                    event.stopPropagation();
-                                    await methods.openPixPayment(args.data);
-                                });
-                            }
-                        }
-
-                        const labelButton = args.row.querySelector('.shipping-label-btn');
-                        if (labelButton) {
-                            if (args.data.status !== 'Paid') {
-                                labelButton.classList.add('d-none');
-                            } else if (args.data.isMelhorEnvioCartAdded || args.data.melhorEnvioCartId) {
-                                labelButton.classList.remove('btn-outline-success');
-                                labelButton.classList.add('btn-success');
-                                labelButton.title = args.data.isMelhorEnvioGenerated || args.data.melhorEnvioGeneratedAt
-                                    ? 'Etiqueta gerada no Melhor Envio'
-                                    : args.data.isMelhorEnvioCheckedOut || args.data.melhorEnvioCheckoutAt
-                                    ? 'Gerar etiqueta no Melhor Envio'
-                                    : `Comprar frete${args.data.melhorEnvioCartId ? ': ' + args.data.melhorEnvioCartId : ''}`;
-                                labelButton.innerHTML = args.data.isMelhorEnvioGenerated || args.data.melhorEnvioGeneratedAt
-                                    ? '<i class="fa fa-check"></i> Gerada'
-                                    : args.data.isMelhorEnvioCheckedOut || args.data.melhorEnvioCheckoutAt
-                                    ? '<i class="fa fa-tag"></i> Gerar'
-                                    : '<i class="fa fa-credit-card"></i> Comprar';
-                                labelButton.addEventListener('click', (event) => {
-                                    event.stopPropagation();
-                                    methods.openShippingLabel(args.data);
-                                });
-                            } else {
-                                labelButton.addEventListener('click', (event) => {
-                                    event.stopPropagation();
-                                    methods.openShippingLabel(args.data);
-                                });
-                            }
-                        }
-
-                        const statusValue = args.data?.status;
-                        const statusCell = statusValue
-                            ? Array.from(args.row.cells).find(cell => cell.textContent.trim() === statusValue)
-                            : null;
-
-                        if (statusCell && statusValue) {
-                            const statusClass = {
-                                Pending: 'bg-warning text-dark',
-                                Paid: 'bg-success',
-                                Dispatched: 'bg-info text-dark',
-                                Shipped: 'bg-primary',
-                                Delivered: 'bg-success',
-                                Cancelled: 'bg-danger',
-                                LabelGenerated: 'bg-success'
-                            }[statusValue] || 'bg-secondary';
-
-                            statusCell.innerHTML = `<span class="badge ${statusClass}">${translateStatus(statusValue)}</span>`;
-                        }
-                    },
-                    toolbarClick: async (args) => {
-                        if (args.item.id?.toLowerCase().includes('excelexport')) {
-                            mainGrid.obj.excelExport({ fileName: 'Orders.xlsx' });
-                        }
-
-                        if (args.item.id === 'AddCustom') {
-                            resetForm();
-                            state.deleteMode = false;
-                            state.mainTitle = 'Adicionar Pedido';
-                            methods.addOrderItem();
-                            mainModal.obj.show();
-                        }
-
-                        if (args.item.id === 'EditCustom' || args.item.id === 'DeleteCustom') {
-                            const selected = mainGrid.obj.getSelectedRecords()[0];
-                            if (!selected) return;
-
-                            await methods.loadOrder(selected.id);
-                            state.deleteMode = args.item.id === 'DeleteCustom';
-                            state.mainTitle = state.deleteMode ? 'Excluir Pedido' : 'Editar Pedido';
-                            mainModal.obj.show();
-                        }
-                    }
-                });
-
-                mainGrid.obj.appendTo(mainGridRef.value);
-            },
-            refresh: () => {
-                mainGrid.obj.setProperties({ dataSource: state.mainData });
-            }
+            refresh: () => {}
         };
 
         const mainModal = {
@@ -679,7 +513,111 @@ const App = {
                     orderDate: new Date(item.orderDate),
                     createdAt: new Date(item.createdAt)
                 }));
+                state.pagination.page = Math.min(state.pagination.page, Math.max(totalPages.value, 1));
                 methods.updateSummaryCards();
+            },
+            formatOrderDate: (order) => {
+                const date = new Date(order?.orderDate);
+                if (Number.isNaN(date.getTime())) {
+                    return {
+                        date: '-',
+                        time: ''
+                    };
+                }
+
+                return {
+                    date: date.toLocaleDateString('pt-BR'),
+                    time: date.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                };
+            },
+            formatRowShippingBoxData: (order) => formatRowShippingBoxData(order),
+            getSortIcon: (field) => {
+                if (state.sort.field !== field) return 'fa-sort';
+
+                return state.sort.direction === 'asc'
+                    ? 'fa-sort-up'
+                    : 'fa-sort-down';
+            },
+            getStatusClass: (status) => ({
+                Pending: 'order-status--pending',
+                Paid: 'order-status--paid',
+                Dispatched: 'order-status--dispatched',
+                Shipped: 'order-status--shipped',
+                Delivered: 'order-status--delivered',
+                Cancelled: 'order-status--cancelled',
+                LabelGenerated: 'order-status--label-generated'
+            }[status] || 'order-status--pending'),
+            getSortValue: (order, field) => {
+                if (field === 'orderDate') {
+                    const date = new Date(order?.orderDate);
+                    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+                }
+
+                if (field === 'customerName') return String(order?.customerName ?? '').toLowerCase();
+                if (field === 'status') return translateStatus(order?.status).toLowerCase();
+
+                return '';
+            },
+            getOrderShippingCost: (order) => Number(order?.shippingCost ?? 0),
+            getOrderFinalTotal: (order) => {
+                const itemsTotal = Number(order?.itemsTotal ?? 0);
+                const totalWithShipping = Number(order?.totalWithShipping ?? 0);
+                const totalAmount = Number(order?.totalAmount ?? 0);
+                const shippingCost = Number(order?.shippingCost ?? 0);
+
+                if (totalWithShipping > 0) return totalWithShipping;
+                if (itemsTotal > 0 || shippingCost > 0) return itemsTotal + shippingCost;
+                if (totalAmount > 0) return totalAmount;
+
+                return shippingCost;
+            },
+            getOrderItemsTotal: (order) => {
+                const explicitItemsTotal = Number(order?.itemsTotal ?? 0);
+                if (explicitItemsTotal > 0) return explicitItemsTotal;
+
+                const itemsTotal = methods.getOrderFinalTotal(order) - methods.getOrderShippingCost(order);
+                return Math.max(itemsTotal, 0);
+            },
+            getTotalTitle: (order) => [
+                `Roupas: ${formatCurrency(methods.getOrderItemsTotal(order))}`,
+                `Frete: ${formatCurrency(methods.getOrderShippingCost(order))}`,
+                `Total: ${formatCurrency(methods.getOrderFinalTotal(order))}`
+            ].join('\n'),
+            getShippingLabelTitle: (order) => {
+                if (order?.status !== 'Paid') return 'Disponivel apenas para pedidos pagos';
+                if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'Etiqueta gerada no Melhor Envio';
+                if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'Gerar etiqueta no Melhor Envio';
+                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) {
+                    return `Comprar frete${order.melhorEnvioCartId ? ': ' + order.melhorEnvioCartId : ''}`;
+                }
+
+                return 'Adicionar frete ao carrinho';
+            },
+            getShippingLabelIcon: (order) => {
+                if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'fa-check';
+                if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'fa-tag';
+                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'fa-credit-card';
+
+                return 'fa-shopping-cart';
+            },
+            getShippingLabelText: (order) => {
+                if (order?.status !== 'Paid') return 'Indisponivel';
+                if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'Gerada';
+                if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt) return 'Gerar';
+                if (order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 'Comprar';
+
+                return 'Carrinho';
+            },
+            getPagerText: () => {
+                const total = sortedOrders.value.length;
+                if (!total) return 'Nenhum pedido';
+
+                const start = ((state.pagination.page - 1) * state.pagination.pageSize) + 1;
+                const end = Math.min(start + state.pagination.pageSize - 1, total);
+                return `${start}-${end} de ${total} pedidos`;
             },
             loadMelhorEnvioBalance: async () => {
                 try {
@@ -1264,7 +1202,69 @@ const App = {
             }
         };
 
+        const sortedOrders = Vue.computed(() => {
+            const direction = state.sort.direction === 'desc' ? -1 : 1;
+
+            return [...state.mainData].sort((first, second) => {
+                const firstValue = methods.getSortValue(first, state.sort.field);
+                const secondValue = methods.getSortValue(second, state.sort.field);
+
+                if (typeof firstValue === 'number' && typeof secondValue === 'number') {
+                    return (firstValue - secondValue) * direction;
+                }
+
+                return String(firstValue).localeCompare(String(secondValue), 'pt-BR', {
+                    numeric: true,
+                    sensitivity: 'base'
+                }) * direction;
+            });
+        });
+
+        const totalPages = Vue.computed(() =>
+            Math.max(Math.ceil(sortedOrders.value.length / state.pagination.pageSize), 1)
+        );
+
+        const pagedOrders = Vue.computed(() => {
+            if (state.pagination.page > totalPages.value) {
+                state.pagination.page = totalPages.value;
+            }
+
+            const start = (state.pagination.page - 1) * state.pagination.pageSize;
+            return sortedOrders.value.slice(start, start + state.pagination.pageSize);
+        });
+
         const handler = {
+            handleSort: (field) => {
+                if (state.sort.field === field) {
+                    state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.sort.field = field;
+                    state.sort.direction = field === 'orderDate' ? 'desc' : 'asc';
+                }
+
+                state.pagination.page = 1;
+            },
+            handlePreviousPage: () => {
+                state.pagination.page = Math.max(state.pagination.page - 1, 1);
+            },
+            handleNextPage: () => {
+                state.pagination.page = Math.min(state.pagination.page + 1, totalPages.value);
+            },
+            handleNew: () => {
+                resetForm();
+                state.deleteMode = false;
+                state.mainTitle = 'Adicionar Pedido';
+                methods.addOrderItem();
+                mainModal.obj.show();
+            },
+            handleDelete: async (order) => {
+                if (!order?.id) return;
+
+                await methods.loadOrder(order.id);
+                state.deleteMode = true;
+                state.mainTitle = 'Excluir Pedido';
+                mainModal.obj.show();
+            },
             handleGenerateShippingLabel: async () => {
                 if (!state.label.orderId) return;
 
@@ -1382,7 +1382,6 @@ const App = {
                 await SecurityManager.authorizePage(['Orders']);
                 await SecurityManager.validateToken();
 
-                await mainGrid.create(state.mainData);
                 mainModal.create();
                 labelModal.create();
 
@@ -1428,9 +1427,11 @@ const App = {
 
         return {
             state,
-            mainGridRef,
             mainModalRef,
             labelModalRef,
+            sortedOrders,
+            pagedOrders,
+            totalPages,
             handler,
             methods,
             translateStatus,
