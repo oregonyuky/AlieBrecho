@@ -356,7 +356,7 @@ const App = {
                     picture4FileRef.value.value = '';
                 }
             },
-            setFormData: (data) => {
+            setFormData: (data, options = {}) => {
                 if (state.mainImagePreviewURL) {
                     URL.revokeObjectURL(state.mainImagePreviewURL);
                 }
@@ -379,7 +379,7 @@ const App = {
                     categoryID: data?.categoryID ?? data?.categoryId ?? '',
                     dropConfigId: data?.dropConfigId ?? '',
                     unitPrice: data?.unitPrice ?? null,
-                    oldPrice: data?.oldPrice ?? null,
+                    oldPrice: options.useCurrentPriceAsOldPrice ? (data?.unitPrice ?? null) : (data?.oldPrice ?? null),
                     unitWeight: data?.unitWeight ?? null,
                     discountPercent: data?.discountPercent ?? null,
                     productAvailable: data?.productAvailable ?? false,
@@ -602,7 +602,7 @@ const App = {
 
                             state.deleteMode = false;
                             state.mainTitle = 'Editar Produto';
-                            methods.setFormData(product);
+                            methods.setFormData(product, { useCurrentPriceAsOldPrice: true });
                             state.activeProductTab = 'general';
 
                             mainModal.obj.show();
@@ -720,7 +720,7 @@ const App = {
                 state.deleteMode = false;
                 state.mainTitle = 'Editar Produto';
                 state.activeProductTab = 'general';
-                methods.setFormData(singleProduct);
+                methods.setFormData(singleProduct, { useCurrentPriceAsOldPrice: true });
 
                 mainModal.obj.show();
             },

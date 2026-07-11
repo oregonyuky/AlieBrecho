@@ -11,6 +11,7 @@ public record BagItemDto
     public string? Id { get; init; }
     public string? ProductId { get; init; }
     public string? ProductName { get; init; }
+    public string? ProductImageUrl { get; init; }
     public int Quantity { get; init; }
     public decimal Price { get; init; }
     public decimal Weight { get; init; }
@@ -99,11 +100,41 @@ public class GetBagSingleHandler : IRequestHandler<GetBagSingleRequest, GetBagSi
             .Select(x => x.Name)
             .SingleOrDefaultAsync(cancellationToken);
 
+        var productIds = entity.Items?
+            .Select(x => x.ProductId)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!)
+            .Distinct()
+            .ToList() ?? [];
+
+        var productImages = await _context.Product
+            .AsNoTracking()
+            .Where(x => x.Id != null && productIds.Contains(x.Id))
+            .Select(x => new
+            {
+                x.Id,
+                ProductImageUrl = x.MainImageURL ?? x.Picture1
+            })
+            .ToListAsync(cancellationToken);
+
+        var productImageMap = productImages
+            .Where(x => !string.IsNullOrWhiteSpace(x.Id))
+            .ToDictionary(x => x.Id!, x => x.ProductImageUrl);
+
+        var items = dto.Items?.Select(item => item with
+        {
+            ProductImageUrl = !string.IsNullOrWhiteSpace(item.ProductId)
+                && productImageMap.TryGetValue(item.ProductId, out var productImageUrl)
+                    ? productImageUrl
+                    : null
+        }).ToList();
+
         return new GetBagSingleResult
         {
             Data = dto with
             {
-                CustomerName = customerName
+                CustomerName = customerName,
+                Items = items
             }
         };
     }

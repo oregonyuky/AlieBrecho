@@ -18,6 +18,7 @@ public class PixController : ControllerBase
     private const string ProviderName = "MercadoPago";
 
     private readonly ICommandRepository<Order> _orderRepository;
+    private readonly ICommandRepository<Bag> _bagRepository;
     private readonly ICommandRepository<Payment> _paymentRepository;
     private readonly ICommandRepository<Product> _productRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -26,6 +27,7 @@ public class PixController : ControllerBase
 
     public PixController(
         ICommandRepository<Order> orderRepository,
+        ICommandRepository<Bag> bagRepository,
         ICommandRepository<Payment> paymentRepository,
         ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork,
@@ -33,6 +35,7 @@ public class PixController : ControllerBase
         IOptions<MercadoPagoSettings> settings)
     {
         _orderRepository = orderRepository;
+        _bagRepository = bagRepository;
         _paymentRepository = paymentRepository;
         _productRepository = productRepository;
         _unitOfWork = unitOfWork;
@@ -124,7 +127,21 @@ public class PixController : ControllerBase
         var order = await GetOrderByPaymentIdAsync(paymentId, cancellationToken);
         if (order is null)
         {
-            return NotFound("Pagamento nao encontrado.");
+            var bagPayment = await _mercadoPagoService.GetPaymentAsync(paymentId, cancellationToken);
+            var bag = await ApplyBagPaymentStatusAsync(bagPayment, cancellationToken);
+            if (bag is null)
+            {
+                return NotFound("Pagamento nao encontrado.");
+            }
+
+            return Ok(new PixPaymentStatusResponse
+            {
+                PaymentId = bagPayment.PaymentId,
+                Status = bagPayment.Status,
+                StatusDetail = bagPayment.StatusDetail,
+                Expiracao = bagPayment.DateOfExpiration,
+                OrderStatus = bag.Status.ToString()
+            });
         }
 
         var payment = await _mercadoPagoService.GetPaymentAsync(paymentId, cancellationToken);
@@ -161,6 +178,8 @@ public class PixController : ControllerBase
         var order = await GetOrderByPaymentIdAsync(paymentId, cancellationToken);
         if (order is null)
         {
+            var bagPayment = await _mercadoPagoService.GetPaymentAsync(paymentId, cancellationToken);
+            await ApplyBagPaymentStatusAsync(bagPayment, cancellationToken);
             return Ok();
         }
 
@@ -214,6 +233,58 @@ public class PixController : ControllerBase
 
         _orderRepository.Update(order);
         await _unitOfWork.SaveAsync(cancellationToken);
+    }
+
+    private async Task<Bag?> ApplyBagPaymentStatusAsync(
+        MercadoPagoPaymentStatusResult mercadoPagoPayment,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(mercadoPagoPayment.ExternalReference))
+        {
+            return null;
+        }
+
+        var bag = await _bagRepository.GetQuery()
+            .Include(x => x.Items)
+            .SingleOrDefaultAsync(
+                x => x.Id == mercadoPagoPayment.ExternalReference && !x.IsDeleted,
+                cancellationToken);
+
+        if (bag is null)
+        {
+            return null;
+        }
+
+        if (IsApprovedStatus(mercadoPagoPayment.Status))
+        {
+            var expectedAmount = Math.Round(bag.Items?
+                .Where(x => !x.IsDeleted && !x.IsPaid)
+                .Sum(x => x.Price * x.Quantity) ?? bag.TotalItemsValue, 2);
+            var paidAmount = Math.Round(mercadoPagoPayment.TransactionAmount ?? 0m, 2);
+            if (expectedAmount > 0 && expectedAmount != paidAmount)
+            {
+                throw new InvalidOperationException("Valor recebido no Mercado Pago nao confere com o valor esperado da sacolinha.");
+            }
+
+            var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
+            foreach (var item in bag.Items?.Where(x => !x.IsDeleted && !x.IsPaid) ?? [])
+            {
+                item.IsPaid = true;
+                item.IsReserved = false;
+                item.PaidAt = paidAt;
+                item.ReservationExpiresAt = null;
+            }
+
+            bag.AllItemsPaid = bag.Items?.Where(x => !x.IsDeleted).All(x => x.IsPaid) ?? false;
+            bag.LastInteractionAt = DateTime.UtcNow;
+            bag.UpdatedAtUtc = DateTime.UtcNow;
+
+            await MarkBagProductsUnavailableAsync(bag, cancellationToken);
+        }
+
+        _bagRepository.Update(bag);
+        await _unitOfWork.SaveAsync(cancellationToken);
+        return bag;
     }
 
     private async Task<Order?> GetOrderAsync(string orderId, CancellationToken cancellationToken)
@@ -338,6 +409,30 @@ public class PixController : ControllerBase
             .Select(x => x.ProductId!)
             .Distinct()
             .ToList();
+
+        if (productIds.Count == 0)
+        {
+            return;
+        }
+
+        var products = await _productRepository.GetQuery()
+            .Where(x => productIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            product.ProductAvailable = false;
+            _productRepository.Update(product);
+        }
+    }
+
+    private async Task MarkBagProductsUnavailableAsync(Bag bag, CancellationToken cancellationToken)
+    {
+        var productIds = bag.Items?
+            .Where(x => !x.IsDeleted && x.IsPaid && !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList() ?? [];
 
         if (productIds.Count == 0)
         {

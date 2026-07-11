@@ -44,6 +44,7 @@ public sealed record MercadoPagoPaymentStatusResult(
     string? PaymentId,
     string? Status,
     string? StatusDetail,
+    string? ExternalReference,
     decimal? TransactionAmount,
     DateTime? DateApproved,
     DateTime? DateOfExpiration);
@@ -61,6 +62,9 @@ public sealed record MercadoPagoCreatePaymentResponse
 
     [JsonPropertyName("transaction_amount")]
     public decimal? TransactionAmount { get; init; }
+
+    [JsonPropertyName("external_reference")]
+    public string? ExternalReference { get; init; }
 
     [JsonPropertyName("date_approved")]
     public DateTime? DateApproved { get; init; }

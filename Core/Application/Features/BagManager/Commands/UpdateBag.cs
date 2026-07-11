@@ -23,6 +23,7 @@ public class UpdateBagRequest : IRequest<UpdateBagResult>
     public decimal? ShippingCost { get; init; }
     public decimal TotalWeight { get; init; }
     public bool AllItemsPaid { get; init; }
+    public bool? IsDeleted { get; init; }
     public string? Notes { get; init; }
 }
 
@@ -73,6 +74,10 @@ public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResul
         entity.ShippingCost = request.ShippingCost;
         entity.TotalWeight = request.TotalWeight;
         entity.AllItemsPaid = request.AllItemsPaid;
+        if (request.IsDeleted.HasValue)
+        {
+            entity.IsDeleted = request.IsDeleted.Value;
+        }
         entity.Notes = request.Notes;
 
         await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);

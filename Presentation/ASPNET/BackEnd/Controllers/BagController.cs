@@ -92,7 +92,7 @@ public class BagController : BaseApiController
         });
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet("GetActiveBag")]
     public async Task<ActionResult<ApiSuccessResult<GetActiveBagResult>>> GetActiveBagAsync(
         CancellationToken cancellationToken,

@@ -105,6 +105,7 @@ public sealed class MercadoPagoService : IMercadoPagoService
             payment.Id?.ToString(),
             payment.Status,
             payment.StatusDetail,
+            payment.ExternalReference,
             payment.TransactionAmount,
             payment.DateApproved,
             payment.DateOfExpiration);

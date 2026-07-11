@@ -227,6 +227,16 @@
         white-space: nowrap;
     }
 
+    .bag-details-count {
+        background: #eef2ff;
+        border-radius: 999px;
+        color: #3730a3;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 4px 7px;
+    }
+
     .bag-empty-row {
         color: #9ca3af !important;
         padding: 34px 22px !important;
@@ -289,7 +299,7 @@
         }
 
         .bag-table {
-            min-width: 1080px;
+            min-width: 900px;
         }
     }
 </style>
@@ -333,10 +343,8 @@
                 <col style="width: 180px;">
                 <col style="width: 120px;">
                 <col style="width: 145px;">
-                <col style="width: 110px;">
-                <col style="width: 90px;">
                 <col style="width: 150px;">
-                <col style="width: 92px;">
+                <col style="width: 112px;">
                 <col style="width: 74px;">
             </colgroup>
             <thead>
@@ -369,11 +377,9 @@
                         </button>
                     </th>
                     <th>Total</th>
-                    <th>Peso</th>
-                    <th>Itens</th>
-                    <th>Última Interação</th>
+                    <th>Ultima Interacao</th>
                     <th>Detalhes</th>
-                    <th class="text-right">Ações</th>
+                    <th class="text-right">Acoes</th>
                 </tr>
             </thead>
             <tbody>
@@ -397,8 +403,6 @@
                         <span class="bag-table__price">{{ formatCurrency(bag.totalItemsValue) }}</span>
                         <span class="bag-table__muted">Frete: {{ formatCurrency(bag.shippingCost) }}</span>
                     </td>
-                    <td>{{ formatNumber(bag.totalWeight, 3) }} kg</td>
-                    <td>{{ bag.itemCount || 0 }}</td>
                     <td>
                         <span class="bag-table__date">
                             {{ methods.formatDateTime(bag.lastInteractionAt).date }}
@@ -412,19 +416,20 @@
                                 v-on:click.stop="methods.showBagDetails(bag.id)">
                             <i class="fa fa-list" aria-hidden="true"></i>
                             Ver
+                            <span class="bag-details-count">{{ bag.itemCount || 0 }}</span>
                         </button>
                     </td>
                     <td class="bag-table__actions">
                         <button type="button"
                                 class="bag-row-action-button"
-                                title="Editar"
-                                v-on:click.stop="handler.handleEdit(bag)">
-                            <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                title="Excluir"
+                                v-on:click.stop="handler.handleDelete(bag)">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </td>
                 </tr>
                 <tr v-if="pagedBags.length === 0">
-                    <td colspan="9" class="bag-empty-row">Nenhuma sacola encontrada.</td>
+                    <td colspan="7" class="bag-empty-row">Nenhuma sacola encontrada.</td>
                 </tr>
             </tbody>
         </table>

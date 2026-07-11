@@ -116,6 +116,18 @@ const App = {
                 maximumFractionDigits: decimals
             });
 
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const getProductImageUrl = (imageName) =>
+            imageName
+                ? `/api/FileImage/GetImage?imageName=${encodeURIComponent(imageName)}`
+                : '/noimage.png';
+
         const methods = {
             updateSummaryCards: () => {
                 const total = state.mainData.length;
@@ -224,35 +236,75 @@ const App = {
                         return Swal.fire({ icon: 'info', title: 'Detalhes da Sacola', text: 'Nenhum item encontrado para esta sacola.' });
                     }
 
-                    const rows = items.map((item) => `
-                        <tr>
-                            <td>${item.productName || 'Desconhecido'}</td>
-                            <td class="text-end">${item.quantity}</td>
-                            <td class="text-end">${Number(item.price || 0).toFixed(2)}</td>
-                            <td class="text-end">${Number(item.weight || 0).toFixed(3)}</td>
-                            <td class="text-center">${item.isPaid ? 'Sim' : 'Nao'}</td>
-                        </tr>
+                    const itemCards = items.map((item) => `
+                        <div class="bag-detail-card">
+                            <img class="bag-detail-card__image"
+                                 src="${getProductImageUrl(item.productImageUrl)}"
+                                 alt="${escapeHtml(item.productName || 'Roupa')}"
+                                 onerror="this.onerror=null;this.src='/noimage.png';">
+                            <div class="bag-detail-card__body">
+                                <div class="bag-detail-card__name">${escapeHtml(item.productName || 'Desconhecido')}</div>
+                                <div class="bag-detail-card__meta">
+                                    <span>Qtd: ${Number(item.quantity || 0)}</span>
+                                    <span>${formatCurrency(item.price)}</span>
+                                    <span>${item.isPaid ? 'Pago' : 'Pendente'}</span>
+                                </div>
+                            </div>
+                        </div>
                     `).join('');
 
                     await Swal.fire({
-                        title: 'Itens da Sacola',
+                        title: `${items.length} ${items.length === 1 ? 'item' : 'itens'} na sacola`,
                         html: `
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Produto</th>
-                                            <th class="text-end">Qtd</th>
-                                            <th class="text-end">Preco</th>
-                                            <th class="text-end">Peso</th>
-                                            <th class="text-center">Pago</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${rows}</tbody>
-                                </table>
+                            <style>
+                                .bag-detail-grid {
+                                    display: grid;
+                                    gap: 12px;
+                                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                                    text-align: left;
+                                }
+
+                                .bag-detail-card {
+                                    border: 1px solid #e5e7eb;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                    background: #fff;
+                                }
+
+                                .bag-detail-card__image {
+                                    aspect-ratio: 4 / 5;
+                                    background: #f3f4f6;
+                                    display: block;
+                                    object-fit: cover;
+                                    width: 100%;
+                                }
+
+                                .bag-detail-card__body {
+                                    padding: 10px;
+                                }
+
+                                .bag-detail-card__name {
+                                    color: #111827;
+                                    font-size: 14px;
+                                    font-weight: 800;
+                                    line-height: 1.25;
+                                    margin-bottom: 8px;
+                                }
+
+                                .bag-detail-card__meta {
+                                    color: #6b7280;
+                                    display: flex;
+                                    flex-wrap: wrap;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    gap: 6px 10px;
+                                }
+                            </style>
+                            <div class="bag-detail-grid">
+                                ${itemCards}
                             </div>
                         `,
-                        width: 760,
+                        width: 840,
                         confirmButtonText: 'Fechar'
                     });
                 } catch (error) {
@@ -314,6 +366,59 @@ const App = {
 
                 await methods.loadBag(bag.id);
                 mainModal.obj.show();
+            },
+            handleDelete: async (bag) => {
+                if (!bag?.id) return;
+
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Excluir Sacola?',
+                    text: 'Esta sacola deixara de aparecer na listagem principal.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Excluir',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc2626'
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    state.isSubmitting = true;
+
+                    const response = await services.updateMainData({
+                        id: bag.id,
+                        status: bag.status,
+                        expirationDate: bag.expirationDate ? new Date(bag.expirationDate) : null,
+                        lastInteractionAt: bag.lastInteractionAt ? new Date(bag.lastInteractionAt) : null,
+                        closedAt: bag.closedAt ? new Date(bag.closedAt) : null,
+                        totalItemsValue: bag.totalItemsValue ?? 0,
+                        shippingCost: bag.shippingCost ?? 0,
+                        totalWeight: bag.totalWeight ?? 0,
+                        allItemsPaid: bag.allItemsPaid ?? false,
+                        notes: bag.notes ?? '',
+                        isDeleted: true
+                    });
+
+                    if (response.data.code === 200) {
+                        await methods.populateMainData();
+                        mainGrid.refresh();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Excluida',
+                            text: 'Sacola excluida com sucesso',
+                            timer: 1200,
+                            showConfirmButton: false
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Nao foi possivel excluir a sacola'
+                    });
+                } finally {
+                    state.isSubmitting = false;
+                }
             },
             handleSubmit: async () => {
                 try {
