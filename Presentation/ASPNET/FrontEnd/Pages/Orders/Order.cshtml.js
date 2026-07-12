@@ -110,16 +110,62 @@ const App = {
         const state = Vue.reactive(emptyState());
 
         const statusLabels = {
-            Pending: 'Pendente',
-            Paid: 'Pago',
-            Dispatched: 'Despachado',
-            Shipped: 'Enviado',
+            Pending: 'Aguardando pagamento',
+            Paid: 'Pagamento confirmado',
+            Dispatched: 'Postado na transportadora',
+            Shipped: 'Em transporte',
             Delivered: 'Entregue',
             Cancelled: 'Cancelado',
-            LabelGenerated: 'Frete na sacolinha'
+            Packaging: 'Preparando embalagem',
+            LabelGenerated: 'Etiqueta gerada'
         };
 
         const translateStatus = (status) => statusLabels[status] ?? status;
+
+        const orderTimelineSteps = [
+            {
+                key: 'Pending',
+                label: 'Aguardando pagamento',
+                iconClass: 'fas fa-clock',
+                description: 'Pedido criado, mas o pagamento ainda nao foi confirmado.'
+            },
+            {
+                key: 'Paid',
+                label: 'Pagamento confirmado',
+                iconClass: 'fas fa-credit-card',
+                description: 'Pagamento recebido. O pedido ja pode ser separado.'
+            },
+            {
+                key: 'Packaging',
+                label: 'Preparando embalagem',
+                iconClass: 'fas fa-box-open',
+                description: 'Produtos sendo separados, conferidos e embalados.'
+            },
+            {
+                key: 'LabelGenerated',
+                label: 'Etiqueta gerada',
+                iconClass: 'fas fa-tag',
+                description: 'Etiqueta de envio criada e pronta para impressao.'
+            },
+            {
+                key: 'Dispatched',
+                label: 'Postado na transportadora',
+                iconClass: 'fas fa-truck-loading',
+                description: 'Pacote entregue para a transportadora.'
+            },
+            {
+                key: 'Shipped',
+                label: 'Em transporte',
+                iconClass: 'fas fa-shipping-fast',
+                description: 'Pacote em deslocamento ate a cliente.'
+            },
+            {
+                key: 'Delivered',
+                label: 'Entregue',
+                iconClass: 'fas fa-check',
+                description: 'Pedido entregue para a cliente.'
+            }
+        ];
 
         const mainModalRef = Vue.ref(null);
         const labelModalRef = Vue.ref(null);
@@ -263,6 +309,14 @@ const App = {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+
+        const getProductImageUrl = (imageName) =>
+            imageName
+                ? `/api/FileImage/GetImage?imageName=${encodeURIComponent(imageName)}`
+                : '/noimage.png';
+
+        const getOrderItemCount = (order) =>
+            (order?.orderDetails ?? []).reduce((total, item) => total + Number(item?.quantity || 0), 0);
 
         const parseMoneyInput = (value) => Number(String(value || '')
             .trim()
@@ -515,6 +569,43 @@ const App = {
             return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
         };
 
+        const getOrderTimelineCurrentIndex = (order) => {
+            if (order?.status === 'Cancelled') return -1;
+            if (order?.status === 'Delivered') return 6;
+            if (order?.status === 'Shipped') return 5;
+            if (order?.status === 'Dispatched') return 4;
+            if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 3;
+            if (order?.isMelhorEnvioCheckedOut || order?.melhorEnvioCheckoutAt || order?.isMelhorEnvioCartAdded || order?.melhorEnvioCartId) return 2;
+            if (order?.status === 'Paid') return 1;
+
+            return 0;
+        };
+
+        const getOrderTimelineCurrent = (order) => {
+            if (order?.status === 'Cancelled') {
+                return {
+                    key: 'Cancelled',
+                    label: translateStatus('Cancelled'),
+                    description: 'Pedido cancelado. A timeline de envio foi interrompida.'
+                };
+            }
+
+            const currentIndex = getOrderTimelineCurrentIndex(order);
+            return orderTimelineSteps[currentIndex] ?? orderTimelineSteps[0];
+        };
+
+        const getOrderTimelineSteps = (order) => {
+            const currentIndex = getOrderTimelineCurrentIndex(order);
+
+            return orderTimelineSteps.map((step, index) => ({
+                ...step,
+                index: index + 1,
+                isComplete: currentIndex >= 0 && index < currentIndex,
+                isCurrent: index === currentIndex,
+                isLast: index === orderTimelineSteps.length - 1
+            }));
+        };
+
         const methods = {
             updateSummaryCards: () => {
                 const total = state.mainData.length;
@@ -562,15 +653,16 @@ const App = {
                     ? 'fa-sort-up'
                     : 'fa-sort-down';
             },
-            getStatusClass: (status) => ({
-                Pending: 'order-status--pending',
-                Paid: 'order-status--paid',
-                Dispatched: 'order-status--dispatched',
-                Shipped: 'order-status--shipped',
-                Delivered: 'order-status--delivered',
-                Cancelled: 'order-status--cancelled',
-                LabelGenerated: 'order-status--label-generated'
-            }[status] || 'order-status--pending'),
+            getOrderTimelineCurrent: (order) => getOrderTimelineCurrent(order),
+            getOrderTimelineSteps: (order) => getOrderTimelineSteps(order),
+            getOrderTimelineTitle: (order) => {
+                const current = getOrderTimelineCurrent(order);
+                const steps = getOrderTimelineSteps(order)
+                    .map(step => `${step.index}. ${step.label}: ${step.description}`)
+                    .join('\n');
+
+                return `${current.label}\n${current.description}\n\n${steps}`;
+            },
             getSortValue: (order, field) => {
                 if (field === 'orderDate') {
                     const date = parseUtcDate(order?.orderDate);
@@ -578,7 +670,7 @@ const App = {
                 }
 
                 if (field === 'customerName') return String(order?.customerName ?? '').toLowerCase();
-                if (field === 'status') return translateStatus(order?.status).toLowerCase();
+                if (field === 'status') return getOrderTimelineCurrentIndex(order);
 
                 return '';
             },
@@ -607,6 +699,33 @@ const App = {
                 `Frete: ${formatCurrency(methods.getOrderShippingCost(order))}`,
                 `Total: ${formatCurrency(methods.getOrderFinalTotal(order))}`
             ].join('\n'),
+            getPaymentMethodLabel: (order) => {
+                const paymentText = [
+                    order?.paymentMethod,
+                    order?.payment?.paymentDetail?.paymentMethod,
+                    order?.paymentTypeName,
+                    order?.payment?.paymentTypeName
+                ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+
+                if (!paymentText) return '-';
+                if (paymentText.includes('pix')) return 'Pix';
+                if (
+                    paymentText.includes('cartao') ||
+                    paymentText.includes('cartão') ||
+                    paymentText.includes('credito') ||
+                    paymentText.includes('crédito') ||
+                    paymentText.includes('debito') ||
+                    paymentText.includes('débito') ||
+                    paymentText.includes('card')
+                ) {
+                    return 'Cartão';
+                }
+
+                return '-';
+            },
             getShippingLabelTitle: (order) => {
                 if (order?.status !== 'Paid') return 'Disponivel apenas para pedidos pagos';
                 if (order?.isMelhorEnvioGenerated || order?.melhorEnvioGeneratedAt) return 'Etiqueta gerada no Melhor Envio';
@@ -1185,41 +1304,73 @@ const App = {
                         return Swal.fire({ icon: 'info', title: 'Detalhes do Pedido', text: 'Nenhum item encontrado para este pedido.' });
                     }
 
-                    const rows = items.map(item => {
-                        const imageUrl = item.productImageUrl
-                            ? '/api/FileImage/GetImage?imageName=' + encodeURIComponent(item.productImageUrl)
-                            : null;
-
-                        return `
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-3">
-                                        ${imageUrl ? `<img src="${imageUrl}" alt="${item.productName ?? 'Produto'}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;margin-right:1rem;" />` : `<span class="badge bg-secondary">Sem Imagem</span>`}
-                                        <span>${item.productName || 'Desconhecido'}</span>
-                                    </div>
-                                </td>
-                                <td class="text-end">${item.quantity}</td>
-                                <td class="text-end">${item.unitPrice != null ? Number(item.unitPrice).toFixed(2) : '0.00'}</td>
-                                <td class="text-end">${item.totalPrice != null ? Number(item.totalPrice).toFixed(2) : '0.00'}</td>
-                            </tr>
-                        `;
-                    }).join('');
+                    const itemCount = getOrderItemCount(order);
+                    const itemCards = items.map((item) => `
+                        <div class="order-detail-card">
+                            <img class="order-detail-card__image"
+                                 src="${getProductImageUrl(item.productImageUrl)}"
+                                 alt="${escapeHtml(item.productName || 'Roupa')}"
+                                 onerror="this.onerror=null;this.src='/noimage.png';">
+                            <div class="order-detail-card__body">
+                                <div class="order-detail-card__name">${escapeHtml(item.productName || 'Desconhecido')}</div>
+                                <div class="order-detail-card__meta">
+                                    <span>Qtd: ${Number(item.quantity || 0)}</span>
+                                    <span>${formatCurrency(item.unitPrice)}</span>
+                                    <span>Total: ${formatCurrency(item.totalPrice)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
 
                     await Swal.fire({
-                        title: 'Itens do Pedido',
+                        title: `${itemCount} ${itemCount === 1 ? 'roupa' : 'roupas'} no pedido`,
                         html: `
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Produto</th>
-                                            <th class="text-end">Qtd</th>
-                                            <th class="text-end">Unitario</th>
-                                            <th class="text-end">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${rows}</tbody>
-                                </table>
+                            <style>
+                                .order-detail-grid {
+                                    display: grid;
+                                    gap: 12px;
+                                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                                    text-align: left;
+                                }
+
+                                .order-detail-card {
+                                    background: #fff;
+                                    border: 1px solid #e5e7eb;
+                                    border-radius: 8px;
+                                    overflow: hidden;
+                                }
+
+                                .order-detail-card__image {
+                                    aspect-ratio: 4 / 5;
+                                    background: #f3f4f6;
+                                    display: block;
+                                    object-fit: cover;
+                                    width: 100%;
+                                }
+
+                                .order-detail-card__body {
+                                    padding: 10px;
+                                }
+
+                                .order-detail-card__name {
+                                    color: #111827;
+                                    font-size: 14px;
+                                    font-weight: 800;
+                                    line-height: 1.25;
+                                    min-height: 36px;
+                                }
+
+                                .order-detail-card__meta {
+                                    color: #6b7280;
+                                    display: grid;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    gap: 4px;
+                                    margin-top: 8px;
+                                }
+                            </style>
+                            <div class="order-detail-grid">
+                                ${itemCards}
                             </div>
                         `,
                         width: 780,

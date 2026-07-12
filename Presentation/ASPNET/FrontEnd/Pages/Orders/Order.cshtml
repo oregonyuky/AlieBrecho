@@ -271,6 +271,19 @@
         white-space: nowrap;
     }
 
+    .order-payment-label {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        color: #374151;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 7px 10px;
+        white-space: nowrap;
+    }
+
     .order-total-cell {
         line-height: 1.3;
         white-space: nowrap;
@@ -290,41 +303,94 @@
         font-weight: 700;
     }
 
-    .order-status {
+    .order-timeline {
+        min-width: 250px;
+    }
+
+    .order-timeline__steps {
+        align-items: center;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        margin-bottom: 7px;
+    }
+
+    .order-timeline__step {
+        align-items: center;
+        display: flex;
+        min-width: 0;
+    }
+
+    .order-timeline__dot {
+        align-items: center;
+        background: #e5e7eb;
+        border: 2px solid #e5e7eb;
         border-radius: 999px;
+        color: #6b7280;
         display: inline-flex;
-        font-size: 11px;
+        flex: 0 0 18px;
+        font-size: 8px;
         font-weight: 900;
+        height: 18px;
+        justify-content: center;
         line-height: 1;
-        padding: 7px 10px;
+        width: 18px;
+        z-index: 1;
+    }
+
+    .order-timeline__dot .fa,
+    .order-timeline__dot .fas {
+        line-height: 1;
+    }
+
+    .order-timeline__line {
+        background: #e5e7eb;
+        flex: 1 1 auto;
+        height: 2px;
+        min-width: 10px;
+    }
+
+    .order-timeline__step--complete .order-timeline__dot,
+    .order-timeline__step--complete .order-timeline__line {
+        background: #22c55e;
+        border-color: #22c55e;
+        color: #ffffff;
+    }
+
+    .order-timeline__step--current .order-timeline__dot {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+    }
+
+    .order-timeline__step--current .order-timeline__line {
+        background: #e5e7eb;
+    }
+
+    .order-timeline--cancelled .order-timeline__dot {
+        background: #fee2e2;
+        border-color: #fecaca;
+        color: #991b1b;
+    }
+
+    .order-timeline__label {
+        color: #111827;
+        display: block;
+        font-size: 12px;
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .order-status--pending {
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    .order-status--paid,
-    .order-status--delivered,
-    .order-status--label-generated {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    .order-status--dispatched {
-        background: #e0f2fe;
-        color: #075985;
-    }
-
-    .order-status--shipped {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-
-    .order-status--cancelled {
-        background: #fee2e2;
-        color: #991b1b;
+    .order-timeline__hint {
+        color: #9ca3af;
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        margin-top: 1px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .order-action-button {
@@ -346,6 +412,16 @@
     .order-action-button:hover:not(:disabled) {
         background: #f9fafb;
         color: #111827;
+    }
+
+    .order-details-count {
+        background: #eef2ff;
+        border-radius: 999px;
+        color: #3730a3;
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1;
+        padding: 4px 7px;
     }
 
     .order-action-button--success {
@@ -468,7 +544,7 @@
         }
 
         .order-table {
-            min-width: 1240px;
+            min-width: 1360px;
         }
     }
 
@@ -483,13 +559,6 @@
 <div id="app" class="order-admin" v-cloak>
     <header class="order-page-header">
         <h1 class="order-page-title">Pedidos</h1>
-
-        <div class="order-header-actions">
-            <button type="button" class="order-add-button" v-on:click="handler.handleNew">
-                <i class="fa fa-plus" aria-hidden="true"></i>
-                Adicionar pedido
-            </button>
-        </div>
     </header>
 
     <div class="row mb-3">
@@ -554,10 +623,10 @@
             <colgroup>
                 <col style="width: 130px;">
                 <col style="width: 170px;">
-                <col style="width: 120px;">
+                <col style="width: 270px;">
                 <col style="width: 150px;">
                 <col style="width: 170px;">
-                <col style="width: 150px;">
+                <col style="width: 120px;">
                 <col style="width: 92px;">
                 <col style="width: 135px;">
                 <col style="width: 74px;">
@@ -613,9 +682,27 @@
                         <span class="order-table__muted" v-if="order.shippingPostCode">CEP {{ order.shippingPostCode }}</span>
                     </td>
                     <td>
-                        <span class="order-status" v-bind:class="methods.getStatusClass(order.status)">
-                            {{ translateStatus(order.status) }}
-                        </span>
+                        <div class="order-timeline"
+                             v-bind:class="{ 'order-timeline--cancelled': order.status === 'Cancelled' }"
+                             v-bind:title="methods.getOrderTimelineTitle(order)">
+                            <div class="order-timeline__steps">
+                                <span class="order-timeline__step"
+                                      v-for="step in methods.getOrderTimelineSteps(order)"
+                                      v-bind:key="step.key"
+                                      v-bind:class="{
+                                          'order-timeline__step--complete': step.isComplete,
+                                          'order-timeline__step--current': step.isCurrent
+                                      }"
+                                      v-bind:title="step.description">
+                                    <span class="order-timeline__dot">
+                                        <i v-bind:class="step.iconClass" aria-hidden="true"></i>
+                                    </span>
+                                    <span class="order-timeline__line" v-if="!step.isLast"></span>
+                                </span>
+                            </div>
+                            <span class="order-timeline__label">{{ methods.getOrderTimelineCurrent(order).label }}</span>
+                            <span class="order-timeline__hint">{{ methods.getOrderTimelineCurrent(order).description }}</span>
+                        </div>
                     </td>
                     <td>
                         <span class="order-total-cell"
@@ -631,16 +718,10 @@
                         </span>
                     </td>
                     <td>
-                        <span>{{ order.paymentTypeName || '-' }}</span>
-                        <button type="button"
-                                class="order-action-button mt-1"
-                                v-if="order.status !== 'Paid'"
-                                title="Pagar com Pix via Mercado Pago"
-                                v-on:click.stop="methods.openPixPayment(order)">
-                            <i class="fa fa-qrcode" aria-hidden="true"></i>
-                            Pix
-                        </button>
-                        <span class="order-table__muted" v-else>Pago</span>
+                        <span class="order-payment-label"
+                              v-bind:title="order.paymentMethod || order.paymentTypeName || '-'">
+                            {{ methods.getPaymentMethodLabel(order) }}
+                        </span>
                     </td>
                     <td>
                         <button type="button"
@@ -649,6 +730,7 @@
                                 v-on:click.stop="methods.showOrderDetails(order.id)">
                             <i class="fa fa-list" aria-hidden="true"></i>
                             Ver
+                            <span class="order-details-count">{{ order.itemCount || 0 }}</span>
                         </button>
                     </td>
                     <td>
@@ -723,6 +805,27 @@
                             <select class="form-select" v-model="state.status" v-bind:disabled="state.deleteMode">
                                 <option v-for="item in state.orderStatuses" :value="item">{{ translateStatus(item) }}</option>
                             </select>
+                            <div class="order-timeline mt-2"
+                                 v-bind:class="{ 'order-timeline--cancelled': state.status === 'Cancelled' }"
+                                 v-bind:title="methods.getOrderTimelineTitle({ status: state.status })">
+                                <div class="order-timeline__steps">
+                                    <span class="order-timeline__step"
+                                          v-for="step in methods.getOrderTimelineSteps({ status: state.status })"
+                                          v-bind:key="step.key"
+                                          v-bind:class="{
+                                              'order-timeline__step--complete': step.isComplete,
+                                              'order-timeline__step--current': step.isCurrent
+                                          }"
+                                          v-bind:title="step.description">
+                                        <span class="order-timeline__dot">
+                                            <i v-bind:class="step.iconClass" aria-hidden="true"></i>
+                                        </span>
+                                        <span class="order-timeline__line" v-if="!step.isLast"></span>
+                                    </span>
+                                </div>
+                                <span class="order-timeline__label">{{ methods.getOrderTimelineCurrent({ status: state.status }).label }}</span>
+                                <span class="order-timeline__hint">{{ methods.getOrderTimelineCurrent({ status: state.status }).description }}</span>
+                            </div>
                         </div>
                         <div class="col-4">
                             <label>Data do Pedido</label>

@@ -2,6 +2,7 @@ using Application.Common.CQS.Queries;
 using Application.Common.Extensions;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,8 @@ public record GetProductListDto
     public decimal? OldPrice { get; init; }
     public decimal? DiscountPercent { get; init; }
     public bool? ProductAvailable { get; init; }
+    public bool IsSold { get; set; }
+    public int SoldQuantity { get; set; }
     public string? MainImageURL { get; init; }
     public string? AltText { get; init; }
     public string? ShortDescription { get; init; }
@@ -77,6 +80,63 @@ public class GetProductListHandler : IRequestHandler<GetProductListRequest, GetP
             .ToListAsync(cancellationToken);
 
         var dtos = _mapper.Map<List<GetProductListDto>>(entities);
+        var productIds = entities.Select(x => x.Id).ToList();
+
+        var orderSoldQuantities = await _context
+            .OrderDetail
+            .AsNoTracking()
+            .Where(x =>
+                !x.IsDeleted
+                && x.ProductId != null
+                && productIds.Contains(x.ProductId)
+                && x.Order != null
+                && x.Order.Status != OrderStatus.Pending
+                && x.Order.Status != OrderStatus.Cancelled)
+            .GroupBy(x => x.ProductId!)
+            .Select(x => new
+            {
+                ProductId = x.Key,
+                Quantity = x.Sum(item => item.Quantity)
+            })
+            .ToDictionaryAsync(x => x.ProductId, x => x.Quantity, cancellationToken);
+
+        var bagSoldQuantities = await _context
+            .BagItem
+            .AsNoTracking()
+            .Where(x =>
+                !x.IsDeleted
+                && x.ProductId != null
+                && productIds.Contains(x.ProductId)
+                && x.IsPaid)
+            .GroupBy(x => x.ProductId!)
+            .Select(x => new
+            {
+                ProductId = x.Key,
+                Quantity = x.Sum(item => item.Quantity)
+            })
+            .ToDictionaryAsync(x => x.ProductId, x => x.Quantity, cancellationToken);
+
+        foreach (var dto in dtos)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Id))
+            {
+                continue;
+            }
+
+            var soldQuantity = 0;
+            if (orderSoldQuantities.TryGetValue(dto.Id, out var orderQuantity))
+            {
+                soldQuantity += orderQuantity;
+            }
+
+            if (bagSoldQuantities.TryGetValue(dto.Id, out var bagQuantity))
+            {
+                soldQuantity += bagQuantity;
+            }
+
+            dto.SoldQuantity = soldQuantity;
+            dto.IsSold = soldQuantity > 0;
+        }
 
         return new GetProductListResult
         {

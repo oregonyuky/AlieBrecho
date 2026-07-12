@@ -244,22 +244,30 @@ const App = {
                 const category = state.categories.find(item => String(item.id) === String(productCategoryId));
                 return category?.name ?? '-';
             },
-            getStatusLabel: (product) => {
-                const stock = methods.normalizedStock(product);
+            isProductSold: (product) => {
+                const soldQuantity = Number(
+                    product?.soldQuantity
+                    ?? product?.quantitySold
+                    ?? product?.itemsSold
+                    ?? product?.totalSold
+                    ?? 0
+                );
 
-                if (stock !== null && stock <= 0) return 'Esgotado';
-                if (stock !== null && stock > 0 && stock <= LOW_STOCK_THRESHOLD) return 'Estoque baixo';
+                return product?.isSold === true || (Number.isFinite(soldQuantity) && soldQuantity > 0);
+            },
+            getStatusLabel: (product) => {
+                if (methods.isProductSold(product)) return 'Vendido';
                 if (product?.productAvailable === true) return 'Publicado';
 
-                return 'Esgotado';
+                return 'Nao publicado';
             },
             getStatusClass: (product) => {
                 const label = methods.getStatusLabel(product);
 
                 if (label === 'Publicado') return 'product-status--published';
-                if (label === 'Estoque baixo') return 'product-status--low';
+                if (label === 'Vendido') return 'product-status--sold';
 
-                return 'product-status--soldout';
+                return 'product-status--unpublished';
             },
             getSortValue: (product, field) => {
                 if (field === 'name') return String(product?.name ?? '').toLowerCase();
@@ -299,17 +307,7 @@ const App = {
                     outOfStockProducts = state.mainData.filter(x => x?.productAvailable === false).length;
                 }
 
-                const soldProducts = state.mainData.reduce((total, item) => {
-                    const sold = Number(
-                        item?.soldQuantity
-                        ?? item?.quantitySold
-                        ?? item?.itemsSold
-                        ?? item?.totalSold
-                        ?? 0
-                    );
-
-                    return total + (Number.isFinite(sold) ? sold : 0);
-                }, 0);
+                const soldProducts = state.mainData.filter(item => methods.isProductSold(item)).length;
 
                 state.summary = {
                     totalProducts,
@@ -317,7 +315,7 @@ const App = {
                     lowStockProducts,
                     outOfStockProducts,
                     soldProducts,
-                    unpublishedProducts: state.mainData.filter(x => x?.productAvailable !== true).length
+                    unpublishedProducts: state.mainData.filter(x => x?.productAvailable !== true && !methods.isProductSold(x)).length
                 };
             },
             resetForm: () => {
