@@ -1,5 +1,6 @@
 using Application.Common.Repositories;
 using Domain.Entities;
+using Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,8 @@ public class DeleteOrderHandler : IRequestHandler<DeleteOrderRequest, DeleteOrde
             throw new Exception($"Order not found: {request.Id}");
         }
 
+        var shouldRestoreProductsAvailability = entity.Status <= OrderStatus.Dispatched;
+
         _repository.Delete(entity);
 
         if (entity.Payment != null)
@@ -71,7 +74,7 @@ public class DeleteOrderHandler : IRequestHandler<DeleteOrderRequest, DeleteOrde
         foreach (var item in entity.OrderDetails)
         {
             item.IsDeleted = true;
-            if (item.Product != null)
+            if (shouldRestoreProductsAvailability && item.Product != null)
             {
                 item.Product.ProductAvailable = true;
             }
