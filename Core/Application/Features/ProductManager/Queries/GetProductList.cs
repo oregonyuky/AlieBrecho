@@ -56,6 +56,7 @@ public class GetProductListResult
 public class GetProductListRequest : IRequest<GetProductListResult>
 {
     public bool IsDeleted { get; init; } = false;
+    public bool AvailableOnly { get; init; } = false;
 }
 
 public class GetProductListHandler : IRequestHandler<GetProductListRequest, GetProductListResult>
@@ -77,6 +78,7 @@ public class GetProductListHandler : IRequestHandler<GetProductListRequest, GetP
             .Include(x => x.DropConfig)
             .Include(x => x.Sizes)
             .ApplyIsDeletedFilter(request.IsDeleted)
+            .Where(x => !request.AvailableOnly || x.ProductAvailable == true)
             .ToListAsync(cancellationToken);
 
         var dtos = _mapper.Map<List<GetProductListDto>>(entities);

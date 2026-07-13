@@ -27,6 +27,7 @@ public class PixController : ControllerBase
     private readonly IMercadoPagoService _mercadoPagoService;
     private readonly MercadoPagoSettings _settings;
     private readonly IHubContext<OrderNotificationsHub> _orderNotifications;
+    private readonly IHubContext<CatalogNotificationsHub> _catalogNotifications;
 
     public PixController(
         ICommandRepository<Order> orderRepository,
@@ -36,7 +37,8 @@ public class PixController : ControllerBase
         IUnitOfWork unitOfWork,
         IMercadoPagoService mercadoPagoService,
         IOptions<MercadoPagoSettings> settings,
-        IHubContext<OrderNotificationsHub> orderNotifications)
+        IHubContext<OrderNotificationsHub> orderNotifications,
+        IHubContext<CatalogNotificationsHub> catalogNotifications)
     {
         _orderRepository = orderRepository;
         _bagRepository = bagRepository;
@@ -46,6 +48,7 @@ public class PixController : ControllerBase
         _mercadoPagoService = mercadoPagoService;
         _settings = settings.Value;
         _orderNotifications = orderNotifications;
+        _catalogNotifications = catalogNotifications;
     }
 
     [Authorize]
@@ -140,6 +143,8 @@ public class PixController : ControllerBase
                 return NotFound("Pagamento nao encontrado.");
             }
 
+            await NotifyBagChangedAsync("pix-status-updated", bag.Id, bag.Status.ToString(), cancellationToken);
+
             return Ok(new PixPaymentStatusResponse
             {
                 PaymentId = bagPayment.PaymentId,
@@ -189,7 +194,11 @@ public class PixController : ControllerBase
         if (order is null)
         {
             var bagPayment = await _mercadoPagoService.GetPaymentAsync(paymentId, cancellationToken);
-            await ApplyBagPaymentStatusAsync(bagPayment, cancellationToken);
+            var bag = await ApplyBagPaymentStatusAsync(bagPayment, cancellationToken);
+            if (bag is not null)
+            {
+                await NotifyBagChangedAsync("pix-webhook-updated", bag.Id, bag.Status.ToString(), cancellationToken);
+            }
             return Ok();
         }
 
@@ -272,6 +281,24 @@ public class PixController : ControllerBase
             cancellationToken);
     }
 
+    private Task NotifyBagChangedAsync(
+        string changeType,
+        string? bagId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        return _orderNotifications.Clients.All.SendAsync(
+            "BagChanged",
+            new
+            {
+                changeType,
+                bagId,
+                status,
+                changedAt = DateTime.UtcNow
+            },
+            cancellationToken);
+    }
+
     private async Task<Bag?> ApplyBagPaymentStatusAsync(
         MercadoPagoPaymentStatusResult mercadoPagoPayment,
         CancellationToken cancellationToken)
@@ -316,7 +343,8 @@ public class PixController : ControllerBase
             bag.LastInteractionAt = DateTime.UtcNow;
             bag.UpdatedAtUtc = DateTime.UtcNow;
 
-            await MarkBagProductsUnavailableAsync(bag, cancellationToken);
+            var unavailableProductIds = await MarkBagProductsUnavailableAsync(bag, cancellationToken);
+            await NotifyProductsUnavailableAsync(unavailableProductIds, cancellationToken);
         }
 
         _bagRepository.Update(bag);
@@ -463,7 +491,7 @@ public class PixController : ControllerBase
         }
     }
 
-    private async Task MarkBagProductsUnavailableAsync(Bag bag, CancellationToken cancellationToken)
+    private async Task<List<string>> MarkBagProductsUnavailableAsync(Bag bag, CancellationToken cancellationToken)
     {
         var productIds = bag.Items?
             .Where(x => !x.IsDeleted && x.IsPaid && !string.IsNullOrWhiteSpace(x.ProductId))
@@ -473,7 +501,7 @@ public class PixController : ControllerBase
 
         if (productIds.Count == 0)
         {
-            return;
+            return [];
         }
 
         var products = await _productRepository.GetQuery()
@@ -484,6 +512,31 @@ public class PixController : ControllerBase
         {
             product.ProductAvailable = false;
             _productRepository.Update(product);
+        }
+
+        return products
+            .Select(x => x.Id)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!)
+            .ToList();
+    }
+
+    private async Task NotifyProductsUnavailableAsync(
+        IEnumerable<string> productIds,
+        CancellationToken cancellationToken)
+    {
+        foreach (var productId in productIds)
+        {
+            await _catalogNotifications.Clients.All.SendAsync(
+                "ProductChanged",
+                new
+                {
+                    changeType = "sold",
+                    productId,
+                    productAvailable = false,
+                    changedAt = DateTime.UtcNow
+                },
+                cancellationToken);
         }
     }
 

@@ -4,12 +4,14 @@ using Application.Common.Repositories;
 using Application.Common.Services.MercadoPagoManager;
 using ASPNET.BackEnd.Common.Base;
 using ASPNET.BackEnd.Common.Models;
+using ASPNET.BackEnd.Hubs;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.MercadoPagoManager;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -21,25 +23,143 @@ public class BagController : BaseApiController
     private readonly ICommandRepository<Bag> _bagRepository;
     private readonly ICommandRepository<BagItem> _bagItemRepository;
     private readonly ICommandRepository<Product> _productRepository;
+    private readonly ICommandRepository<BagSettings> _bagSettingsRepository;
+    private readonly ICommandRepository<BagExpirationHistory> _bagExpirationHistoryRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMercadoPagoService _mercadoPagoService;
     private readonly MercadoPagoSettings _mercadoPagoSettings;
+    private readonly IHubContext<OrderNotificationsHub> _orderNotifications;
 
     public BagController(
         ISender sender,
         ICommandRepository<Bag> bagRepository,
         ICommandRepository<BagItem> bagItemRepository,
         ICommandRepository<Product> productRepository,
+        ICommandRepository<BagSettings> bagSettingsRepository,
+        ICommandRepository<BagExpirationHistory> bagExpirationHistoryRepository,
         IUnitOfWork unitOfWork,
         IMercadoPagoService mercadoPagoService,
-        IOptions<MercadoPagoSettings> mercadoPagoSettings) : base(sender)
+        IOptions<MercadoPagoSettings> mercadoPagoSettings,
+        IHubContext<OrderNotificationsHub> orderNotifications) : base(sender)
     {
         _bagRepository = bagRepository;
         _bagItemRepository = bagItemRepository;
         _productRepository = productRepository;
+        _bagSettingsRepository = bagSettingsRepository;
+        _bagExpirationHistoryRepository = bagExpirationHistoryRepository;
         _unitOfWork = unitOfWork;
         _mercadoPagoService = mercadoPagoService;
         _mercadoPagoSettings = mercadoPagoSettings.Value;
+        _orderNotifications = orderNotifications;
+    }
+
+    [Authorize]
+    [HttpGet("GetBagSettings")]
+    public async Task<ActionResult<ApiSuccessResult<BagSettingsResponse>>> GetBagSettingsAsync(
+        CancellationToken cancellationToken)
+    {
+        var settings = await GetOrCreateBagSettingsAsync(cancellationToken);
+
+        return Ok(new ApiSuccessResult<BagSettingsResponse>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GetBagSettingsAsync)}",
+            Content = MapBagSettings(settings)
+        });
+    }
+
+    [Authorize]
+    [HttpPost("UpdateBagSettings")]
+    public async Task<ActionResult<ApiSuccessResult<BagSettingsResponse>>> UpdateBagSettingsAsync(
+        UpdateBagSettingsRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsValidDurationUnit(request.DefaultDurationUnit)
+            || !IsValidDurationUnit(request.ExtensionDurationUnit)
+            || !IsValidDurationUnit(request.ExtensionResponseDeadlineUnit))
+        {
+            return BadRequest("Unidade de duracao invalida.");
+        }
+
+        var settings = await GetOrCreateBagSettingsAsync(cancellationToken);
+        settings.DefaultDurationValue = Math.Max(request.DefaultDurationValue, 1);
+        settings.DefaultDurationUnit = NormalizeDurationUnit(request.DefaultDurationUnit);
+        settings.ExtensionDurationValue = Math.Max(request.ExtensionDurationValue, 1);
+        settings.ExtensionDurationUnit = NormalizeDurationUnit(request.ExtensionDurationUnit);
+        settings.ExtensionResponseDeadlineValue = Math.Max(request.ExtensionResponseDeadlineValue, 1);
+        settings.ExtensionResponseDeadlineUnit = NormalizeDurationUnit(request.ExtensionResponseDeadlineUnit);
+        settings.UpdatedAtUtc = DateTime.UtcNow;
+
+        _bagSettingsRepository.Update(settings);
+        await _unitOfWork.SaveAsync(cancellationToken);
+
+        return Ok(new ApiSuccessResult<BagSettingsResponse>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(UpdateBagSettingsAsync)}",
+            Content = MapBagSettings(settings)
+        });
+    }
+
+    [Authorize]
+    [HttpPost("UpdateBagExpiration")]
+    public async Task<ActionResult<ApiSuccessResult<BagExpirationUpdateResponse>>> UpdateBagExpirationAsync(
+        UpdateBagExpirationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.BagId))
+        {
+            return BadRequest("Sacola nao informada.");
+        }
+
+        var bag = await _bagRepository.GetQuery()
+            .Include(x => x.ExpirationHistory)
+            .SingleOrDefaultAsync(x => x.Id == request.BagId && !x.IsDeleted, cancellationToken);
+
+        if (bag is null)
+        {
+            return NotFound("Sacolinha nao encontrada.");
+        }
+
+        var oldExpirationDate = bag.ExpirationDate;
+        var newExpirationDate = request.NewExpirationDate
+            ?? AddDuration(oldExpirationDate, request.AddValue ?? 0, request.AddUnit);
+
+        if (newExpirationDate <= DateTime.UtcNow)
+        {
+            return BadRequest("O novo prazo deve ser maior que a data atual.");
+        }
+
+        bag.ExpirationDate = newExpirationDate;
+        bag.LastInteractionAt = DateTime.UtcNow;
+        bag.UpdatedAtUtc = DateTime.UtcNow;
+
+        var history = new BagExpirationHistory
+        {
+            BagId = bag.Id,
+            OldExpirationDate = oldExpirationDate,
+            NewExpirationDate = newExpirationDate,
+            ChangedBy = GetCurrentUserLabel(),
+            ChangedAtUtc = DateTime.UtcNow,
+            Note = request.Note
+        };
+
+        await _bagExpirationHistoryRepository.CreateAsync(history, cancellationToken);
+        _bagRepository.Update(bag);
+        await _unitOfWork.SaveAsync(cancellationToken);
+        await NotifyBagChangedAsync("expiration-updated", bag.Id, bag.Status.ToString(), cancellationToken);
+
+        return Ok(new ApiSuccessResult<BagExpirationUpdateResponse>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(UpdateBagExpirationAsync)}",
+            Content = new BagExpirationUpdateResponse
+            {
+                BagId = bag.Id,
+                ExpirationDate = bag.ExpirationDate,
+                History = MapExpirationHistory((bag.ExpirationHistory ?? []).Append(history))
+            }
+        });
     }
 
     [Authorize]
@@ -83,6 +203,7 @@ public class BagController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyBagChangedAsync("updated", response.Data?.Id, response.Data?.Status.ToString(), cancellationToken);
 
         return Ok(new ApiSuccessResult<UpdateBagResult>
         {
@@ -142,12 +263,13 @@ public class BagController : BaseApiController
         var isNewBag = bag is null;
         if (bag is null)
         {
+            var settings = await GetOrCreateBagSettingsAsync(cancellationToken);
             bag = new Bag
             {
                 CustomerId = request.CustomerId,
                 Status = BagStatus.Active,
                 CreatedAt = DateTime.UtcNow,
-                ExpirationDate = DateTime.UtcNow.AddMonths(2),
+                ExpirationDate = AddDuration(DateTime.UtcNow, settings.DefaultDurationValue, settings.DefaultDurationUnit),
                 LastInteractionAt = DateTime.UtcNow
             };
 
@@ -201,6 +323,7 @@ public class BagController : BaseApiController
         bag.UpdatedAtUtc = isNewBag ? bag.UpdatedAtUtc : DateTime.UtcNow;
 
         await _unitOfWork.SaveAsync(cancellationToken);
+        await NotifyBagChangedAsync(isNewBag ? "created" : "checkout-updated", bag.Id, bag.Status.ToString(), cancellationToken);
 
         var amount = Math.Round(checkoutItemsValue, 2);
         if (amount <= 0)
@@ -264,6 +387,7 @@ public class BagController : BaseApiController
         bag.UpdatedAtUtc = DateTime.UtcNow;
 
         await _unitOfWork.SaveAsync(cancellationToken);
+        await NotifyBagChangedAsync("finalized", bag.Id, bag.Status.ToString(), cancellationToken);
 
         return Ok(new ApiSuccessResult<FinalizeBagResponse>
         {
@@ -301,6 +425,105 @@ public class BagController : BaseApiController
         var weightCost = Math.Max(bag.TotalWeight, 0.3m) * 10m;
         var insurance = bag.TotalItemsValue * 0.01m;
         return Math.Round(weightCost + insurance, 2);
+    }
+
+    private async Task<BagSettings> GetOrCreateBagSettingsAsync(CancellationToken cancellationToken)
+    {
+        var settings = await _bagSettingsRepository.GetQuery()
+            .OrderBy(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(x => !x.IsDeleted, cancellationToken);
+
+        if (settings is not null)
+        {
+            return settings;
+        }
+
+        settings = new BagSettings
+        {
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _bagSettingsRepository.CreateAsync(settings, cancellationToken);
+        await _unitOfWork.SaveAsync(cancellationToken);
+        return settings;
+    }
+
+    private static BagSettingsResponse MapBagSettings(BagSettings settings)
+    {
+        return new BagSettingsResponse
+        {
+            Id = settings.Id,
+            DefaultDurationValue = settings.DefaultDurationValue,
+            DefaultDurationUnit = settings.DefaultDurationUnit,
+            ExtensionDurationValue = settings.ExtensionDurationValue,
+            ExtensionDurationUnit = settings.ExtensionDurationUnit,
+            ExtensionResponseDeadlineValue = settings.ExtensionResponseDeadlineValue,
+            ExtensionResponseDeadlineUnit = settings.ExtensionResponseDeadlineUnit
+        };
+    }
+
+    private static bool IsValidDurationUnit(string? unit)
+    {
+        return string.Equals(unit, "days", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeDurationUnit(string? unit)
+    {
+        return string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase)
+            ? "months"
+            : "days";
+    }
+
+    private static DateTime AddDuration(DateTime date, int value, string? unit)
+    {
+        var safeValue = Math.Max(value, 1);
+        return string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase)
+            ? date.AddMonths(safeValue)
+            : date.AddDays(safeValue);
+    }
+
+    private string GetCurrentUserLabel()
+    {
+        return User.FindFirst("email")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+            ?? User.Identity?.Name
+            ?? "admin";
+    }
+
+    private static List<BagExpirationHistoryResponse> MapExpirationHistory(IEnumerable<BagExpirationHistory> history)
+    {
+        return history
+            .Where(x => !x.IsDeleted)
+            .OrderByDescending(x => x.ChangedAtUtc)
+            .Select(x => new BagExpirationHistoryResponse
+            {
+                Id = x.Id,
+                OldExpirationDate = x.OldExpirationDate,
+                NewExpirationDate = x.NewExpirationDate,
+                ChangedBy = x.ChangedBy,
+                ChangedAtUtc = x.ChangedAtUtc,
+                Note = x.Note
+            })
+            .ToList();
+    }
+
+    private Task NotifyBagChangedAsync(
+        string changeType,
+        string? bagId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        return _orderNotifications.Clients.All.SendAsync(
+            "BagChanged",
+            new
+            {
+                changeType,
+                bagId,
+                status,
+                changedAt = DateTime.UtcNow
+            },
+            cancellationToken);
     }
 
     private static BagSummaryResponse MapBag(Bag bag)
@@ -383,6 +606,53 @@ public sealed record BagSummaryResponse
     public decimal TotalItemsValue { get; init; }
     public decimal? ShippingCost { get; init; }
     public int ItemCount { get; init; }
+}
+
+public sealed record BagSettingsResponse
+{
+    public string? Id { get; init; }
+    public int DefaultDurationValue { get; init; }
+    public string? DefaultDurationUnit { get; init; }
+    public int ExtensionDurationValue { get; init; }
+    public string? ExtensionDurationUnit { get; init; }
+    public int ExtensionResponseDeadlineValue { get; init; }
+    public string? ExtensionResponseDeadlineUnit { get; init; }
+}
+
+public sealed record UpdateBagSettingsRequest
+{
+    public int DefaultDurationValue { get; init; }
+    public string? DefaultDurationUnit { get; init; }
+    public int ExtensionDurationValue { get; init; }
+    public string? ExtensionDurationUnit { get; init; }
+    public int ExtensionResponseDeadlineValue { get; init; }
+    public string? ExtensionResponseDeadlineUnit { get; init; }
+}
+
+public sealed record UpdateBagExpirationRequest
+{
+    public string? BagId { get; init; }
+    public DateTime? NewExpirationDate { get; init; }
+    public int? AddValue { get; init; }
+    public string? AddUnit { get; init; }
+    public string? Note { get; init; }
+}
+
+public sealed record BagExpirationUpdateResponse
+{
+    public string? BagId { get; init; }
+    public DateTime ExpirationDate { get; init; }
+    public List<BagExpirationHistoryResponse> History { get; init; } = [];
+}
+
+public sealed record BagExpirationHistoryResponse
+{
+    public string? Id { get; init; }
+    public DateTime OldExpirationDate { get; init; }
+    public DateTime NewExpirationDate { get; init; }
+    public string? ChangedBy { get; init; }
+    public DateTime ChangedAtUtc { get; init; }
+    public string? Note { get; init; }
 }
 
 public sealed record CheckoutBagRequest

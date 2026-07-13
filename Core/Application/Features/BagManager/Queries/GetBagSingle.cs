@@ -38,6 +38,17 @@ public record GetBagSingleDto
     public bool AllItemsPaid { get; init; }
     public string? Notes { get; init; }
     public List<BagItemDto>? Items { get; init; }
+    public List<BagExpirationHistoryDto>? ExpirationHistory { get; init; }
+}
+
+public record BagExpirationHistoryDto
+{
+    public string? Id { get; init; }
+    public DateTime OldExpirationDate { get; init; }
+    public DateTime NewExpirationDate { get; init; }
+    public string? ChangedBy { get; init; }
+    public DateTime ChangedAtUtc { get; init; }
+    public string? Note { get; init; }
 }
 
 public class GetBagSingleProfile : Profile
@@ -46,6 +57,8 @@ public class GetBagSingleProfile : Profile
     {
         CreateMap<BagItem, BagItemDto>()
             .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductId));
+
+        CreateMap<BagExpirationHistory, BagExpirationHistoryDto>();
 
         CreateMap<Bag, GetBagSingleDto>()
             .ForMember(dest => dest.CustomerId, opt => opt.MapFrom(src => src.CustomerId))
@@ -85,6 +98,7 @@ public class GetBagSingleHandler : IRequestHandler<GetBagSingleRequest, GetBagSi
             .Bag
             .AsNoTracking()
             .Include(x => x.Items)
+            .Include(x => x.ExpirationHistory)
             .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
@@ -134,7 +148,10 @@ public class GetBagSingleHandler : IRequestHandler<GetBagSingleRequest, GetBagSi
             Data = dto with
             {
                 CustomerName = customerName,
-                Items = items
+                Items = items,
+                ExpirationHistory = dto.ExpirationHistory?
+                    .OrderByDescending(x => x.ChangedAtUtc)
+                    .ToList()
             }
         };
     }

@@ -229,6 +229,46 @@ const App = {
                     maximumFractionDigits: 2
                 })}%`;
             },
+            roundCurrency: (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100,
+            roundPercent: (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100,
+            calculateDiscountedPrice: (oldPrice, discountPercent) => {
+                const price = Number(oldPrice);
+                const discount = Number(discountPercent);
+
+                if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(discount)) {
+                    return null;
+                }
+
+                return Math.max(0, methods.roundCurrency(price * (1 - (discount / 100))));
+            },
+            calculateDiscountPercent: (oldPrice, unitPrice) => {
+                const price = Number(oldPrice);
+                const discountedPrice = Number(unitPrice);
+
+                if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(discountedPrice)) {
+                    return null;
+                }
+
+                return Math.max(0, methods.roundPercent(((price - discountedPrice) / price) * 100));
+            },
+            handleDiscountPercentInput: (event) => {
+                if (!state.id) return;
+
+                const discountPercent = event?.target ? event.target.value : state.discountPercent;
+                const discountedPrice = methods.calculateDiscountedPrice(state.oldPrice, discountPercent);
+                if (discountedPrice !== null) {
+                    state.unitPrice = discountedPrice;
+                }
+            },
+            handleUnitPriceInput: (event) => {
+                if (!state.id) return;
+
+                const unitPrice = event?.target ? event.target.value : state.unitPrice;
+                const discountPercent = methods.calculateDiscountPercent(state.oldPrice, unitPrice);
+                if (discountPercent !== null) {
+                    state.discountPercent = discountPercent;
+                }
+            },
             getSortIcon: (field) => {
                 if (state.sort.field !== field) return 'fa-sort';
 

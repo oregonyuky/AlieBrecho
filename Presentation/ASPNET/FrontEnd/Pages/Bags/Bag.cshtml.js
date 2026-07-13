@@ -22,6 +22,26 @@ const App = {
             totalWeight: 0,
             allItemsPaid: false,
             notes: '',
+            settings: {
+                defaultDurationValue: 60,
+                defaultDurationUnit: 'months',
+                extensionDurationValue: 30,
+                extensionDurationUnit: 'months',
+                extensionResponseDeadlineValue: 7,
+                extensionResponseDeadlineUnit: 'days',
+                isSubmitting: false
+            },
+            duration: {
+                bagId: '',
+                customerName: '',
+                status: '',
+                expirationDate: '',
+                newExpirationDate: '',
+                addValue: null,
+                addUnit: 'days',
+                history: [],
+                isSubmitting: false
+            },
             bagStatuses: ['Active', 'Closed', 'Expired', 'Abandoned', 'ReadyToShip', 'Shipped'],
             sort: {
                 field: 'createdAt',
@@ -35,6 +55,8 @@ const App = {
         });
 
         const mainModalRef = Vue.ref(null);
+        const settingsModalRef = Vue.ref(null);
+        const durationModalRef = Vue.ref(null);
 
         const bagStatusLabels = {
             Active: 'Ativa',
@@ -50,17 +72,43 @@ const App = {
         const services = {
             getMainData: async () => AxiosManager.get('/Bag/GetBagList', {}),
             getSingleData: async (id) => AxiosManager.get('/Bag/GetBagSingle', { params: { id } }),
-            updateMainData: async (payload) => AxiosManager.post('/Bag/UpdateBag', payload)
+            updateMainData: async (payload) => AxiosManager.post('/Bag/UpdateBag', payload),
+            getSettings: async () => AxiosManager.get('/Bag/GetBagSettings', {}),
+            updateSettings: async (payload) => AxiosManager.post('/Bag/UpdateBagSettings', payload),
+            updateExpiration: async (payload) => AxiosManager.post('/Bag/UpdateBagExpiration', payload)
         };
 
         const mainGrid = {
             refresh: () => {}
         };
 
+        let bagNotificationsConnection = null;
+        let bagNotificationsRefreshTimeout = null;
+
         const mainModal = {
             obj: null,
             create: () => {
                 mainModal.obj = new bootstrap.Modal(mainModalRef.value, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }
+        };
+
+        const settingsModal = {
+            obj: null,
+            create: () => {
+                settingsModal.obj = new bootstrap.Modal(settingsModalRef.value, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }
+        };
+
+        const durationModal = {
+            obj: null,
+            create: () => {
+                durationModal.obj = new bootstrap.Modal(durationModalRef.value, {
                     backdrop: 'static',
                     keyboard: false
                 });
@@ -128,6 +176,132 @@ const App = {
                 ? `/api/FileImage/GetImage?imageName=${encodeURIComponent(imageName)}`
                 : '/noimage.png';
 
+        const formatPostCode = (value) => {
+            const digits = String(value ?? '').replace(/\D/g, '');
+
+            if (digits.length === 8) {
+                return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+            }
+
+            return value || '';
+        };
+
+        const toDateInputValue = (value) => {
+            const date = parseUtcDate(value);
+            if (!date) return '';
+
+            const parts = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(date).reduce((result, part) => {
+                result[part.type] = part.value;
+                return result;
+            }, {});
+
+            return `${parts.year}-${parts.month}-${parts.day}`;
+        };
+
+        const getDaysUntil = (value) => {
+            const date = parseUtcDate(value);
+            if (!date) return null;
+
+            const today = new Date();
+            const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const end = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            return Math.ceil((end - start) / 86400000);
+        };
+
+        const formatShortDate = (value) => {
+            const date = parseUtcDate(value);
+            if (!date) return '-';
+
+            return date.toLocaleDateString('pt-BR', {
+                timeZone: BRASILIA_TIME_ZONE
+            });
+        };
+
+        const getExpirationSummary = (value) => {
+            const days = getDaysUntil(value);
+            const dateText = formatShortDate(value);
+
+            if (days === null) return 'Expira em: -';
+            if (days < 0) return `Expirou em: ${dateText} (${Math.abs(days)} dias atras)`;
+            if (days === 0) return `Expira em: ${dateText} (hoje)`;
+            if (days === 1) return `Expira em: ${dateText} (1 dia restante)`;
+
+            return `Expira em: ${dateText} (${days} dias restantes)`;
+        };
+
+        const getExpirationRemainingText = (value) => {
+            const days = getDaysUntil(value);
+
+            if (days === null) return '-';
+            if (days < 0) return `${Math.abs(days)} dias atras`;
+            if (days === 0) return 'hoje';
+            if (days === 1) return '1 dia restante';
+
+            return `${days} dias restantes`;
+        };
+
+        const formatHistoryEntry = (entry) => {
+            const oldDays = getDaysUntil(entry.oldExpirationDate);
+            const newDays = getDaysUntil(entry.newExpirationDate);
+            const changedBy = entry.changedBy || 'admin';
+            const changedAt = formatShortDate(entry.changedAtUtc);
+
+            if (oldDays === null || newDays === null) {
+                return `Prazo alterado por ${changedBy} em ${changedAt}: ${formatShortDate(entry.oldExpirationDate)} -> ${formatShortDate(entry.newExpirationDate)}`;
+            }
+
+            return `Prazo estendido por ${changedBy} em ${changedAt}: ${oldDays} -> ${newDays} dias`;
+        };
+
+        const addDuration = (value, amount, unit) => {
+            const date = parseUtcDate(value);
+            const quantity = Number(amount);
+            if (!date || !Number.isFinite(quantity) || quantity <= 0) return null;
+
+            const result = new Date(date);
+            if (unit === 'months') {
+                result.setMonth(result.getMonth() + quantity);
+            } else {
+                result.setDate(result.getDate() + quantity);
+            }
+
+            return result;
+        };
+
+        const getBagItemPaymentStatus = (item) => {
+            if (item.isPaid) {
+                return {
+                    label: 'Pago',
+                    className: 'bag-detail-status--paid'
+                };
+            }
+
+            const reservationExpiresAt = parseUtcDate(item.reservationExpiresAt);
+            if (item.isReserved && reservationExpiresAt && reservationExpiresAt < new Date()) {
+                return {
+                    label: 'Reserva expirada',
+                    className: 'bag-detail-status--expired'
+                };
+            }
+
+            if (item.isReserved) {
+                return {
+                    label: 'Reservado',
+                    className: 'bag-detail-status--reserved'
+                };
+            }
+
+            return {
+                label: 'Pendente',
+                className: 'bag-detail-status--pending'
+            };
+        };
+
         const methods = {
             updateSummaryCards: () => {
                 const total = state.mainData.length;
@@ -147,6 +321,92 @@ const App = {
                 }));
                 state.pagination.page = Math.min(state.pagination.page, Math.max(totalPages.value, 1));
                 methods.updateSummaryCards();
+            },
+            loadSettings: async () => {
+                const response = await services.getSettings();
+                const settings = response?.data?.content ?? {};
+
+                Object.assign(state.settings, {
+                    defaultDurationValue: settings.defaultDurationValue ?? 60,
+                    defaultDurationUnit: settings.defaultDurationUnit ?? 'months',
+                    extensionDurationValue: settings.extensionDurationValue ?? 30,
+                    extensionDurationUnit: settings.extensionDurationUnit ?? 'months',
+                    extensionResponseDeadlineValue: settings.extensionResponseDeadlineValue ?? 7,
+                    extensionResponseDeadlineUnit: settings.extensionResponseDeadlineUnit ?? 'days'
+                });
+            },
+            showSettingsModal: async () => {
+                try {
+                    await methods.loadSettings();
+                    settingsModal.obj.show();
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Configuracoes da sacolinha',
+                        text: error.response?.data?.message ?? 'Nao foi possivel carregar as configuracoes.'
+                    });
+                }
+            },
+            saveSettings: async () => {
+                try {
+                    state.settings.isSubmitting = true;
+
+                    await services.updateSettings({
+                        defaultDurationValue: state.settings.defaultDurationValue,
+                        defaultDurationUnit: state.settings.defaultDurationUnit,
+                        extensionDurationValue: state.settings.extensionDurationValue,
+                        extensionDurationUnit: state.settings.extensionDurationUnit,
+                        extensionResponseDeadlineValue: state.settings.extensionResponseDeadlineValue,
+                        extensionResponseDeadlineUnit: state.settings.extensionResponseDeadlineUnit
+                    });
+
+                    settingsModal.obj.hide();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Configuracoes atualizadas com sucesso',
+                        timer: 1200,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Nao foi possivel salvar as configuracoes.'
+                    });
+                } finally {
+                    state.settings.isSubmitting = false;
+                }
+            },
+            connectBagNotifications: async () => {
+                if (!window.signalR || bagNotificationsConnection) {
+                    return;
+                }
+
+                bagNotificationsConnection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/orders', {
+                        accessTokenFactory: () => StorageManager.getAccessToken() ?? ''
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                bagNotificationsConnection.on('BagChanged', () => {
+                    clearTimeout(bagNotificationsRefreshTimeout);
+                    bagNotificationsRefreshTimeout = setTimeout(async () => {
+                        try {
+                            await methods.populateMainData();
+                            mainGrid.refresh();
+                        } catch (error) {
+                            console.error('Nao foi possivel atualizar as sacolas em tempo real.', error);
+                        }
+                    }, 250);
+                });
+
+                try {
+                    await bagNotificationsConnection.start();
+                } catch (error) {
+                    console.error('Nao foi possivel conectar as notificacoes de sacolas.', error);
+                    bagNotificationsConnection = null;
+                }
             },
             formatDateTime: (value) => {
                 if (!value) {
@@ -190,6 +450,11 @@ const App = {
                 ReadyToShip: 'bag-status--readytoship',
                 Shipped: 'bag-status--shipped'
             }[status] || 'bag-status--active'),
+            formatPostCode: (value) => formatPostCode(value),
+            formatShortDate: (value) => formatShortDate(value),
+            getExpirationSummary: (value) => getExpirationSummary(value),
+            getExpirationRemainingText: (value) => getExpirationRemainingText(value),
+            formatHistoryEntry: (entry) => formatHistoryEntry(entry),
             getSortValue: (bag, field) => {
                 if (field === 'createdAt') {
                     const date = parseUtcDate(bag?.createdAt);
@@ -226,6 +491,97 @@ const App = {
                 state.allItemsPaid = bag.allItemsPaid ?? false;
                 state.notes = bag.notes ?? '';
             },
+            showDurationModal: async (bag) => {
+                if (!bag?.id) return;
+
+                try {
+                    const response = await services.getSingleData(bag.id);
+                    const singleBag = response?.data?.content?.data;
+                    if (!singleBag) return;
+
+                    Object.assign(state.duration, {
+                        bagId: singleBag.id ?? '',
+                        customerName: singleBag.customerName ?? '',
+                        status: singleBag.status ?? 'Active',
+                        expirationDate: singleBag.expirationDate ?? '',
+                        newExpirationDate: toDateInputValue(singleBag.expirationDate),
+                        addValue: null,
+                        addUnit: 'days',
+                        history: singleBag.expirationHistory ?? [],
+                        isSubmitting: false
+                    });
+
+                    durationModal.obj.show();
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Prazo da sacola',
+                        text: error.response?.data?.message ?? 'Nao foi possivel carregar o prazo desta sacola.'
+                    });
+                }
+            },
+            applyDurationChange: async () => {
+                const currentBag = state.mainData.find(x => x.id === state.duration.bagId);
+                const customerName = state.duration.customerName || currentBag?.customerName || 'esta cliente';
+                const addValue = Number(state.duration.addValue);
+                const addedDate = addDuration(state.duration.expirationDate, addValue, state.duration.addUnit);
+                const newDate = addedDate
+                    ?? (state.duration.newExpirationDate ? new Date(`${state.duration.newExpirationDate}T23:59:59`) : null);
+
+                if (!newDate || Number.isNaN(newDate.getTime())) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Informe um novo prazo',
+                        text: 'Defina uma nova data ou informe uma quantidade de dias/meses.'
+                    });
+                    return;
+                }
+
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Confirmar novo prazo?',
+                    text: `Isso vai sobrescrever o prazo padrao apenas para a sacola de ${customerName}. Confirmar?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Confirmar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    state.duration.isSubmitting = true;
+
+                    const response = await services.updateExpiration({
+                        bagId: state.duration.bagId,
+                        newExpirationDate: newDate,
+                        addValue: null,
+                        addUnit: state.duration.addUnit
+                    });
+
+                    const content = response?.data?.content ?? {};
+                    state.duration.expirationDate = content.expirationDate ?? newDate.toISOString();
+                    state.duration.newExpirationDate = toDateInputValue(state.duration.expirationDate);
+                    state.duration.addValue = null;
+                    state.duration.history = content.history ?? state.duration.history;
+
+                    await methods.populateMainData();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Prazo atualizado',
+                        timer: 1200,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: error.response?.data?.message ?? 'Nao foi possivel atualizar o prazo.'
+                    });
+                } finally {
+                    state.duration.isSubmitting = false;
+                }
+            },
             showBagDetails: async (id) => {
                 try {
                     const response = await services.getSingleData(id);
@@ -236,7 +592,10 @@ const App = {
                         return Swal.fire({ icon: 'info', title: 'Detalhes da Sacola', text: 'Nenhum item encontrado para esta sacola.' });
                     }
 
-                    const itemCards = items.map((item) => `
+                    const itemCards = items.map((item) => {
+                        const paymentStatus = getBagItemPaymentStatus(item);
+
+                        return `
                         <div class="bag-detail-card">
                             <img class="bag-detail-card__image"
                                  src="${getProductImageUrl(item.productImageUrl)}"
@@ -247,11 +606,12 @@ const App = {
                                 <div class="bag-detail-card__meta">
                                     <span>Qtd: ${Number(item.quantity || 0)}</span>
                                     <span>${formatCurrency(item.price)}</span>
-                                    <span>${item.isPaid ? 'Pago' : 'Pendente'}</span>
+                                    <span class="bag-detail-status ${paymentStatus.className}">${paymentStatus.label}</span>
                                 </div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
 
                     await Swal.fire({
                         title: `${items.length} ${items.length === 1 ? 'item' : 'itens'} na sacola`,
@@ -298,6 +658,35 @@ const App = {
                                     font-size: 12px;
                                     font-weight: 700;
                                     gap: 6px 10px;
+                                }
+
+                                .bag-detail-status {
+                                    border-radius: 999px;
+                                    display: inline-flex;
+                                    font-size: 11px;
+                                    font-weight: 900;
+                                    line-height: 1;
+                                    padding: 5px 8px;
+                                }
+
+                                .bag-detail-status--paid {
+                                    background: #dcfce7;
+                                    color: #166534;
+                                }
+
+                                .bag-detail-status--pending {
+                                    background: #fef3c7;
+                                    color: #92400e;
+                                }
+
+                                .bag-detail-status--reserved {
+                                    background: #dbeafe;
+                                    color: #1d4ed8;
+                                }
+
+                                .bag-detail-status--expired {
+                                    background: #fee2e2;
+                                    color: #991b1b;
                                 }
                             </style>
                             <div class="bag-detail-grid">
@@ -464,12 +853,17 @@ const App = {
 
         Vue.onMounted(async () => {
             await methods.populateMainData();
+            await methods.connectBagNotifications();
             mainModal.create();
+            settingsModal.create();
+            durationModal.create();
         });
 
         return {
             state,
             mainModalRef,
+            settingsModalRef,
+            durationModalRef,
             sortedBags,
             pagedBags,
             totalPages,

@@ -123,8 +123,159 @@ public static class DI
         EnsureDropConfigTable(dataContext);
         EnsureProductDropConfigColumn(dataContext);
         EnsureProductSizeStockQuantityColumn(dataContext);
+        EnsureBagSettingsTable(dataContext);
+        EnsureBagExpirationHistoryTable(dataContext);
 
         return host;
+    }
+
+    private static void EnsureBagSettingsTable(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF OBJECT_ID('dbo.BagSettings', 'U') IS NULL
+                                               BEGIN
+                                                   CREATE TABLE [BagSettings] (
+                                                       [Id] nvarchar(50) NOT NULL,
+                                                       [IsDeleted] bit NOT NULL CONSTRAINT [DF_BagSettings_IsDeleted] DEFAULT CAST(0 AS bit),
+                                                       [CreatedAtUtc] datetime2 NULL,
+                                                       [CreatedById] nvarchar(450) NULL,
+                                                       [UpdatedAtUtc] datetime2 NULL,
+                                                       [UpdatedById] nvarchar(450) NULL,
+                                                       [DefaultDurationValue] int NOT NULL,
+                                                       [DefaultDurationUnit] nvarchar(20) NOT NULL,
+                                                       [ExtensionDurationValue] int NOT NULL,
+                                                       [ExtensionDurationUnit] nvarchar(20) NOT NULL,
+                                                       [ExtensionResponseDeadlineValue] int NOT NULL,
+                                                       [ExtensionResponseDeadlineUnit] nvarchar(20) NOT NULL,
+                                                       CONSTRAINT [PK_BagSettings] PRIMARY KEY ([Id])
+                                                   );
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "BagSettings" (
+                                                   "Id" character varying(50) NOT NULL,
+                                                   "IsDeleted" boolean NOT NULL DEFAULT FALSE,
+                                                   "CreatedAtUtc" timestamp with time zone NULL,
+                                                   "CreatedById" character varying(450) NULL,
+                                                   "UpdatedAtUtc" timestamp with time zone NULL,
+                                                   "UpdatedById" character varying(450) NULL,
+                                                   "DefaultDurationValue" integer NOT NULL,
+                                                   "DefaultDurationUnit" character varying(20) NOT NULL,
+                                                   "ExtensionDurationValue" integer NOT NULL,
+                                                   "ExtensionDurationUnit" character varying(20) NOT NULL,
+                                                   "ExtensionResponseDeadlineValue" integer NOT NULL,
+                                                   "ExtensionResponseDeadlineUnit" character varying(20) NOT NULL,
+                                                   CONSTRAINT "PK_BagSettings" PRIMARY KEY ("Id")
+                                               );
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "BagSettings" (
+                                                   "Id" TEXT NOT NULL CONSTRAINT "PK_BagSettings" PRIMARY KEY,
+                                                   "IsDeleted" INTEGER NOT NULL DEFAULT 0,
+                                                   "CreatedAtUtc" TEXT NULL,
+                                                   "CreatedById" TEXT NULL,
+                                                   "UpdatedAtUtc" TEXT NULL,
+                                                   "UpdatedById" TEXT NULL,
+                                                   "DefaultDurationValue" INTEGER NOT NULL,
+                                                   "DefaultDurationUnit" TEXT NOT NULL,
+                                                   "ExtensionDurationValue" INTEGER NOT NULL,
+                                                   "ExtensionDurationUnit" TEXT NOT NULL,
+                                                   "ExtensionResponseDeadlineValue" INTEGER NOT NULL,
+                                                   "ExtensionResponseDeadlineUnit" TEXT NOT NULL
+                                               );
+                                               """);
+        }
+    }
+
+    private static void EnsureBagExpirationHistoryTable(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF OBJECT_ID('dbo.BagExpirationHistory', 'U') IS NULL
+                                               BEGIN
+                                                   CREATE TABLE [BagExpirationHistory] (
+                                                       [Id] nvarchar(50) NOT NULL,
+                                                       [IsDeleted] bit NOT NULL CONSTRAINT [DF_BagExpirationHistory_IsDeleted] DEFAULT CAST(0 AS bit),
+                                                       [CreatedAtUtc] datetime2 NULL,
+                                                       [CreatedById] nvarchar(450) NULL,
+                                                       [UpdatedAtUtc] datetime2 NULL,
+                                                       [UpdatedById] nvarchar(450) NULL,
+                                                       [BagId] nvarchar(50) NOT NULL,
+                                                       [OldExpirationDate] datetime2 NOT NULL,
+                                                       [NewExpirationDate] datetime2 NOT NULL,
+                                                       [ChangedBy] nvarchar(255) NULL,
+                                                       [ChangedAtUtc] datetime2 NOT NULL,
+                                                       [Note] nvarchar(1000) NULL,
+                                                       CONSTRAINT [PK_BagExpirationHistory] PRIMARY KEY ([Id]),
+                                                       CONSTRAINT [FK_BagExpirationHistory_Bag_BagId] FOREIGN KEY ([BagId]) REFERENCES [Bag] ([Id]) ON DELETE CASCADE
+                                                   );
+                                                   CREATE INDEX [IX_BagExpirationHistory_BagId] ON [BagExpirationHistory] ([BagId]);
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "BagExpirationHistory" (
+                                                   "Id" character varying(50) NOT NULL,
+                                                   "IsDeleted" boolean NOT NULL DEFAULT FALSE,
+                                                   "CreatedAtUtc" timestamp with time zone NULL,
+                                                   "CreatedById" character varying(450) NULL,
+                                                   "UpdatedAtUtc" timestamp with time zone NULL,
+                                                   "UpdatedById" character varying(450) NULL,
+                                                   "BagId" character varying(50) NOT NULL,
+                                                   "OldExpirationDate" timestamp with time zone NOT NULL,
+                                                   "NewExpirationDate" timestamp with time zone NOT NULL,
+                                                   "ChangedBy" character varying(255) NULL,
+                                                   "ChangedAtUtc" timestamp with time zone NOT NULL,
+                                                   "Note" character varying(1000) NULL,
+                                                   CONSTRAINT "PK_BagExpirationHistory" PRIMARY KEY ("Id"),
+                                                   CONSTRAINT "FK_BagExpirationHistory_Bag_BagId" FOREIGN KEY ("BagId") REFERENCES "Bag" ("Id") ON DELETE CASCADE
+                                               );
+
+                                               CREATE INDEX IF NOT EXISTS "IX_BagExpirationHistory_BagId" ON "BagExpirationHistory" ("BagId");
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "BagExpirationHistory" (
+                                                   "Id" TEXT NOT NULL CONSTRAINT "PK_BagExpirationHistory" PRIMARY KEY,
+                                                   "IsDeleted" INTEGER NOT NULL DEFAULT 0,
+                                                   "CreatedAtUtc" TEXT NULL,
+                                                   "CreatedById" TEXT NULL,
+                                                   "UpdatedAtUtc" TEXT NULL,
+                                                   "UpdatedById" TEXT NULL,
+                                                   "BagId" TEXT NOT NULL,
+                                                   "OldExpirationDate" TEXT NOT NULL,
+                                                   "NewExpirationDate" TEXT NOT NULL,
+                                                   "ChangedBy" TEXT NULL,
+                                                   "ChangedAtUtc" TEXT NOT NULL,
+                                                   "Note" TEXT NULL,
+                                                   CONSTRAINT "FK_BagExpirationHistory_Bag_BagId" FOREIGN KEY ("BagId") REFERENCES "Bag" ("Id") ON DELETE CASCADE
+                                               );
+                                               """);
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE INDEX IF NOT EXISTS "IX_BagExpirationHistory_BagId" ON "BagExpirationHistory" ("BagId");
+                                               """);
+        }
     }
 
     private static void EnsureProductSizeStockQuantityColumn(DataContext dataContext)

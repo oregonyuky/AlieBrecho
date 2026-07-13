@@ -29,4 +29,5 @@ public class Bag : BaseEntity
     public string? Notes { get; set; }
 
     public ICollection<BagItem>? Items { get; set; }
+    public ICollection<BagExpirationHistory>? ExpirationHistory { get; set; }
 }

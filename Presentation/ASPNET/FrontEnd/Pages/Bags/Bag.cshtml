@@ -28,6 +28,26 @@
         margin: 0;
     }
 
+    .bag-header-action {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #4b5563;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        gap: 8px;
+        height: 42px;
+        justify-content: center;
+        width: 42px;
+    }
+
+    .bag-header-action:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
     .page-summary-card {
         background: #fff;
         border: 0;
@@ -57,9 +77,15 @@
         overflow: hidden;
     }
 
+    .bag-table-scroll {
+        max-height: calc(100vh - 390px);
+        overflow: auto;
+    }
+
     .bag-table {
         border-collapse: collapse;
         margin: 0;
+        min-width: 1210px;
         table-layout: fixed;
         width: 100%;
     }
@@ -71,8 +97,11 @@
         font-size: 12px;
         font-weight: 800;
         padding: 13px 12px;
+        position: sticky;
         text-align: left;
+        top: 0;
         vertical-align: middle;
+        z-index: 2;
     }
 
     .bag-sort-button {
@@ -156,6 +185,44 @@
         white-space: nowrap;
     }
 
+    .bag-table__price-label {
+        color: #6b7280;
+        font-weight: 800;
+    }
+
+    .bag-duration-button {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #d9dee5;
+        border-radius: 9px;
+        color: #374151;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 800;
+        gap: 8px;
+        min-height: 36px;
+        padding: 7px 10px;
+        text-align: left;
+        width: 100%;
+    }
+
+    .bag-duration-button__content {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .bag-duration-button__icon {
+        color: #2563eb;
+        flex: 0 0 auto;
+    }
+
+    .bag-duration-button:hover {
+        background: #f9fafb;
+        border-color: #93c5fd;
+        color: #111827;
+    }
+
     .bag-status {
         border-radius: 999px;
         display: inline-flex;
@@ -237,6 +304,87 @@
         padding: 4px 7px;
     }
 
+    .bag-config-grid {
+        display: grid;
+        gap: 14px;
+    }
+
+    .bag-config-row {
+        display: grid;
+        gap: 8px;
+    }
+
+    .bag-config-row label,
+    .bag-duration-section label {
+        color: #4b5563;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .bag-config-inputs {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 80px 1fr;
+    }
+
+    .bag-duration-status {
+        background: #dcfce7;
+        border-radius: 8px;
+        color: #166534;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 12px 18px;
+    }
+
+    .bag-duration-section {
+        border-top: 1px solid #e5e7eb;
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+        padding-top: 14px;
+    }
+
+    .bag-duration-summary {
+        align-items: center;
+        color: #4b5563;
+        display: flex;
+        font-size: 13px;
+        font-weight: 700;
+        gap: 8px;
+    }
+
+    .bag-duration-inputs {
+        align-items: end;
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr auto 1fr;
+    }
+
+    .bag-duration-or {
+        color: #9ca3af;
+        font-size: 13px;
+        font-weight: 800;
+        padding-bottom: 9px;
+    }
+
+    .bag-history {
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        display: grid;
+        font-size: 12px;
+        font-weight: 700;
+        gap: 8px;
+        margin-top: 14px;
+        padding-top: 14px;
+    }
+
+    .bag-history__item {
+        align-items: flex-start;
+        display: flex;
+        gap: 8px;
+    }
+
     .bag-empty-row {
         color: #9ca3af !important;
         padding: 34px 22px !important;
@@ -295,11 +443,15 @@
         }
 
         .bag-table-card {
-            overflow-x: auto;
+            overflow: hidden;
+        }
+
+        .bag-table-scroll {
+            max-height: 65vh;
         }
 
         .bag-table {
-            min-width: 900px;
+            min-width: 1210px;
         }
     }
 </style>
@@ -307,6 +459,13 @@
 <div id="app" class="bag-admin" v-cloak>
     <header class="bag-page-header">
         <h1 class="bag-page-title">Sacolas</h1>
+        <button type="button"
+                class="bag-header-action"
+                title="Configurar sacolinha"
+                aria-label="Configurar sacolinha"
+                v-on:click="methods.showSettingsModal">
+            <i class="fa fa-cog" aria-hidden="true"></i>
+        </button>
     </header>
 
     <div class="row mb-3">
@@ -337,12 +496,14 @@
     </div>
 
     <section class="bag-table-card">
-        <table class="bag-table">
+        <div class="bag-table-scroll">
+            <table class="bag-table">
             <colgroup>
                 <col style="width: 130px;">
                 <col style="width: 180px;">
                 <col style="width: 120px;">
                 <col style="width: 145px;">
+                <col style="width: 150px;">
                 <col style="width: 150px;">
                 <col style="width: 112px;">
                 <col style="width: 74px;">
@@ -377,6 +538,7 @@
                         </button>
                     </th>
                     <th>Total</th>
+                    <th>Duração</th>
                     <th>Ultima Interacao</th>
                     <th>Detalhes</th>
                     <th class="text-right">Acoes</th>
@@ -392,7 +554,7 @@
                     </td>
                     <td>
                         <span class="bag-table__customer" v-bind:title="bag.customerName || '-'">{{ bag.customerName || '-' }}</span>
-                        <span class="bag-table__muted" v-if="bag.allItemsPaid">Itens pagos</span>
+                        <span class="bag-table__muted" v-if="bag.customerPostalCode">CEP: {{ methods.formatPostCode(bag.customerPostalCode) }}</span>
                     </td>
                     <td>
                         <span class="bag-status" v-bind:class="methods.getStatusClass(bag.status)">
@@ -400,8 +562,20 @@
                         </span>
                     </td>
                     <td>
-                        <span class="bag-table__price">{{ formatCurrency(bag.totalItemsValue) }}</span>
+                        <span class="bag-table__price"><span class="bag-table__price-label">Roupas:</span> {{ formatCurrency(bag.totalItemsValue) }}</span>
                         <span class="bag-table__muted">Frete: {{ formatCurrency(bag.shippingCost) }}</span>
+                    </td>
+                    <td>
+                        <button type="button"
+                                class="bag-duration-button"
+                                title="Alterar prazo desta sacola"
+                                v-on:click.stop="methods.showDurationModal(bag)">
+                            <i class="fa fa-calendar-plus bag-duration-button__icon" aria-hidden="true"></i>
+                            <span class="bag-duration-button__content">
+                                <span>{{ methods.formatShortDate(bag.expirationDate) }}</span>
+                                <span class="bag-table__muted">{{ methods.getExpirationRemainingText(bag.expirationDate) }}</span>
+                            </span>
+                        </button>
                     </td>
                     <td>
                         <span class="bag-table__date">
@@ -429,10 +603,11 @@
                     </td>
                 </tr>
                 <tr v-if="pagedBags.length === 0">
-                    <td colspan="7" class="bag-empty-row">Nenhuma sacola encontrada.</td>
+                    <td colspan="8" class="bag-empty-row">Nenhuma sacola encontrada.</td>
                 </tr>
             </tbody>
-        </table>
+            </table>
+        </div>
 
         <div class="bag-pager" v-if="sortedBags.length > 0">
             <span class="bag-pager__text">{{ methods.getPagerText() }}</span>
@@ -448,6 +623,115 @@
             </div>
         </div>
     </section>
+
+    <div class="modal fade" ref="settingsModalRef" id="BagSettingsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Configurar sacolinha</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="bag-config-grid">
+                        <div class="bag-config-row">
+                            <label>Duração padrão da sacolinha</label>
+                            <div class="bag-config-inputs">
+                                <input type="number" min="1" class="form-control" v-model.number="state.settings.defaultDurationValue">
+                                <select class="form-select" v-model="state.settings.defaultDurationUnit">
+                                    <option value="days">dias</option>
+                                    <option value="months">meses</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bag-config-row">
+                            <label>Duração da prorrogação</label>
+                            <div class="bag-config-inputs">
+                                <input type="number" min="1" class="form-control" v-model.number="state.settings.extensionDurationValue">
+                                <select class="form-select" v-model="state.settings.extensionDurationUnit">
+                                    <option value="days">dias</option>
+                                    <option value="months">meses</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bag-config-row">
+                            <label>Prazo para o cliente responder o e-mail de prorrogação</label>
+                            <div class="bag-config-inputs">
+                                <input type="number" min="1" class="form-control" v-model.number="state.settings.extensionResponseDeadlineValue">
+                                <select class="form-select" v-model="state.settings.extensionResponseDeadlineUnit">
+                                    <option value="days">dias</option>
+                                    <option value="months">meses</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" v-bind:disabled="state.settings.isSubmitting">Cancelar</button>
+                    <button type="button" class="btn btn-dark" v-on:click="methods.saveSettings" v-bind:disabled="state.settings.isSubmitting">
+                        <span class="spinner-border spinner-border-sm me-2" v-if="state.settings.isSubmitting"></span>
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="durationModalRef" id="BagDurationModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sacola de {{ state.duration.customerName || '-' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="bag-duration-status">{{ translateBagStatus(state.duration.status) }}</div>
+
+                    <section class="bag-duration-section">
+                        <strong>Prazo desta sacola</strong>
+                        <div class="bag-duration-summary">
+                            <i class="fa fa-clock" aria-hidden="true"></i>
+                            {{ methods.getExpirationSummary(state.duration.expirationDate) }}
+                        </div>
+
+                        <div class="bag-duration-inputs">
+                            <div>
+                                <label>Nova data</label>
+                                <input type="date" class="form-control" v-model="state.duration.newExpirationDate">
+                            </div>
+                            <span class="bag-duration-or">ou</span>
+                            <div>
+                                <label>Adicionar</label>
+                                <div class="input-group">
+                                    <input type="number" min="1" class="form-control" placeholder="+ 15" v-model.number="state.duration.addValue">
+                                    <select class="form-select" v-model="state.duration.addUnit">
+                                        <option value="days">dias</option>
+                                        <option value="months">meses</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-dark w-100" v-on:click="methods.applyDurationChange" v-bind:disabled="state.duration.isSubmitting">
+                            <span class="spinner-border spinner-border-sm me-2" v-if="state.duration.isSubmitting"></span>
+                            Aplicar novo prazo
+                        </button>
+                    </section>
+
+                    <div class="bag-history" v-if="state.duration.history.length">
+                        <div class="bag-history__item" v-for="entry in state.duration.history" v-bind:key="entry.id">
+                            <i class="fa fa-history mt-1" aria-hidden="true"></i>
+                            <span>{{ methods.formatHistoryEntry(entry) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -529,5 +813,6 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/Bags/Bag.cshtml.js?v=20260708"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/FrontEnd/Pages/Bags/Bag.cshtml.js?v=2026071303"></script>
 }

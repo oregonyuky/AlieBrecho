@@ -13,6 +13,7 @@ public record GetBagListDto
     public string? Id { get; init; }
     public string? CustomerId { get; init; }
     public string? CustomerName { get; init; }
+    public string? CustomerPostalCode { get; init; }
     public string? Status { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime ExpirationDate { get; init; }
@@ -79,18 +80,24 @@ public class GetBagListHandler : IRequestHandler<GetBagListRequest, GetBagListRe
         var customers = await _context.Customer
             .AsNoTracking()
             .Where(x => x.Id != null && customerIds.Contains(x.Id))
-            .Select(x => new { x.Id, x.Name })
+            .Select(x => new { x.Id, x.Name, x.PostalCode })
             .ToListAsync(cancellationToken);
 
         var customerMap = customers
             .Where(x => !string.IsNullOrWhiteSpace(x.Id))
-            .ToDictionary(x => x.Id!, x => x.Name);
+            .ToDictionary(x => x.Id!, x => (x.Name, x.PostalCode));
 
-        var data = dtos.Select(x => x with
+        var data = dtos.Select(x =>
         {
-            CustomerName = !string.IsNullOrWhiteSpace(x.CustomerId) && customerMap.TryGetValue(x.CustomerId, out var customerName)
-                ? customerName
-                : null
+            (string? Name, string? PostalCode) customer = default;
+            var hasCustomer = !string.IsNullOrWhiteSpace(x.CustomerId)
+                && customerMap.TryGetValue(x.CustomerId, out customer);
+
+            return x with
+            {
+                CustomerName = hasCustomer ? customer.Name : null,
+                CustomerPostalCode = hasCustomer ? customer.PostalCode : null
+            };
         }).ToList();
 
         return new GetBagListResult

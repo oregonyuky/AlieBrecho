@@ -168,9 +168,15 @@
         overflow: hidden;
     }
 
+    .order-table-scroll {
+        max-height: calc(100vh - 390px);
+        overflow: auto;
+    }
+
     .order-table {
         border-collapse: collapse;
         margin: 0;
+        min-width: 1360px;
         table-layout: fixed;
         width: 100%;
     }
@@ -182,8 +188,11 @@
         font-size: 12px;
         font-weight: 800;
         padding: 13px 12px;
+        position: sticky;
         text-align: left;
+        top: 0;
         vertical-align: middle;
+        z-index: 2;
     }
 
     .order-sort-button {
@@ -540,7 +549,11 @@
         }
 
         .order-table-card {
-            overflow-x: auto;
+            overflow: hidden;
+        }
+
+        .order-table-scroll {
+            max-height: 65vh;
         }
 
         .order-table {
@@ -619,7 +632,8 @@
     </div>
 
     <section class="order-table-card">
-        <table class="order-table">
+        <div class="order-table-scroll">
+            <table class="order-table">
             <colgroup>
                 <col style="width: 130px;">
                 <col style="width: 170px;">
@@ -757,7 +771,8 @@
                     <td colspan="9" class="order-empty-row">Nenhum pedido encontrado.</td>
                 </tr>
             </tbody>
-        </table>
+            </table>
+        </div>
 
         <div class="order-pager" v-if="sortedOrders.length > 0">
             <span class="order-pager__text">
