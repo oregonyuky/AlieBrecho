@@ -1,5 +1,6 @@
 using Application;
 using ASPNET.BackEnd.Common.Handlers;
+using ASPNET.BackEnd.Hubs;
 using Infrastructure;
 using Infrastructure.DataAccessManager.EFCore;
 using Infrastructure.SeedManager;
@@ -36,6 +37,7 @@ public static class BackEndConfiguration
                 options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
                 options.JsonSerializerOptions.WriteIndented = true;
             });
+        services.AddSignalR();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {
@@ -79,6 +81,8 @@ public static class BackEndConfiguration
     public static IEndpointRouteBuilder MapBackEndRoutes(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapControllers();
+        endpoints.MapHub<OrderNotificationsHub>("/hubs/orders");
+        endpoints.MapHub<CatalogNotificationsHub>("/hubs/catalog");
 
         return endpoints;
     }

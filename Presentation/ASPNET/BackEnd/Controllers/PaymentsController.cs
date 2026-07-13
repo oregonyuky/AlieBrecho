@@ -1,10 +1,12 @@
 using Application.Common.Repositories;
 using Application.Common.Services.InfinitePayManager;
+using ASPNET.BackEnd.Hubs;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.InfinitePayManager;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -21,6 +23,7 @@ public class PaymentsController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IInfinitePayService _infinitePayService;
     private readonly InfinitePaySettings _settings;
+    private readonly IHubContext<OrderNotificationsHub> _orderNotifications;
 
     public PaymentsController(
         ICommandRepository<Order> orderRepository,
@@ -28,7 +31,8 @@ public class PaymentsController : ControllerBase
         ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork,
         IInfinitePayService infinitePayService,
-        IOptions<InfinitePaySettings> settings)
+        IOptions<InfinitePaySettings> settings,
+        IHubContext<OrderNotificationsHub> orderNotifications)
     {
         _orderRepository = orderRepository;
         _paymentRepository = paymentRepository;
@@ -36,6 +40,7 @@ public class PaymentsController : ControllerBase
         _unitOfWork = unitOfWork;
         _infinitePayService = infinitePayService;
         _settings = settings.Value;
+        _orderNotifications = orderNotifications;
     }
 
     [Authorize]
@@ -96,6 +101,7 @@ public class PaymentsController : ControllerBase
 
         _orderRepository.Update(order);
         await _unitOfWork.SaveAsync(cancellationToken);
+        await NotifyOrderChangedAsync("payment-checkout-created", order.Id, order.Status.ToString(), cancellationToken);
 
         return Ok(new InfinitePayCheckoutResult
         {
@@ -155,9 +161,28 @@ public class PaymentsController : ControllerBase
             await MarkProductsUnavailableAsync(order, cancellationToken);
             _orderRepository.Update(order);
             await _unitOfWork.SaveAsync(cancellationToken);
+            await NotifyOrderChangedAsync("payment-paid", order.Id, order.Status.ToString(), cancellationToken);
         }
 
         return Ok();
+    }
+
+    private Task NotifyOrderChangedAsync(
+        string changeType,
+        string? orderId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        return _orderNotifications.Clients.All.SendAsync(
+            "OrderChanged",
+            new
+            {
+                changeType,
+                orderId,
+                status,
+                changedAt = DateTime.UtcNow
+            },
+            cancellationToken);
     }
 
     private async Task<Order?> GetOrderAsync(string orderId, CancellationToken cancellationToken)

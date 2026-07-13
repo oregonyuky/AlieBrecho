@@ -533,6 +533,9 @@ const App = {
             refresh: () => {}
         };
 
+        let orderNotificationsConnection = null;
+        let orderNotificationsRefreshTimeout = null;
+
         const mainModal = {
             obj: null,
             create: () => {
@@ -624,6 +627,37 @@ const App = {
                 }));
                 state.pagination.page = Math.min(state.pagination.page, Math.max(totalPages.value, 1));
                 methods.updateSummaryCards();
+            },
+            connectOrderNotifications: async () => {
+                if (!window.signalR || orderNotificationsConnection) {
+                    return;
+                }
+
+                orderNotificationsConnection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/orders', {
+                        accessTokenFactory: () => StorageManager.getAccessToken() ?? ''
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                orderNotificationsConnection.on('OrderChanged', () => {
+                    clearTimeout(orderNotificationsRefreshTimeout);
+                    orderNotificationsRefreshTimeout = setTimeout(async () => {
+                        try {
+                            await methods.populateMainData();
+                            mainGrid.refresh();
+                        } catch (error) {
+                            console.error('Nao foi possivel atualizar os pedidos em tempo real.', error);
+                        }
+                    }, 250);
+                });
+
+                try {
+                    await orderNotificationsConnection.start();
+                } catch (error) {
+                    console.error('Nao foi possivel conectar as notificacoes de pedidos.', error);
+                    orderNotificationsConnection = null;
+                }
             },
             formatOrderDate: (order) => {
                 const date = parseUtcDate(order?.orderDate);
@@ -1591,6 +1625,7 @@ const App = {
                 try {
                     await methods.populateMainData();
                     mainGrid.refresh();
+                    await methods.connectOrderNotifications();
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',

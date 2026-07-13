@@ -2,17 +2,24 @@ using Application.Features.ProductManager.Commands;
 using Application.Features.ProductManager.Queries;
 using ASPNET.BackEnd.Common.Base;
 using ASPNET.BackEnd.Common.Models;
+using ASPNET.BackEnd.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ASPNET.BackEnd.Controllers;
 
 [Route("api/[controller]")]
 public class ProductController : BaseApiController
 {
-    public ProductController(ISender sender) : base(sender)
+    private readonly IHubContext<CatalogNotificationsHub> _catalogHubContext;
+
+    public ProductController(
+        ISender sender,
+        IHubContext<CatalogNotificationsHub> catalogHubContext) : base(sender)
     {
+        _catalogHubContext = catalogHubContext;
     }
 
     [Authorize]
@@ -22,6 +29,7 @@ public class ProductController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyProductChangedAsync("created", response.Data?.Id, response.Data?.ProductAvailable, cancellationToken);
 
         return Ok(new ApiSuccessResult<CreateProductResult>
         {
@@ -38,6 +46,7 @@ public class ProductController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyProductChangedAsync("updated", response.Data?.Id, response.Data?.ProductAvailable, cancellationToken);
 
         return Ok(new ApiSuccessResult<UpdateProductResult>
         {
@@ -54,6 +63,7 @@ public class ProductController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyProductChangedAsync("deleted", response.Data?.Id, response.Data?.ProductAvailable, cancellationToken);
 
         return Ok(new ApiSuccessResult<DeleteProductResult>
         {
@@ -97,5 +107,23 @@ public class ProductController : BaseApiController
             Message = $"Success executing {nameof(GetProductListAsync)}",
             Content = response
         });
+    }
+
+    private Task NotifyProductChangedAsync(
+        string changeType,
+        string? productId,
+        bool? productAvailable,
+        CancellationToken cancellationToken)
+    {
+        return _catalogHubContext.Clients.All.SendAsync(
+            "ProductChanged",
+            new
+            {
+                changeType,
+                productId,
+                productAvailable,
+                changedAt = DateTime.UtcNow
+            },
+            cancellationToken);
     }
 }

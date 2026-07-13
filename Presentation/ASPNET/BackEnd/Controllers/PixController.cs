@@ -1,11 +1,13 @@
 using System.Text.Json;
 using Application.Common.Repositories;
 using Application.Common.Services.MercadoPagoManager;
+using ASPNET.BackEnd.Hubs;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.MercadoPagoManager;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -24,6 +26,7 @@ public class PixController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMercadoPagoService _mercadoPagoService;
     private readonly MercadoPagoSettings _settings;
+    private readonly IHubContext<OrderNotificationsHub> _orderNotifications;
 
     public PixController(
         ICommandRepository<Order> orderRepository,
@@ -32,7 +35,8 @@ public class PixController : ControllerBase
         ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork,
         IMercadoPagoService mercadoPagoService,
-        IOptions<MercadoPagoSettings> settings)
+        IOptions<MercadoPagoSettings> settings,
+        IHubContext<OrderNotificationsHub> orderNotifications)
     {
         _orderRepository = orderRepository;
         _bagRepository = bagRepository;
@@ -41,6 +45,7 @@ public class PixController : ControllerBase
         _unitOfWork = unitOfWork;
         _mercadoPagoService = mercadoPagoService;
         _settings = settings.Value;
+        _orderNotifications = orderNotifications;
     }
 
     [Authorize]
@@ -107,6 +112,7 @@ public class PixController : ControllerBase
 
         _orderRepository.Update(order);
         await _unitOfWork.SaveAsync(cancellationToken);
+        await NotifyOrderChangedAsync("pix-created", order.Id, order.Status.ToString(), cancellationToken);
 
         return Ok(new PixCreatePaymentResponse
         {
@@ -145,7 +151,11 @@ public class PixController : ControllerBase
         }
 
         var payment = await _mercadoPagoService.GetPaymentAsync(paymentId, cancellationToken);
-        await ApplyPaymentStatusAsync(order, payment, cancellationToken);
+        var orderChanged = await ApplyPaymentStatusAsync(order, payment, cancellationToken);
+        if (orderChanged)
+        {
+            await NotifyOrderChangedAsync("pix-status-updated", order.Id, order.Status.ToString(), cancellationToken);
+        }
 
         return Ok(new PixPaymentStatusResponse
         {
@@ -184,16 +194,23 @@ public class PixController : ControllerBase
         }
 
         var payment = await _mercadoPagoService.GetPaymentAsync(paymentId, cancellationToken);
-        await ApplyPaymentStatusAsync(order, payment, cancellationToken);
+        var orderChanged = await ApplyPaymentStatusAsync(order, payment, cancellationToken);
+        if (orderChanged)
+        {
+            await NotifyOrderChangedAsync("pix-webhook-updated", order.Id, order.Status.ToString(), cancellationToken);
+        }
 
         return Ok();
     }
 
-    private async Task ApplyPaymentStatusAsync(
+    private async Task<bool> ApplyPaymentStatusAsync(
         Order order,
         MercadoPagoPaymentStatusResult mercadoPagoPayment,
         CancellationToken cancellationToken)
     {
+        var originalOrderStatus = order.Status;
+        var originalPaymentStatus = order.Payment?.Status;
+
         EnsurePayment(order);
         var payment = order.Payment!;
         payment.Provider = ProviderName;
@@ -233,6 +250,26 @@ public class PixController : ControllerBase
 
         _orderRepository.Update(order);
         await _unitOfWork.SaveAsync(cancellationToken);
+
+        return originalOrderStatus != order.Status || originalPaymentStatus != payment.Status;
+    }
+
+    private Task NotifyOrderChangedAsync(
+        string changeType,
+        string? orderId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        return _orderNotifications.Clients.All.SendAsync(
+            "OrderChanged",
+            new
+            {
+                changeType,
+                orderId,
+                status,
+                changedAt = DateTime.UtcNow
+            },
+            cancellationToken);
     }
 
     private async Task<Bag?> ApplyBagPaymentStatusAsync(

@@ -2,17 +2,24 @@ using Application.Features.OrderManager.Commands;
 using Application.Features.OrderManager.Queries;
 using ASPNET.BackEnd.Common.Base;
 using ASPNET.BackEnd.Common.Models;
+using ASPNET.BackEnd.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ASPNET.BackEnd.Controllers;
 
 [Route("api/[controller]")]
 public class OrderController : BaseApiController
 {
-    public OrderController(ISender sender) : base(sender)
+    private readonly IHubContext<OrderNotificationsHub> _orderNotifications;
+
+    public OrderController(
+        ISender sender,
+        IHubContext<OrderNotificationsHub> orderNotifications) : base(sender)
     {
+        _orderNotifications = orderNotifications;
     }
 
     [Authorize]
@@ -22,6 +29,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("created", response.Data?.Id, response.Data?.Status.ToString(), cancellationToken);
 
         return Ok(new ApiSuccessResult<CreateOrderResult>
         {
@@ -125,6 +133,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("updated", response.Data?.Id, response.Data?.Status.ToString(), cancellationToken);
 
         return Ok(new ApiSuccessResult<UpdateOrderResult>
         {
@@ -141,6 +150,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("shipping-label-created", request.OrderId, null, cancellationToken);
 
         return Ok(new ApiSuccessResult<GenerateShippingLabelResult>
         {
@@ -169,6 +179,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("shipping-cart-marked", request.OrderId, null, cancellationToken);
 
         return Ok(new ApiSuccessResult<MarkShippingCartResult>
         {
@@ -185,6 +196,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("shipping-cart-bought", request.OrderId, null, cancellationToken);
 
         return Ok(new ApiSuccessResult<BuyShippingCartResult>
         {
@@ -201,6 +213,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("shipping-label-generated", request.OrderId, null, cancellationToken);
 
         return Ok(new ApiSuccessResult<GeneratePurchasedShippingLabelResult>
         {
@@ -217,6 +230,7 @@ public class OrderController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyOrderChangedAsync("deleted", request.Id, null, cancellationToken);
 
         return Ok(new ApiSuccessResult<DeleteOrderResult>
         {
@@ -224,5 +238,23 @@ public class OrderController : BaseApiController
             Message = $"Success executing {nameof(DeleteOrderAsync)}",
             Content = response
         });
+    }
+
+    private Task NotifyOrderChangedAsync(
+        string changeType,
+        string? orderId,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        return _orderNotifications.Clients.All.SendAsync(
+            "OrderChanged",
+            new
+            {
+                changeType,
+                orderId,
+                status,
+                changedAt = DateTime.UtcNow
+            },
+            cancellationToken);
     }
 }

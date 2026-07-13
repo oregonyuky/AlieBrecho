@@ -570,8 +570,11 @@ const App = {
                         mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], false);
                     },
                     rowSelected: () => {
-                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], true);
-                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], true);
+                        const selected = mainGrid.obj.getSelectedRecords()[0];
+                        const canEditOrDelete = selected && !methods.isProductSold(selected);
+
+                        mainGrid.obj.toolbarModule.enableItems(['EditCustom'], canEditOrDelete);
+                        mainGrid.obj.toolbarModule.enableItems(['DeleteCustom'], canEditOrDelete);
                     },
                     rowDeselected: () => {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom'], false);
@@ -594,9 +597,11 @@ const App = {
                         if (args.item.id === 'EditCustom') {
                             const selected = mainGrid.obj.getSelectedRecords()[0];
                             if (!selected) return;
+                            if (methods.isProductSold(selected)) return;
 
                             const response = await services.getSingleData(selected.id);
                             const product = response?.data?.content?.data;
+                            if (methods.isProductSold(product)) return;
 
                             state.deleteMode = false;
                             state.mainTitle = 'Editar Produto';
@@ -609,9 +614,11 @@ const App = {
                         if (args.item.id === 'DeleteCustom') {
                             const selected = mainGrid.obj.getSelectedRecords()[0];
                             if (!selected) return;
+                            if (methods.isProductSold(selected)) return;
 
                             const response = await services.getSingleData(selected.id);
                             const product = response?.data?.content?.data;
+                            if (methods.isProductSold(product)) return;
 
                             state.deleteMode = true;
                             state.mainTitle = 'Excluir Produto';
@@ -712,8 +719,12 @@ const App = {
                 mainModal.obj.show();
             },
             handleEdit: async (product) => {
+                if (methods.isProductSold(product)) return;
+
                 const response = await services.getSingleData(product.id);
                 const singleProduct = response?.data?.content?.data;
+
+                if (methods.isProductSold(singleProduct)) return;
 
                 state.deleteMode = false;
                 state.mainTitle = 'Editar Produto';
@@ -723,8 +734,12 @@ const App = {
                 mainModal.obj.show();
             },
             handleDelete: async (product) => {
+                if (methods.isProductSold(product)) return;
+
                 const response = await services.getSingleData(product.id);
                 const singleProduct = response?.data?.content?.data;
+
+                if (methods.isProductSold(singleProduct)) return;
 
                 state.deleteMode = true;
                 state.mainTitle = 'Excluir Produto';

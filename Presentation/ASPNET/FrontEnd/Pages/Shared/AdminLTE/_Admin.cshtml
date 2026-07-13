@@ -21,6 +21,11 @@
 </head>
 
 <body class="hold-transition sidebar-mini">
+    <script>
+        if (window.matchMedia('(max-width: 991.98px)').matches) {
+            document.body.classList.add('sidebar-fully-hidden');
+        }
+    </script>
     <!-- Site wrapper -->
     <div class="wrapper">
         <!-- Navbar -->

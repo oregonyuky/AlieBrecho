@@ -48,9 +48,16 @@ public static class DI
                 OnMessageReceived = context =>
                 {
                     var accessToken = context.HttpContext.Request.Cookies["accessToken"];
+                    var requestPath = context.HttpContext.Request.Path;
                     if (!string.IsNullOrEmpty(accessToken))
                     {
                         context.Token = accessToken;
+                    }
+                    else if (requestPath.StartsWithSegments("/hubs/orders") &&
+                        context.Request.Query.TryGetValue("access_token", out var hubAccessToken) &&
+                        !string.IsNullOrWhiteSpace(hubAccessToken))
+                    {
+                        context.Token = hubAccessToken;
                     }
                     else
                     {

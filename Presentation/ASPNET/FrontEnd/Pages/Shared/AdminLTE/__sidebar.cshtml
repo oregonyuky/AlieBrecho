@@ -4,18 +4,21 @@
     var appName = "Alie Brechó";
 }
 
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+<aside class="main-sidebar sidebar-dark-primary elevation-4 app-sidebar">
     <!-- Brand Logo -->
-    <a asp-area="" asp-page="/Dashboards/DefaultDashboard" class="brand-link d-flex justify-content-center align-items-center">
-        <span class="brand-text font-weight-light">@appName</span>
+    <a asp-area="" asp-page="/Dashboards/DefaultDashboard" class="brand-link d-flex justify-content-center align-items-center app-sidebar__brand">
+        <span class="app-sidebar__brand-mark">
+            <i class="fas fa-store"></i>
+        </span>
+        <span class="brand-text font-weight-semibold">@appName</span>
     </a>
 
     <!-- Sidebar -->
     <div class="sidebar">
         <!-- Sidebar user (optional) -->
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex app-sidebar__user">
             <div class="image">
-                <img id="AvatarImageSide" src="@avatarUrl" class="img-circle elevation-2" alt="Imagem do Usuario" style="width: 40px; height: 40px;">
+                <img id="AvatarImageSide" src="@avatarUrl" class="img-circle" alt="Imagem do Usuario" style="width: 40px; height: 40px;">
             </div>
             <div class="info">
                 <a asp-area="" asp-page="/Profiles/MyProfile" class="d-block" id="userEmail">@userEmail</a>
@@ -37,6 +40,15 @@
 </aside>
 
 @* _sidebar.cshtml *@
+<script id="mainMenuTemplate" type="text/x-template">
+    <div class="app-sidebar__menu-item">
+        <span class="app-sidebar__menu-icon">
+            <i class="${menuIconCss}"></i>
+        </span>
+        <span class="app-sidebar__menu-text">${name}</span>
+    </div>
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         try {
@@ -88,10 +100,67 @@
                 return menuData;
             }
 
+            const menuIconByName = {
+                'Caixa de Papelão': 'fas fa-box-open',
+                'Caixas de Envio': 'fas fa-shipping-fast',
+                'Pedidos': 'fas fa-receipt',
+                'Sacolinhas': 'fas fa-shopping-bag',
+                'Produtos': 'fas fa-tshirt',
+                'Categorias de Produtos': 'fas fa-tags',
+                'Drop de Lançamento': 'fas fa-bolt',
+                'Clientes': 'fas fa-user-friends',
+                'Acesso': 'fas fa-user-shield',
+                'Usuários': 'fas fa-users',
+                'Perfis de Acesso': 'fas fa-id-badge',
+                'Perfil': 'fas fa-user-circle',
+                'Meu Perfil': 'fas fa-address-card',
+                'Configurações': 'fas fa-cog',
+                'Minha Empresa': 'fas fa-building'
+            };
+
+            const menuIconByPath = {
+                '/ShippingBoxes/ShippingBox': 'fas fa-shipping-fast',
+                '/Orders/Order': 'fas fa-receipt',
+                '/Bags/Bag': 'fas fa-shopping-bag',
+                '/Categories/Category': 'fas fa-tags',
+                '/Products/Product': 'fas fa-tshirt',
+                '/DropConfigs/DropConfig': 'fas fa-bolt',
+                '/Customers/Customer': 'fas fa-user-friends',
+                '/Users/UserList': 'fas fa-users',
+                '/Roles/RoleList': 'fas fa-id-badge',
+                '/Profiles/MyProfile': 'fas fa-address-card',
+                '/Companies/MyCompany': 'fas fa-building'
+            };
+
+            function addMenuIcons(menuData) {
+                return menuData.map(item => ({
+                    ...item,
+                    menuIconCss: menuIconByPath[item.navURL] || menuIconByName[item.name] || 'fas fa-circle'
+                }));
+            }
+
+            function toggleParentNodeOnClick(args) {
+                if (args.event.target.closest('.e-icons')) {
+                    return;
+                }
+
+                const nodeData = mainMenu.getNode(args.node);
+                if (!nodeData?.hasChildren) {
+                    return;
+                }
+
+                args.event.preventDefault();
+                if (nodeData.expanded) {
+                    mainMenu.collapseAll([nodeData.id]);
+                } else {
+                    mainMenu.expandAll([nodeData.id]);
+                }
+            }
+
             const userRoles = StorageManager.getUserRoles();
             let menuData = StorageManager.getMenuNavigation();
             const filteredMenu = filterMenu(menuData, userRoles);
-            menuData = updateMenuSelection(filteredMenu, firstSegment);
+            menuData = addMenuIcons(updateMenuSelection(filteredMenu, firstSegment));
 
             const mainMenu = new ej.navigations.TreeView({
                 fullRowNavigable: true,
@@ -105,6 +174,8 @@
                     expanded: 'expanded',
                     navigateUrl: 'navURL',
                 },
+                nodeTemplate: '#mainMenuTemplate',
+                nodeClicked: toggleParentNodeOnClick,
                 enablePersistence: false,
             });
             mainMenu.appendTo('#mainMenu');

@@ -251,8 +251,8 @@
     }
 
     .product-status--sold {
-        background: #fee2e2;
-        color: #991b1b;
+        background: #fef3c7;
+        color: #92400e;
     }
 
     .product-action-button {
@@ -664,10 +664,10 @@
                         </span>
                     </td>
                     <td class="product-table__actions">
-                        <button type="button" class="product-action-button" title="Editar" v-on:click="handler.handleEdit(product)">
+                        <button v-if="!methods.isProductSold(product)" type="button" class="product-action-button" title="Editar" v-on:click="handler.handleEdit(product)">
                             <i class="fas fa-pencil-alt" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="product-action-button product-action-button--danger" title="Excluir" v-on:click="handler.handleDelete(product)">
+                        <button v-if="!methods.isProductSold(product)" type="button" class="product-action-button product-action-button--danger" title="Excluir" v-on:click="handler.handleDelete(product)">
                             <i class="fas fa-trash-alt" aria-hidden="true"></i>
                         </button>
                     </td>
