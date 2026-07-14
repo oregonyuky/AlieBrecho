@@ -83,6 +83,15 @@ public class GetProductListHandler : IRequestHandler<GetProductListRequest, GetP
 
         var dtos = _mapper.Map<List<GetProductListDto>>(entities);
         var productIds = entities.Select(x => x.Id).ToList();
+        var activeSoldBagIds = await _context
+            .Bag
+            .AsNoTracking()
+            .Where(x =>
+                !x.IsDeleted
+                && x.Status != BagStatus.Abandoned
+                && x.Status != BagStatus.Expired)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
 
         var orderSoldQuantities = await _context
             .OrderDetail
@@ -108,8 +117,10 @@ public class GetProductListHandler : IRequestHandler<GetProductListRequest, GetP
             .Where(x =>
                 !x.IsDeleted
                 && x.ProductId != null
+                && x.BagId != null
                 && productIds.Contains(x.ProductId)
-                && x.IsPaid)
+                && x.IsPaid
+                && activeSoldBagIds.Contains(x.BagId))
             .GroupBy(x => x.ProductId!)
             .Select(x => new
             {

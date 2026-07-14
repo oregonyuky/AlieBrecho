@@ -535,6 +535,8 @@ const App = {
 
         let orderNotificationsConnection = null;
         let orderNotificationsRefreshTimeout = null;
+        let catalogNotificationsConnection = null;
+        let catalogNotificationsRefreshTimeout = null;
 
         const mainModal = {
             obj: null,
@@ -818,18 +820,73 @@ const App = {
                     state.melhorEnvioBalance.isLoading = false;
                 }
             },
+            populateProducts: async () => {
+                const response = await services.getProducts();
+                state.products = response?.data?.content?.data ?? [];
+            },
+            syncOrderItemPricesFromProducts: () => {
+                let changed = false;
+
+                state.orderDetails.forEach((item) => {
+                    if (!item.productId) {
+                        return;
+                    }
+
+                    const product = state.products.find(x => x.id === item.productId);
+                    const productPrice = product?.unitPrice ?? 0;
+
+                    if (Number(item.unitPrice || 0) !== Number(productPrice || 0)) {
+                        item.unitPrice = productPrice;
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    recalculateTotal();
+                }
+            },
             loadLookups: async () => {
-                const [customers, products, shippingBoxes, paymentTypes] = await Promise.all([
+                const [customers, shippingBoxes, paymentTypes] = await Promise.all([
                     services.getCustomers(),
-                    services.getProducts(),
                     services.getShippingBoxes(),
                     services.getPaymentTypes()
                 ]);
 
                 state.customers = customers?.data?.content?.data ?? [];
-                state.products = products?.data?.content?.data ?? [];
+                await methods.populateProducts();
                 state.shippingBoxes = shippingBoxes?.data?.content?.data ?? [];
                 state.paymentTypes = paymentTypes?.data?.content?.data ?? [];
+            },
+            connectCatalogNotifications: async () => {
+                if (!window.signalR || catalogNotificationsConnection) {
+                    return;
+                }
+
+                catalogNotificationsConnection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/catalog', {
+                        accessTokenFactory: () => StorageManager.getAccessToken() ?? ''
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                catalogNotificationsConnection.on('ProductChanged', () => {
+                    clearTimeout(catalogNotificationsRefreshTimeout);
+                    catalogNotificationsRefreshTimeout = setTimeout(async () => {
+                        try {
+                            await methods.populateProducts();
+                            methods.syncOrderItemPricesFromProducts();
+                        } catch (error) {
+                            console.error('Nao foi possivel atualizar os valores dos produtos em tempo real.', error);
+                        }
+                    }, 250);
+                });
+
+                try {
+                    await catalogNotificationsConnection.start();
+                } catch (error) {
+                    console.error('Nao foi possivel conectar as notificacoes de produtos.', error);
+                    catalogNotificationsConnection = null;
+                }
             },
             loadOrder: async (id) => {
                 const response = await services.getSingleData(id);
@@ -1626,6 +1683,7 @@ const App = {
                     await methods.populateMainData();
                     mainGrid.refresh();
                     await methods.connectOrderNotifications();
+                    await methods.connectCatalogNotifications();
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',

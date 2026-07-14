@@ -156,6 +156,10 @@
         });
 
         document.querySelector('.app-sidebar')?.addEventListener('click', function (event) {
+            if (event.target.closest('#mainMenu')) {
+                return;
+            }
+
             const link = event.target.closest('a[href]');
             if (!link) {
                 return;
@@ -171,7 +175,13 @@
 
         document.getElementById('mainMenu')?.addEventListener('click', function (event) {
             const node = event.target.closest('.e-list-item');
-            if (!node || node.classList.contains('e-has-child')) {
+            const link = event.target.closest('a[href]');
+            const href = link?.getAttribute('href');
+            const isParentNode = node?.classList.contains('e-has-child')
+                || node?.getAttribute('aria-expanded') !== null
+                || Boolean(node?.querySelector(':scope > .e-list-parent'));
+
+            if (!node || isParentNode || !href || href === '#' || href.startsWith('javascript:')) {
                 return;
             }
 

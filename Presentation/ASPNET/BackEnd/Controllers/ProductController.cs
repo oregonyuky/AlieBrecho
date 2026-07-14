@@ -29,7 +29,7 @@ public class ProductController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
-        await NotifyProductChangedAsync("created", response.Data?.Id, response.Data?.ProductAvailable, cancellationToken);
+        await NotifyProductChangedAsync("created", response.Data, cancellationToken);
 
         return Ok(new ApiSuccessResult<CreateProductResult>
         {
@@ -46,7 +46,7 @@ public class ProductController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
-        await NotifyProductChangedAsync("updated", response.Data?.Id, response.Data?.ProductAvailable, cancellationToken);
+        await NotifyProductChangedAsync("updated", response.Data, cancellationToken);
 
         return Ok(new ApiSuccessResult<UpdateProductResult>
         {
@@ -63,7 +63,7 @@ public class ProductController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
-        await NotifyProductChangedAsync("deleted", response.Data?.Id, response.Data?.ProductAvailable, cancellationToken);
+        await NotifyProductChangedAsync("deleted", response.Data, cancellationToken);
 
         return Ok(new ApiSuccessResult<DeleteProductResult>
         {
@@ -116,8 +116,7 @@ public class ProductController : BaseApiController
 
     private Task NotifyProductChangedAsync(
         string changeType,
-        string? productId,
-        bool? productAvailable,
+        Domain.Entities.Product? product,
         CancellationToken cancellationToken)
     {
         return _catalogHubContext.Clients.All.SendAsync(
@@ -125,8 +124,11 @@ public class ProductController : BaseApiController
             new
             {
                 changeType,
-                productId,
-                productAvailable,
+                productId = product?.Id,
+                productAvailable = product?.ProductAvailable,
+                unitPrice = product?.UnitPrice,
+                oldPrice = product?.OldPrice,
+                discountPercent = product?.DiscountPercent,
                 changedAt = DateTime.UtcNow
             },
             cancellationToken);

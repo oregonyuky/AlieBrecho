@@ -80,7 +80,20 @@ public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResul
         }
         entity.Notes = request.Notes;
 
-        await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
+        if (entity.IsDeleted)
+        {
+            foreach (var item in entity.Items ?? [])
+            {
+                item.IsDeleted = true;
+                item.IsReserved = false;
+            }
+
+            await MarkProductsAvailableAsync(entity, cancellationToken);
+        }
+        else
+        {
+            await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
+        }
 
         _repository.Update(entity);
         await _unitOfWork.SaveAsync(cancellationToken);
@@ -116,6 +129,30 @@ public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResul
         foreach (var product in products)
         {
             product.ProductAvailable = false;
+            _productRepository.Update(product);
+        }
+    }
+
+    private async Task MarkProductsAvailableAsync(Bag entity, CancellationToken cancellationToken)
+    {
+        var productIds = (entity.Items ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList();
+
+        if (productIds.Count == 0)
+        {
+            return;
+        }
+
+        var products = await _productRepository.GetQuery()
+            .Where(x => productIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            product.ProductAvailable = true;
             _productRepository.Update(product);
         }
     }

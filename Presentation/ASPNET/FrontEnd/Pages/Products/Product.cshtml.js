@@ -2,6 +2,8 @@ const App = {
     setup() {
         const BRASILIA_TIME_ZONE = 'America/Sao_Paulo';
         const LOW_STOCK_THRESHOLD = 3;
+        let catalogNotificationsConnection = null;
+        let catalogNotificationsRefreshTimeout = null;
 
         const emptyState = () => ({
             id: '',
@@ -67,6 +69,7 @@ const App = {
         });
 
         const mainGridRef = Vue.ref(null);
+        const productTableCardRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
         const nameRef = Vue.ref(null);
         const mainImageFileRef = Vue.ref(null);
@@ -509,6 +512,37 @@ const App = {
 
                 methods.updateSummaryCards();
             },
+            connectCatalogNotifications: async () => {
+                if (!window.signalR || catalogNotificationsConnection) {
+                    return;
+                }
+
+                catalogNotificationsConnection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/catalog', {
+                        accessTokenFactory: () => StorageManager.getAccessToken() ?? ''
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                catalogNotificationsConnection.on('ProductChanged', () => {
+                    clearTimeout(catalogNotificationsRefreshTimeout);
+                    catalogNotificationsRefreshTimeout = setTimeout(async () => {
+                        try {
+                            await methods.populateMainData();
+                            mainGrid.refresh();
+                        } catch (error) {
+                            console.error('Nao foi possivel atualizar os produtos em tempo real.', error);
+                        }
+                    }, 250);
+                });
+
+                try {
+                    await catalogNotificationsConnection.start();
+                } catch (error) {
+                    console.error('Nao foi possivel conectar as notificacoes de produtos.', error);
+                    catalogNotificationsConnection = null;
+                }
+            },
             populateCategoryData: async () => {
                 const response = await services.getCategoryData();
 
@@ -750,6 +784,12 @@ const App = {
                 state.sort.field = field;
                 state.sort.direction = 'asc';
             },
+            scrollProductsDown: () => {
+                productTableCardRef.value?.scrollBy({
+                    top: Math.max(productTableCardRef.value.clientHeight * 0.85, 220),
+                    behavior: 'smooth'
+                });
+            },
             handleNew: () => {
                 state.deleteMode = false;
                 state.mainTitle = 'Adicionar Produto';
@@ -921,6 +961,7 @@ const App = {
 
                 nameText.create();
                 mainModal.create();
+                await methods.connectCatalogNotifications();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
                     methods.resetForm();
@@ -937,6 +978,7 @@ const App = {
         return {
             state,
             mainGridRef,
+            productTableCardRef,
             mainModalRef,
             nameRef,
             mainImageFileRef,

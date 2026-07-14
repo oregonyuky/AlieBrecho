@@ -29,6 +29,7 @@ public class BagController : BaseApiController
     private readonly IMercadoPagoService _mercadoPagoService;
     private readonly MercadoPagoSettings _mercadoPagoSettings;
     private readonly IHubContext<OrderNotificationsHub> _orderNotifications;
+    private readonly IHubContext<CatalogNotificationsHub> _catalogNotifications;
 
     public BagController(
         ISender sender,
@@ -40,7 +41,8 @@ public class BagController : BaseApiController
         IUnitOfWork unitOfWork,
         IMercadoPagoService mercadoPagoService,
         IOptions<MercadoPagoSettings> mercadoPagoSettings,
-        IHubContext<OrderNotificationsHub> orderNotifications) : base(sender)
+        IHubContext<OrderNotificationsHub> orderNotifications,
+        IHubContext<CatalogNotificationsHub> catalogNotifications) : base(sender)
     {
         _bagRepository = bagRepository;
         _bagItemRepository = bagItemRepository;
@@ -51,6 +53,7 @@ public class BagController : BaseApiController
         _mercadoPagoService = mercadoPagoService;
         _mercadoPagoSettings = mercadoPagoSettings.Value;
         _orderNotifications = orderNotifications;
+        _catalogNotifications = catalogNotifications;
     }
 
     [Authorize]
@@ -203,7 +206,12 @@ public class BagController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
-        await NotifyBagChangedAsync("updated", response.Data?.Id, response.Data?.Status.ToString(), cancellationToken);
+        var changeType = request.IsDeleted == true ? "deleted" : "updated";
+        await NotifyBagChangedAsync(changeType, response.Data?.Id, response.Data?.Status.ToString(), cancellationToken);
+        if (request.IsDeleted == true)
+        {
+            await NotifyBagProductsAvailableAsync(response.Data, cancellationToken);
+        }
 
         return Ok(new ApiSuccessResult<UpdateBagResult>
         {
@@ -521,9 +529,46 @@ public class BagController : BaseApiController
                 changeType,
                 bagId,
                 status,
+                isDeleted = string.Equals(changeType, "deleted", StringComparison.OrdinalIgnoreCase),
                 changedAt = DateTime.UtcNow
             },
             cancellationToken);
+    }
+
+    private async Task NotifyBagProductsAvailableAsync(Bag? bag, CancellationToken cancellationToken)
+    {
+        var productIds = (bag?.Items ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList();
+
+        if (productIds.Count == 0)
+        {
+            return;
+        }
+
+        var products = await _productRepository.GetQuery()
+            .AsNoTracking()
+            .Where(x => productIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            await _catalogNotifications.Clients.All.SendAsync(
+                "ProductChanged",
+                new
+                {
+                    changeType = "bag-deleted",
+                    productId = product.Id,
+                    productAvailable = product.ProductAvailable,
+                    unitPrice = product.UnitPrice,
+                    oldPrice = product.OldPrice,
+                    discountPercent = product.DiscountPercent,
+                    changedAt = DateTime.UtcNow
+                },
+                cancellationToken);
+        }
     }
 
     private static BagSummaryResponse MapBag(Bag bag)

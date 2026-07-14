@@ -116,7 +116,29 @@
         background: #ffffff;
         border: 1px solid #e1e5ea;
         border-radius: 14px;
-        overflow: hidden;
+        max-height: calc(100vh - 390px);
+        min-height: 260px;
+        overflow: auto;
+        scrollbar-color: #b8c0cc #f3f4f6;
+        scrollbar-width: thin;
+    }
+
+    .product-table-card::-webkit-scrollbar,
+    .product-modal .modal-body::-webkit-scrollbar {
+        height: 10px;
+        width: 10px;
+    }
+
+    .product-table-card::-webkit-scrollbar-thumb,
+    .product-modal .modal-body::-webkit-scrollbar-thumb {
+        background: #b8c0cc;
+        border: 2px solid #f3f4f6;
+        border-radius: 999px;
+    }
+
+    .product-table-card::-webkit-scrollbar-track,
+    .product-modal .modal-body::-webkit-scrollbar-track {
+        background: #f3f4f6;
     }
 
     .product-table {
@@ -132,7 +154,10 @@
         font-size: 13px;
         font-weight: 800;
         padding: 14px 18px;
+        position: sticky;
+        top: 0;
         text-align: left;
+        z-index: 2;
     }
 
     .product-sort-button {
@@ -316,6 +341,13 @@
     .product-modal .modal-footer {
         background: #ffffff;
         border-color: #e1e7ee;
+    }
+
+    .product-modal .modal-body {
+        max-height: calc(100vh - 220px);
+        overflow-y: auto;
+        scrollbar-color: #b8c0cc #f3f4f6;
+        scrollbar-width: thin;
     }
 
     .product-modal .modal-title {
@@ -515,6 +547,7 @@
         }
 
         .product-table-card {
+            max-height: calc(100vh - 360px);
             overflow-x: auto;
         }
 
@@ -578,7 +611,7 @@
         </select>
     </section>
 
-    <section class="product-table-card">
+    <section class="product-table-card" ref="productTableCardRef">
         <table class="product-table">
             <thead>
                 <tr>
@@ -679,7 +712,7 @@
         </table>
     </section>
 
-    <button type="button" class="product-scroll-indicator" aria-label="Rolar para mais produtos">
+    <button type="button" class="product-scroll-indicator" aria-label="Rolar para mais produtos" v-on:click="handler.scrollProductsDown">
         <i class="fa fa-chevron-down" aria-hidden="true"></i>
     </button>
 
@@ -1073,5 +1106,6 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/Products/Product.cshtml.js?v=20260713"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/FrontEnd/Pages/Products/Product.cshtml.js" asp-append-version="true"></script>
 }
