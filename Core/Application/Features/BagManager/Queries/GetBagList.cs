@@ -34,7 +34,15 @@ public class GetBagListProfile : Profile
         CreateMap<Bag, GetBagListDto>()
             .ForMember(dest => dest.CustomerId, opt => opt.MapFrom(src => src.CustomerId))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
-            .ForMember(dest => dest.ItemCount, opt => opt.MapFrom(src => src.Items != null ? src.Items.Count : 0));
+            .ForMember(dest => dest.ItemCount, opt => opt.MapFrom(src => src.Items != null
+                ? src.Items
+                    .Where(item => !item.IsDeleted
+                        && (item.IsPaid
+                            || !item.IsReserved
+                            || !item.ReservationExpiresAt.HasValue
+                            || item.ReservationExpiresAt.Value >= DateTime.UtcNow))
+                    .Sum(item => item.Quantity)
+                : 0));
     }
 }
 

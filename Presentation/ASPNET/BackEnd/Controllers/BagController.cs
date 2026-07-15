@@ -580,7 +580,9 @@ public class BagController : BaseApiController
             ExpirationDate = bag.ExpirationDate,
             TotalItemsValue = bag.TotalItemsValue,
             ShippingCost = bag.ShippingCost,
-            ItemCount = bag.Items?.Where(x => !x.IsDeleted).Sum(x => x.Quantity) ?? 0
+            ItemCount = bag.Items?
+                .Where(x => !x.IsDeleted && x.IsPaid)
+                .Sum(x => x.Quantity) ?? 0
         };
     }
 

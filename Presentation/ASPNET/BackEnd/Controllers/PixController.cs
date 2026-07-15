@@ -321,17 +321,23 @@ public class PixController : ControllerBase
 
         if (IsApprovedStatus(mercadoPagoPayment.Status))
         {
-            var expectedAmount = Math.Round(bag.Items?
-                .Where(x => !x.IsDeleted && !x.IsPaid)
-                .Sum(x => x.Price * x.Quantity) ?? bag.TotalItemsValue, 2);
+            var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
+            var payableItems = bag.Items?
+                .Where(x => !x.IsDeleted &&
+                    !x.IsPaid &&
+                    x.IsReserved &&
+                    (!x.ReservationExpiresAt.HasValue || x.ReservationExpiresAt.Value >= paidAt))
+                .ToList() ?? [];
+            var expectedAmount = Math.Round(
+                payableItems.Sum(x => x.Price * x.Quantity),
+                2);
             var paidAmount = Math.Round(mercadoPagoPayment.TransactionAmount ?? 0m, 2);
             if (expectedAmount > 0 && expectedAmount != paidAmount)
             {
                 throw new InvalidOperationException("Valor recebido no Mercado Pago nao confere com o valor esperado da sacolinha.");
             }
 
-            var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
-            foreach (var item in bag.Items?.Where(x => !x.IsDeleted && !x.IsPaid) ?? [])
+            foreach (var item in payableItems)
             {
                 item.IsPaid = true;
                 item.IsReserved = false;

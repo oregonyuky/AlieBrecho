@@ -10,17 +10,23 @@ public class DropConfigReleaseService : IDropConfigReleaseService
 {
     private readonly ICommandRepository<DropConfig> _dropRepository;
     private readonly ICommandRepository<Product> _productRepository;
+    private readonly ICommandRepository<OrderDetail> _orderDetailRepository;
+    private readonly ICommandRepository<BagItem> _bagItemRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<DropConfigReleaseService> _logger;
 
     public DropConfigReleaseService(
         ICommandRepository<DropConfig> dropRepository,
         ICommandRepository<Product> productRepository,
+        ICommandRepository<OrderDetail> orderDetailRepository,
+        ICommandRepository<BagItem> bagItemRepository,
         IUnitOfWork unitOfWork,
         ILogger<DropConfigReleaseService> logger)
     {
         _dropRepository = dropRepository;
         _productRepository = productRepository;
+        _orderDetailRepository = orderDetailRepository;
+        _bagItemRepository = bagItemRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -50,10 +56,49 @@ public class DropConfigReleaseService : IDropConfigReleaseService
             return 0;
         }
 
+        var paidOrderProductIds = await _orderDetailRepository
+            .GetQuery()
+            .ApplyIsDeletedFilter()
+            .Where(x => x.ProductId != null &&
+                x.Order != null &&
+                x.Order.Status != Domain.Enums.OrderStatus.Pending &&
+                x.Order.Status != Domain.Enums.OrderStatus.Cancelled)
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var paidBagProductIds = await _bagItemRepository
+            .GetQuery()
+            .ApplyIsDeletedFilter()
+            .Where(x => x.ProductId != null && x.IsPaid)
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var soldProductIds = paidOrderProductIds
+            .Concat(paidBagProductIds)
+            .Distinct()
+            .ToList();
+
+        if (soldProductIds.Count > 0)
+        {
+            await _productRepository
+                .GetQuery()
+                .ApplyIsDeletedFilter()
+                .Where(x => x.DropConfigId == dropId &&
+                    soldProductIds.Contains(x.Id) &&
+                    x.ProductAvailable == true)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(x => x.ProductAvailable, false),
+                    cancellationToken);
+        }
+
         var releasedProductsCount = await _productRepository
             .GetQuery()
             .ApplyIsDeletedFilter()
-            .Where(x => x.DropConfigId == dropId && x.ProductAvailable != true)
+            .Where(x => x.DropConfigId == dropId &&
+                x.ProductAvailable != true &&
+                !soldProductIds.Contains(x.Id))
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(x => x.ProductAvailable, true),
                 cancellationToken);

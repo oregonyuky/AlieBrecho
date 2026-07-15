@@ -562,7 +562,8 @@
                         </span>
                     </td>
                     <td>
-                        <span class="bag-table__price"><span class="bag-table__price-label">Roupas:</span> {{ formatCurrency(bag.totalItemsValue) }}</span>
+                        <span class="bag-table__price">{{ formatCurrency((bag.totalItemsValue || 0) + (bag.shippingCost || 0)) }}</span>
+                        <span class="bag-table__muted">Roupas: {{ formatCurrency(bag.totalItemsValue) }}</span>
                         <span class="bag-table__muted">Frete: {{ formatCurrency(bag.shippingCost) }}</span>
                     </td>
                     <td>

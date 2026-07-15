@@ -135,13 +135,19 @@ public class GetBagSingleHandler : IRequestHandler<GetBagSingleRequest, GetBagSi
             .Where(x => !string.IsNullOrWhiteSpace(x.Id))
             .ToDictionary(x => x.Id!, x => x.ProductImageUrl);
 
-        var items = dto.Items?.Select(item => item with
-        {
-            ProductImageUrl = !string.IsNullOrWhiteSpace(item.ProductId)
-                && productImageMap.TryGetValue(item.ProductId, out var productImageUrl)
-                    ? productImageUrl
-                    : null
-        }).ToList();
+        var now = DateTime.UtcNow;
+        var items = dto.Items?
+            .Where(item => item.IsPaid
+                || !item.IsReserved
+                || !item.ReservationExpiresAt.HasValue
+                || item.ReservationExpiresAt.Value >= now)
+            .Select(item => item with
+            {
+                ProductImageUrl = !string.IsNullOrWhiteSpace(item.ProductId)
+                    && productImageMap.TryGetValue(item.ProductId, out var productImageUrl)
+                        ? productImageUrl
+                        : null
+            }).ToList();
 
         return new GetBagSingleResult
         {

@@ -586,7 +586,12 @@ const App = {
                 try {
                     const response = await services.getSingleData(id);
                     const bag = response?.data?.content?.data;
-                    const items = bag?.items ?? [];
+                    const items = (bag?.items ?? []).filter((item) => {
+                        if (item.isPaid || !item.isReserved) return true;
+
+                        const reservationExpiresAt = parseUtcDate(item.reservationExpiresAt);
+                        return !reservationExpiresAt || reservationExpiresAt >= new Date();
+                    });
 
                     if (!items.length) {
                         return Swal.fire({ icon: 'info', title: 'Detalhes da Sacola', text: 'Nenhum item encontrado para esta sacola.' });
@@ -613,8 +618,13 @@ const App = {
                     `;
                     }).join('');
 
+                    const itemCount = items.reduce(
+                        (total, item) => total + (Number(item.quantity) || 0),
+                        0
+                    );
+
                     await Swal.fire({
-                        title: `${items.length} ${items.length === 1 ? 'item' : 'itens'} na sacola`,
+                        title: `${itemCount} ${itemCount === 1 ? 'item' : 'itens'} na sacola`,
                         html: `
                             <style>
                                 .bag-detail-grid {
