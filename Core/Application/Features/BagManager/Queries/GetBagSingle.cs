@@ -99,7 +99,7 @@ public class GetBagSingleHandler : IRequestHandler<GetBagSingleRequest, GetBagSi
             .AsNoTracking()
             .Include(x => x.Items)
             .Include(x => x.ExpirationHistory)
-            .SingleOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken);
 
         if (entity == null)
         {

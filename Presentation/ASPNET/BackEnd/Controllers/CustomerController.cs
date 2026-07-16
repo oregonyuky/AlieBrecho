@@ -2,17 +2,24 @@ using Application.Features.CustomerManager.Commands;
 using Application.Features.CustomerManager.Queries;
 using ASPNET.BackEnd.Common.Base;
 using ASPNET.BackEnd.Common.Models;
+using ASPNET.BackEnd.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ASPNET.BackEnd.Controllers;
 
 [Route("api/[controller]")]
 public class CustomerController : BaseApiController
 {
-    public CustomerController(ISender sender) : base(sender)
+    private readonly IHubContext<CustomerNotificationsHub> _customerNotifications;
+
+    public CustomerController(
+        ISender sender,
+        IHubContext<CustomerNotificationsHub> customerNotifications) : base(sender)
     {
+        _customerNotifications = customerNotifications;
     }
 
     [AllowAnonymous]
@@ -22,6 +29,7 @@ public class CustomerController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyCustomerChangedAsync("created", response.Data?.Id, cancellationToken);
 
         return Ok(new ApiSuccessResult<CreateCustomerResult>
         {
@@ -54,6 +62,7 @@ public class CustomerController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyCustomerChangedAsync("updated", response.Data?.Id, cancellationToken);
 
         return Ok(new ApiSuccessResult<UpdateCustomerResult>
         {
@@ -70,6 +79,7 @@ public class CustomerController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await NotifyCustomerChangedAsync("deleted", request.Id, cancellationToken);
 
         return Ok(new ApiSuccessResult<DeleteCustomerResult>
         {
@@ -113,5 +123,16 @@ public class CustomerController : BaseApiController
             Message = $"Success executing {nameof(GetCustomerListAsync)}",
             Content = response
         });
+    }
+
+    private Task NotifyCustomerChangedAsync(
+        string changeType,
+        string? customerId,
+        CancellationToken cancellationToken)
+    {
+        return _customerNotifications.Clients.All.SendAsync(
+            "CustomerChanged",
+            new { changeType, customerId, changedAt = DateTime.UtcNow },
+            cancellationToken);
     }
 }

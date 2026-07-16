@@ -223,6 +223,22 @@
         color: #111827;
     }
 
+    .bag-duration-button--expired {
+        background: #fff7d6;
+        border-color: #e5b94f;
+        color: #7c5700;
+    }
+
+    .bag-duration-button--expired .bag-duration-button__icon,
+    .bag-duration-button--expired .bag-table__muted {
+        color: #b77900;
+    }
+
+    .bag-duration-button--expired:hover {
+        background: #ffefb3;
+        border-color: #d39b20;
+    }
+
     .bag-status {
         border-radius: 999px;
         display: inline-flex;
@@ -569,11 +585,14 @@
                     <td>
                         <button type="button"
                                 class="bag-duration-button"
+                                v-bind:class="{ 'bag-duration-button--expired': methods.isExpirationExpired(bag.expirationDate) }"
                                 title="Alterar prazo desta sacola"
                                 v-on:click.stop="methods.showDurationModal(bag)">
-                            <i class="fa fa-calendar-plus bag-duration-button__icon" aria-hidden="true"></i>
+                            <i class="fa bag-duration-button__icon"
+                               v-bind:class="methods.isExpirationExpired(bag.expirationDate) ? 'fa-exclamation-triangle' : 'fa-clock'"
+                               aria-hidden="true"></i>
                             <span class="bag-duration-button__content">
-                                <span>{{ methods.formatShortDate(bag.expirationDate) }}</span>
+                                <span>{{ methods.formatDateTime(bag.expirationDate).date }} {{ methods.formatDateTime(bag.expirationDate).time }}</span>
                                 <span class="bag-table__muted">{{ methods.getExpirationRemainingText(bag.expirationDate) }}</span>
                             </span>
                         </button>
@@ -640,6 +659,7 @@
                             <div class="bag-config-inputs">
                                 <input type="number" min="1" class="form-control" v-model.number="state.settings.defaultDurationValue">
                                 <select class="form-select" v-model="state.settings.defaultDurationUnit">
+                                    <option value="minutes">minutos</option>
                                     <option value="days">dias</option>
                                     <option value="months">meses</option>
                                 </select>
@@ -651,6 +671,7 @@
                             <div class="bag-config-inputs">
                                 <input type="number" min="1" class="form-control" v-model.number="state.settings.extensionDurationValue">
                                 <select class="form-select" v-model="state.settings.extensionDurationUnit">
+                                    <option value="minutes">minutos</option>
                                     <option value="days">dias</option>
                                     <option value="months">meses</option>
                                 </select>
@@ -662,6 +683,7 @@
                             <div class="bag-config-inputs">
                                 <input type="number" min="1" class="form-control" v-model.number="state.settings.extensionResponseDeadlineValue">
                                 <select class="form-select" v-model="state.settings.extensionResponseDeadlineUnit">
+                                    <option value="minutes">minutos</option>
                                     <option value="days">dias</option>
                                     <option value="months">meses</option>
                                 </select>
@@ -710,6 +732,7 @@
                                 <div class="input-group">
                                     <input type="number" min="1" class="form-control" placeholder="+ 15" v-model.number="state.duration.addValue">
                                     <select class="form-select" v-model="state.duration.addUnit">
+                                        <option value="minutes">minutos</option>
                                         <option value="days">dias</option>
                                         <option value="months">meses</option>
                                     </select>
@@ -815,5 +838,5 @@
 
 @section scripts {
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-    <script src="~/FrontEnd/Pages/Bags/Bag.cshtml.js?v=2026071303"></script>
+    <script src="~/FrontEnd/Pages/Bags/Bag.cshtml.js?v=2026071601"></script>
 }

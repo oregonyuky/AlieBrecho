@@ -125,8 +125,11 @@ public class BagController : BaseApiController
         }
 
         var oldExpirationDate = bag.ExpirationDate;
+        var extensionBaseDate = oldExpirationDate > DateTime.UtcNow
+            ? oldExpirationDate
+            : DateTime.UtcNow;
         var newExpirationDate = request.NewExpirationDate
-            ?? AddDuration(oldExpirationDate, request.AddValue ?? 0, request.AddUnit);
+            ?? AddDuration(extensionBaseDate, request.AddValue ?? 0, request.AddUnit);
 
         if (newExpirationDate <= DateTime.UtcNow)
         {
@@ -472,22 +475,33 @@ public class BagController : BaseApiController
 
     private static bool IsValidDurationUnit(string? unit)
     {
-        return string.Equals(unit, "days", StringComparison.OrdinalIgnoreCase)
+        return string.Equals(unit, "minutes", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(unit, "days", StringComparison.OrdinalIgnoreCase)
             || string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeDurationUnit(string? unit)
     {
-        return string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase)
-            ? "months"
+        if (string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase))
+        {
+            return "months";
+        }
+
+        return string.Equals(unit, "minutes", StringComparison.OrdinalIgnoreCase)
+            ? "minutes"
             : "days";
     }
 
     private static DateTime AddDuration(DateTime date, int value, string? unit)
     {
         var safeValue = Math.Max(value, 1);
-        return string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase)
-            ? date.AddMonths(safeValue)
+        if (string.Equals(unit, "months", StringComparison.OrdinalIgnoreCase))
+        {
+            return date.AddMonths(safeValue);
+        }
+
+        return string.Equals(unit, "minutes", StringComparison.OrdinalIgnoreCase)
+            ? date.AddMinutes(safeValue)
             : date.AddDays(safeValue);
     }
 

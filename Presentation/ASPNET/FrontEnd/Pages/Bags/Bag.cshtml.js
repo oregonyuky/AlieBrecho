@@ -51,6 +51,7 @@ const App = {
                 page: 1,
                 pageSize: 30
             },
+            clockNow: Date.now(),
             isSubmitting: false
         });
 
@@ -64,7 +65,7 @@ const App = {
             Expired: 'Expirada',
             Abandoned: 'Abandonada',
             ReadyToShip: 'Pronta para Envio',
-            Shipped: 'Enviada'
+            Shipped: 'Finalizada'
         };
 
         const translateBagStatus = (status) => bagStatusLabels[status] ?? status;
@@ -234,15 +235,37 @@ const App = {
             return `Expira em: ${dateText} (${days} dias restantes)`;
         };
 
+        const getExpirationDifferenceMinutes = (value) => {
+            const date = parseUtcDate(value);
+            if (!date) return null;
+
+            return Math.ceil((date.getTime() - state.clockNow) / 60000);
+        };
+
+        const formatDurationMinutes = (totalMinutes) => {
+            const absoluteMinutes = Math.abs(totalMinutes);
+            const days = Math.floor(absoluteMinutes / 1440);
+            const hours = Math.floor((absoluteMinutes % 1440) / 60);
+            const minutes = absoluteMinutes % 60;
+            const parts = [];
+
+            if (days > 0) parts.push(`${days}d`);
+            if (hours > 0 || days > 0) parts.push(`${hours}h`);
+            parts.push(`${minutes}min`);
+            return parts.join(' ');
+        };
+
         const getExpirationRemainingText = (value) => {
-            const days = getDaysUntil(value);
+            const remainingMinutes = getExpirationDifferenceMinutes(value);
+            if (remainingMinutes === null) return '-';
+            if (remainingMinutes <= 0) return `Expirado ha ${formatDurationMinutes(remainingMinutes)}`;
 
-            if (days === null) return '-';
-            if (days < 0) return `${Math.abs(days)} dias atras`;
-            if (days === 0) return 'hoje';
-            if (days === 1) return '1 dia restante';
+            return `Faltam ${formatDurationMinutes(remainingMinutes)}`;
+        };
 
-            return `${days} dias restantes`;
+        const isExpirationExpired = (value) => {
+            const remainingMinutes = getExpirationDifferenceMinutes(value);
+            return remainingMinutes !== null && remainingMinutes <= 0;
         };
 
         const formatHistoryEntry = (entry) => {
@@ -266,6 +289,8 @@ const App = {
             const result = new Date(date);
             if (unit === 'months') {
                 result.setMonth(result.getMonth() + quantity);
+            } else if (unit === 'minutes') {
+                result.setMinutes(result.getMinutes() + quantity);
             } else {
                 result.setDate(result.getDate() + quantity);
             }
@@ -454,6 +479,7 @@ const App = {
             formatShortDate: (value) => formatShortDate(value),
             getExpirationSummary: (value) => getExpirationSummary(value),
             getExpirationRemainingText: (value) => getExpirationRemainingText(value),
+            isExpirationExpired: (value) => isExpirationExpired(value),
             formatHistoryEntry: (entry) => formatHistoryEntry(entry),
             getSortValue: (bag, field) => {
                 if (field === 'createdAt') {
@@ -524,7 +550,11 @@ const App = {
                 const currentBag = state.mainData.find(x => x.id === state.duration.bagId);
                 const customerName = state.duration.customerName || currentBag?.customerName || 'esta cliente';
                 const addValue = Number(state.duration.addValue);
-                const addedDate = addDuration(state.duration.expirationDate, addValue, state.duration.addUnit);
+                const expirationDate = parseUtcDate(state.duration.expirationDate);
+                const extensionBaseDate = expirationDate && expirationDate.getTime() > state.clockNow
+                    ? expirationDate
+                    : new Date(state.clockNow);
+                const addedDate = addDuration(extensionBaseDate, addValue, state.duration.addUnit);
                 const newDate = addedDate
                     ?? (state.duration.newExpirationDate ? new Date(`${state.duration.newExpirationDate}T23:59:59`) : null);
 
@@ -553,8 +583,8 @@ const App = {
 
                     const response = await services.updateExpiration({
                         bagId: state.duration.bagId,
-                        newExpirationDate: newDate,
-                        addValue: null,
+                        newExpirationDate: addedDate ? null : newDate,
+                        addValue: addedDate ? addValue : null,
                         addUnit: state.duration.addUnit
                     });
 
@@ -573,10 +603,11 @@ const App = {
                         showConfirmButton: false
                     });
                 } catch (error) {
+                    const apiError = error.response?.data;
                     Swal.fire({
                         icon: 'error',
                         title: 'Erro',
-                        text: error.response?.data?.message ?? 'Nao foi possivel atualizar o prazo.'
+                        text: apiError?.message ?? (typeof apiError === 'string' ? apiError : 'Nao foi possivel atualizar o prazo.')
                     });
                 } finally {
                     state.duration.isSubmitting = false;
@@ -861,12 +892,23 @@ const App = {
             }
         };
 
+        let expirationClockTimer = null;
+
         Vue.onMounted(async () => {
+            expirationClockTimer = window.setInterval(() => {
+                state.clockNow = Date.now();
+            }, 15000);
             await methods.populateMainData();
             await methods.connectBagNotifications();
             mainModal.create();
             settingsModal.create();
             durationModal.create();
+        });
+
+        Vue.onBeforeUnmount(() => {
+            if (expirationClockTimer) {
+                window.clearInterval(expirationClockTimer);
+            }
         });
 
         return {

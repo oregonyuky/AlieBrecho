@@ -484,10 +484,10 @@
                     <th>
                         <button type="button"
                                 class="customer-sort-button"
-                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'description' }"
-                                v-on:click="handler.handleSort('description')">
-                            Observacoes
-                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('description')" aria-hidden="true"></i>
+                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'instagram' }"
+                                v-on:click="handler.handleSort('instagram')">
+                            Instagram
+                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('instagram')" aria-hidden="true"></i>
                         </button>
                     </th>
                     <th>CEP</th>
@@ -501,7 +501,7 @@
                     <td>{{ customer.cpf || '-' }}</td>
                     <td>{{ customer.phoneNumber || '-' }}</td>
                     <td>{{ customer.emailAddress || '-' }}</td>
-                    <td>{{ customer.description || '-' }}</td>
+                    <td>{{ customer.instagram || '-' }}</td>
                     <td>
                         <button type="button"
                                 class="customer-cep-button"
@@ -729,5 +729,6 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/Customers/Customer.cshtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <script src="~/FrontEnd/Pages/Customers/Customer.cshtml.js?v=2026071601"></script>
 }

@@ -60,6 +60,8 @@ const App = {
 
         const mainModalRef = Vue.ref(null);
         const addressModalRef = Vue.ref(null);
+        let customerNotificationsConnection = null;
+        let customerRefreshTimeout = null;
 
         const services = {
             getMainData: async () => AxiosManager.get('/Customer/GetCustomerList', {}),
@@ -150,7 +152,7 @@ const App = {
                 if (field === 'cpf') return String(customer?.cpf ?? '').toLowerCase();
                 if (field === 'phoneNumber') return String(customer?.phoneNumber ?? '').toLowerCase();
                 if (field === 'emailAddress') return String(customer?.emailAddress ?? '').toLowerCase();
-                if (field === 'description') return String(customer?.description ?? '').toLowerCase();
+                if (field === 'instagram') return String(customer?.instagram ?? '').toLowerCase();
                 if (field === 'status') return methods.translateCustomerStatus(customer?.customerStatus).toLowerCase();
 
                 return '';
@@ -168,6 +170,32 @@ const App = {
                 state.mainData = response?.data?.content?.data ?? [];
 
                 methods.updateSummaryCards();
+            },
+            connectCustomerNotifications: async () => {
+                if (!window.signalR || customerNotificationsConnection) return;
+
+                customerNotificationsConnection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/customers', {
+                        accessTokenFactory: () => StorageManager.getAccessToken() ?? ''
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                customerNotificationsConnection.on('CustomerChanged', () => {
+                    window.clearTimeout(customerRefreshTimeout);
+                    customerRefreshTimeout = window.setTimeout(() => {
+                        methods.populateMainData().catch(error => {
+                            console.error('Nao foi possivel atualizar os clientes em tempo real.', error);
+                        });
+                    }, 200);
+                });
+
+                try {
+                    await customerNotificationsConnection.start();
+                } catch (error) {
+                    console.error('Nao foi possivel conectar as notificacoes de clientes.', error);
+                    customerNotificationsConnection = null;
+                }
             }
         };
 
@@ -202,7 +230,7 @@ const App = {
                     customer?.cpf,
                     customer?.phoneNumber,
                     customer?.emailAddress,
-                    customer?.description,
+                    customer?.instagram,
                     customer?.postalCode
                 ].map(value => String(value ?? '').toLowerCase()).join(' ');
                 const matchesSearch = !search || searchableText.includes(search);
@@ -339,6 +367,7 @@ const App = {
                 await SecurityManager.validateToken();
 
                 await methods.populateMainData();
+                await methods.connectCustomerNotifications();
                 mainModal.create();
                 addressModal.create();
 
@@ -353,6 +382,13 @@ const App = {
                 });
             } catch (e) {
                 console.error(e);
+            }
+        });
+
+        Vue.onBeforeUnmount(async () => {
+            window.clearTimeout(customerRefreshTimeout);
+            if (customerNotificationsConnection) {
+                await customerNotificationsConnection.stop();
             }
         });
 
