@@ -149,6 +149,20 @@
         font-weight: 800;
     }
 
+    .customer-contact-item {
+        align-items: center;
+        display: flex;
+        gap: 7px;
+        line-height: 1.7;
+        white-space: nowrap;
+    }
+
+    .customer-contact-item img {
+        height: 16px;
+        object-fit: contain;
+        width: 16px;
+    }
+
     .customer-table__actions {
         text-align: right;
         white-space: nowrap;
@@ -475,9 +489,18 @@
                     <td><span class="customer-table__name">{{ customer.name }}</span></td>
                     <td>{{ customer.cpf || '-' }}</td>
                     <td>
-                        <div>{{ customer.phoneNumber || '-' }}</div>
-                        <div>{{ customer.emailAddress || '-' }}</div>
-                        <div>{{ customer.instagram || '-' }}</div>
+                        <div class="customer-contact-item">
+                            <img src="~/whatsapp.png" alt="WhatsApp" />
+                            <span>{{ customer.phoneNumber || '-' }}</span>
+                        </div>
+                        <div class="customer-contact-item">
+                            <img src="~/gmail.png" alt="E-mail" />
+                            <span>{{ customer.emailAddress || '-' }}</span>
+                        </div>
+                        <div class="customer-contact-item">
+                            <img src="~/instagram.png" alt="Instagram" />
+                            <span>{{ customer.instagram || '-' }}</span>
+                        </div>
                     </td>
                     <td>
                         <button type="button"
