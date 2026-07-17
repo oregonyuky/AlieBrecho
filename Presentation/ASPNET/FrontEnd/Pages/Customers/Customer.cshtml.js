@@ -49,6 +49,10 @@ const App = {
                 direction: 'asc'
             },
             address: emptyAddress(),
+            purchaseHistory: [],
+            purchaseHistoryCustomerName: '',
+            isLoadingPurchaseHistory: false,
+            purchaseHistoryError: '',
             deleteMode: false,
             mainTitle: 'Editar Cliente',
             errors: {
@@ -60,11 +64,15 @@ const App = {
 
         const mainModalRef = Vue.ref(null);
         const addressModalRef = Vue.ref(null);
+        const purchaseHistoryModalRef = Vue.ref(null);
         let customerNotificationsConnection = null;
         let customerRefreshTimeout = null;
 
         const services = {
             getMainData: async () => AxiosManager.get('/Customer/GetCustomerList', {}),
+            getPurchaseHistory: async (customerId) => AxiosManager.get('/Order/GetOrderList', {
+                params: { customerId }
+            }),
             createMainData: async (payload) => AxiosManager.post('/Customer/CreateCustomer', payload),
             updateMainData: async (payload) => AxiosManager.post('/Customer/UpdateCustomer', payload),
             deleteMainData: async (id) => AxiosManager.post('/Customer/DeleteCustomer', { id })
@@ -96,6 +104,9 @@ const App = {
             resetForm: () => {
                 Object.assign(state, emptyCustomer());
                 state.errors = { name: '' };
+                state.purchaseHistory = [];
+                state.purchaseHistoryCustomerName = '';
+                state.purchaseHistoryError = '';
             },
             setFormData: (customer) => {
                 Object.assign(state, {
@@ -171,6 +182,30 @@ const App = {
 
                 methods.updateSummaryCards();
             },
+            loadPurchaseHistory: async (customerId) => {
+                state.purchaseHistory = [];
+                state.purchaseHistoryError = '';
+
+                if (!customerId) return;
+
+                try {
+                    state.isLoadingPurchaseHistory = true;
+                    const response = await services.getPurchaseHistory(customerId);
+                    state.purchaseHistory = response?.data?.content?.data ?? [];
+                } catch (error) {
+                    state.purchaseHistoryError = 'Nao foi possivel carregar o historico de compras.';
+                    console.error('Nao foi possivel carregar o historico de compras.', error);
+                } finally {
+                    state.isLoadingPurchaseHistory = false;
+                }
+            },
+            formatCurrency: (value) => new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(Number(value ?? 0)),
+            formatDate: (value) => value
+                ? new Date(value).toLocaleDateString('pt-BR')
+                : '-',
             connectCustomerNotifications: async () => {
                 if (!window.signalR || customerNotificationsConnection) return;
 
@@ -213,6 +248,13 @@ const App = {
             obj: null,
             create: () => {
                 addressModal.obj = new bootstrap.Modal(addressModalRef.value);
+            }
+        };
+
+        const purchaseHistoryModal = {
+            obj: null,
+            create: () => {
+                purchaseHistoryModal.obj = new bootstrap.Modal(purchaseHistoryModalRef.value);
             }
         };
 
@@ -269,19 +311,54 @@ const App = {
 
                 mainModal.obj.show();
             },
-            handleEdit: (customer) => {
+            handleEdit: async (customer) => {
                 state.deleteMode = false;
                 state.mainTitle = 'Editar Cliente';
                 methods.setFormData(customer);
+                await methods.loadPurchaseHistory(customer?.id);
 
                 mainModal.obj.show();
             },
-            handleDelete: (customer) => {
-                state.deleteMode = true;
-                state.mainTitle = 'Excluir Cliente';
-                methods.setFormData(customer);
+            handlePurchaseHistory: async (customer) => {
+                state.purchaseHistoryCustomerName = customer?.name ?? '';
+                purchaseHistoryModal.obj.show();
+                await methods.loadPurchaseHistory(customer?.id);
+            },
+            handleDelete: async (customer) => {
+                if (!customer?.id) return;
 
-                mainModal.obj.show();
+                const confirm = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Excluir cliente?',
+                    text: `Deseja realmente excluir o cliente ${customer.name ?? ''}?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Excluir',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc3545'
+                });
+
+                if (!confirm.isConfirmed) return;
+
+                try {
+                    const response = await services.deleteMainData(customer.id);
+                    if (response.data.code !== 200) {
+                        throw new Error(response.data.message ?? 'Erro ao excluir cliente.');
+                    }
+
+                    await methods.populateMainData();
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Excluido com Sucesso',
+                        timer: 1000,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Falha ao Excluir',
+                        text: error.response?.data?.message ?? error.message ?? 'Erro inesperado'
+                    });
+                }
             },
             handleAddress: (customer) => {
                 methods.setAddressData(customer);
@@ -294,33 +371,6 @@ const App = {
 
                     if (!state.deleteMode && !state.name) {
                         state.errors.name = 'Nome e obrigatorio.';
-                        return;
-                    }
-
-                    if (state.deleteMode) {
-                        const deleteResponse = await services.deleteMainData(state.id);
-
-                        if (deleteResponse.data.code === 200) {
-                            await methods.populateMainData();
-
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Excluido com Sucesso',
-                                timer: 1000,
-                                showConfirmButton: false
-                            });
-
-                            setTimeout(() => {
-                                mainModal.obj.hide();
-                            }, 1000);
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Falha ao Excluir',
-                                text: deleteResponse.data.message ?? 'Erro'
-                            });
-                        }
-
                         return;
                     }
 
@@ -370,6 +420,7 @@ const App = {
                 await methods.connectCustomerNotifications();
                 mainModal.create();
                 addressModal.create();
+                purchaseHistoryModal.create();
 
                 mainModalRef.value.addEventListener('hidden.bs.modal', () => {
                     methods.resetForm();
@@ -379,6 +430,12 @@ const App = {
 
                 addressModalRef.value.addEventListener('hidden.bs.modal', () => {
                     state.address = emptyAddress();
+                });
+
+                purchaseHistoryModalRef.value.addEventListener('hidden.bs.modal', () => {
+                    state.purchaseHistory = [];
+                    state.purchaseHistoryCustomerName = '';
+                    state.purchaseHistoryError = '';
                 });
             } catch (e) {
                 console.error(e);
@@ -396,6 +453,7 @@ const App = {
             state,
             mainModalRef,
             addressModalRef,
+            purchaseHistoryModalRef,
             filteredCustomers,
             methods,
             handler

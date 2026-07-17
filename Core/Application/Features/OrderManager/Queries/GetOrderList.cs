@@ -91,6 +91,7 @@ public class GetOrderListResult
 public class GetOrderListRequest : IRequest<GetOrderListResult>
 {
     public bool IsDeleted { get; init; } = false;
+    public string? CustomerId { get; init; }
 }
 
 public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrderListResult>
@@ -124,6 +125,11 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
             .Include(x => x.OrderDetails)
             .ApplyIsDeletedFilter(request.IsDeleted)
             .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.CustomerId))
+        {
+            query = query.Where(x => x.CustomerId == request.CustomerId);
+        }
 
         var entities = await query.ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GetOrderListDto>>(entities);

@@ -463,34 +463,9 @@
                             <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('cpf')" aria-hidden="true"></i>
                         </button>
                     </th>
-                    <th>
-                        <button type="button"
-                                class="customer-sort-button"
-                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'phoneNumber' }"
-                                v-on:click="handler.handleSort('phoneNumber')">
-                            Telefone
-                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('phoneNumber')" aria-hidden="true"></i>
-                        </button>
-                    </th>
-                    <th>
-                        <button type="button"
-                                class="customer-sort-button"
-                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'emailAddress' }"
-                                v-on:click="handler.handleSort('emailAddress')">
-                            Email
-                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('emailAddress')" aria-hidden="true"></i>
-                        </button>
-                    </th>
-                    <th>
-                        <button type="button"
-                                class="customer-sort-button"
-                                v-bind:class="{ 'customer-sort-button--active': state.sort.field === 'instagram' }"
-                                v-on:click="handler.handleSort('instagram')">
-                            Instagram
-                            <i class="fa customer-sort-icon" v-bind:class="methods.getSortIcon('instagram')" aria-hidden="true"></i>
-                        </button>
-                    </th>
+                    <th>Contato</th>
                     <th>CEP</th>
+                    <th>Historico de compras</th>
                     <th>Status</th>
                     <th class="text-right">Acoes</th>
                 </tr>
@@ -499,15 +474,23 @@
                 <tr v-for="customer in filteredCustomers" v-bind:key="customer.id">
                     <td><span class="customer-table__name">{{ customer.name }}</span></td>
                     <td>{{ customer.cpf || '-' }}</td>
-                    <td>{{ customer.phoneNumber || '-' }}</td>
-                    <td>{{ customer.emailAddress || '-' }}</td>
-                    <td>{{ customer.instagram || '-' }}</td>
+                    <td>
+                        <div>{{ customer.phoneNumber || '-' }}</div>
+                        <div>{{ customer.emailAddress || '-' }}</div>
+                        <div>{{ customer.instagram || '-' }}</div>
+                    </td>
                     <td>
                         <button type="button"
                                 class="customer-cep-button"
                                 v-on:click="handler.handleAddress(customer)">
                             <i class="fa fa-map-marker-alt" aria-hidden="true"></i>
                             {{ customer.postalCode || 'Ver endereco' }}
+                        </button>
+                    </td>
+                    <td>
+                        <button type="button" class="customer-cep-button" v-on:click="handler.handlePurchaseHistory(customer)">
+                            <i class="fa fa-shopping-bag" aria-hidden="true"></i>
+                            Ver historico
                         </button>
                     </td>
                     <td>
@@ -525,7 +508,7 @@
                     </td>
                 </tr>
                 <tr v-if="filteredCustomers.length === 0">
-                    <td colspan="8" class="customer-empty-row">Nenhum cliente encontrado.</td>
+                    <td colspan="7" class="customer-empty-row">Nenhum cliente encontrado.</td>
                 </tr>
             </tbody>
         </table>
@@ -582,6 +565,49 @@
                             data-bs-dismiss="modal">
                         Fechar
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" ref="purchaseHistoryModalRef" id="PurchaseHistoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content customer-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title">Historico de Compras</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3"><strong>Cliente:</strong> {{ state.purchaseHistoryCustomerName || '-' }}</p>
+
+                    <div v-if="state.isLoadingPurchaseHistory" class="text-muted">Carregando pedidos...</div>
+                    <div v-else-if="state.purchaseHistoryError" class="text-danger">{{ state.purchaseHistoryError }}</div>
+                    <div v-else-if="state.purchaseHistory.length === 0" class="text-muted">Nenhuma compra encontrada para este cliente.</div>
+                    <div v-else class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Pedido</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Itens</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="order in state.purchaseHistory" v-bind:key="order.id">
+                                    <td>{{ order.id }}</td>
+                                    <td>{{ methods.formatDate(order.orderDate || order.createdAt) }}</td>
+                                    <td>{{ order.status || '-' }}</td>
+                                    <td>{{ order.itemCount ?? 0 }}</td>
+                                    <td class="text-end">{{ methods.formatCurrency(order.totalWithShipping ?? order.totalAmount) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="customer-drop-btn customer-drop-btn--ghost" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </div>
         </div>
@@ -696,6 +722,7 @@
                             </div>
                         </div>
                     </form>
+
                 </div>
 
                 <div class="modal-footer">
@@ -730,5 +757,5 @@
 
 @section scripts {
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-    <script src="~/FrontEnd/Pages/Customers/Customer.cshtml.js?v=2026071601"></script>
+    <script src="~/FrontEnd/Pages/Customers/Customer.cshtml.js?v=2026071701"></script>
 }

@@ -43,9 +43,14 @@ public class OrderController : BaseApiController
     [HttpGet("GetOrderList")]
     public async Task<ActionResult<ApiSuccessResult<GetOrderListResult>>> GetOrderListAsync(
         CancellationToken cancellationToken,
-        [FromQuery] bool isDeleted = false)
+        [FromQuery] bool isDeleted = false,
+        [FromQuery] string? customerId = null)
     {
-        var request = new GetOrderListRequest { IsDeleted = isDeleted };
+        var request = new GetOrderListRequest
+        {
+            IsDeleted = isDeleted,
+            CustomerId = customerId
+        };
         var response = await _sender.Send(request, cancellationToken);
 
         return Ok(new ApiSuccessResult<GetOrderListResult>
