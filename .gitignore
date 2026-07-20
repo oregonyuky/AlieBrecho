@@ -5,6 +5,8 @@ obj/
 *.Development.json
 *.env
 Migrations/
+!Infrastructure/Infrastructure/DataAccessManager/EFCore/Migrations/
+!Infrastructure/Infrastructure/DataAccessManager/EFCore/Migrations/*.cs
 appsettings.Development.json
 *.db
 *.db-shm

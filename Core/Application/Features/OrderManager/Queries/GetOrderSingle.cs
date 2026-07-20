@@ -96,8 +96,12 @@ public class GetOrderSingleProfile : Profile
 
         CreateMap<ShippingDetail, ShippingDetailDto>();
         CreateMap<OrderDetail, OrderDetailDto>()
-            .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null))
-            .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product != null ? src.Product.MainImageURL ?? src.Product.Picture1 : null));
+            .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => !string.IsNullOrWhiteSpace(src.ProductName)
+                ? src.ProductName
+                : src.Product != null ? src.Product.Name : null))
+            .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => !string.IsNullOrWhiteSpace(src.ProductImageUrl)
+                ? src.ProductImageUrl
+                : src.Product != null ? src.Product.MainImageURL ?? src.Product.Picture1 : null));
 
         CreateMap<Order, GetOrderSingleDto>()
             .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null))

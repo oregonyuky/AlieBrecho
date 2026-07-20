@@ -117,6 +117,7 @@ public static class DI
         dataContext.Database.EnsureCreated(); // Ensure database is created (development only)
         EnsureCustomerTable(dataContext);
         EnsureOrderMelhorEnvioCartColumns(dataContext);
+        EnsureOrderDetailSnapshotColumns(dataContext);
         EnsurePaidOrderProductsUnavailable(dataContext);
         EnsurePaidBagProductsUnavailable(dataContext);
         EnsureInfinitePayPaymentColumns(dataContext);
@@ -125,6 +126,7 @@ public static class DI
         EnsureProductSizeStockQuantityColumn(dataContext);
         EnsureBagSettingsTable(dataContext);
         EnsureBagExpirationHistoryTable(dataContext);
+        EnsureContactMessageTable(dataContext);
 
         return host;
     }
@@ -455,6 +457,88 @@ public static class DI
         }
     }
 
+    private static void EnsureContactMessageTable(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF OBJECT_ID('dbo.ContactMessage', 'U') IS NULL
+                                               BEGIN
+                                                   CREATE TABLE [ContactMessage] (
+                                                       [Id] nvarchar(50) NOT NULL,
+                                                       [IsDeleted] bit NOT NULL CONSTRAINT [DF_ContactMessage_IsDeleted] DEFAULT CAST(0 AS bit),
+                                                       [CreatedAtUtc] datetime2 NULL,
+                                                       [CreatedById] nvarchar(450) NULL,
+                                                       [UpdatedAtUtc] datetime2 NULL,
+                                                       [UpdatedById] nvarchar(450) NULL,
+                                                       [Name] nvarchar(120) NOT NULL,
+                                                       [Email] nvarchar(180) NOT NULL,
+                                                       [Phone] nvarchar(30) NOT NULL,
+                                                       [Subject] nvarchar(160) NOT NULL,
+                                                       [Message] nvarchar(4000) NOT NULL,
+                                                       [IsRead] bit NOT NULL CONSTRAINT [DF_ContactMessage_IsRead] DEFAULT CAST(0 AS bit),
+                                                       [ReceivedAtUtc] datetime2 NOT NULL,
+                                                       [ReadAtUtc] datetime2 NULL,
+                                                       CONSTRAINT [PK_ContactMessage] PRIMARY KEY ([Id])
+                                                   );
+                                                   CREATE INDEX [IX_ContactMessage_IsRead_ReceivedAtUtc]
+                                                       ON [ContactMessage] ([IsRead], [ReceivedAtUtc]);
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "ContactMessage" (
+                                                   "Id" character varying(50) NOT NULL,
+                                                   "IsDeleted" boolean NOT NULL DEFAULT FALSE,
+                                                   "CreatedAtUtc" timestamp with time zone NULL,
+                                                   "CreatedById" character varying(450) NULL,
+                                                   "UpdatedAtUtc" timestamp with time zone NULL,
+                                                   "UpdatedById" character varying(450) NULL,
+                                                   "Name" character varying(120) NOT NULL,
+                                                   "Email" character varying(180) NOT NULL,
+                                                   "Phone" character varying(30) NOT NULL,
+                                                   "Subject" character varying(160) NOT NULL,
+                                                   "Message" character varying(4000) NOT NULL,
+                                                   "IsRead" boolean NOT NULL DEFAULT FALSE,
+                                                   "ReceivedAtUtc" timestamp with time zone NOT NULL,
+                                                   "ReadAtUtc" timestamp with time zone NULL,
+                                                   CONSTRAINT "PK_ContactMessage" PRIMARY KEY ("Id")
+                                               );
+                                               CREATE INDEX IF NOT EXISTS "IX_ContactMessage_IsRead_ReceivedAtUtc"
+                                                   ON "ContactMessage" ("IsRead", "ReceivedAtUtc");
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               CREATE TABLE IF NOT EXISTS "ContactMessage" (
+                                                   "Id" TEXT NOT NULL CONSTRAINT "PK_ContactMessage" PRIMARY KEY,
+                                                   "IsDeleted" INTEGER NOT NULL DEFAULT 0,
+                                                   "CreatedAtUtc" TEXT NULL,
+                                                   "CreatedById" TEXT NULL,
+                                                   "UpdatedAtUtc" TEXT NULL,
+                                                   "UpdatedById" TEXT NULL,
+                                                   "Name" TEXT NOT NULL,
+                                                   "Email" TEXT NOT NULL,
+                                                   "Phone" TEXT NOT NULL,
+                                                   "Subject" TEXT NOT NULL,
+                                                   "Message" TEXT NOT NULL,
+                                                   "IsRead" INTEGER NOT NULL DEFAULT 0,
+                                                   "ReceivedAtUtc" TEXT NOT NULL,
+                                                   "ReadAtUtc" TEXT NULL
+                                               );
+                                               CREATE INDEX IF NOT EXISTS "IX_ContactMessage_IsRead_ReceivedAtUtc"
+                                                   ON "ContactMessage" ("IsRead", "ReceivedAtUtc");
+                                               """);
+        }
+    }
+
     private static void EnsureDropConfigTable(DataContext dataContext)
     {
         if (dataContext.Database.IsSqlServer())
@@ -647,6 +731,54 @@ public static class DI
                                                ALTER TABLE "Order"
                                                ADD COLUMN IF NOT EXISTS "MelhorEnvioGeneratedAt" timestamp with time zone;
                                                """);
+        }
+    }
+
+    private static void EnsureOrderDetailSnapshotColumns(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.OrderDetail', 'ProductName') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [OrderDetail] ADD [ProductName] nvarchar(max) NULL;
+                                               END
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               IF COL_LENGTH('dbo.OrderDetail', 'ProductImageUrl') IS NULL
+                                               BEGIN
+                                                   ALTER TABLE [OrderDetail] ADD [ProductImageUrl] nvarchar(max) NULL;
+                                               END
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "OrderDetail"
+                                               ADD COLUMN IF NOT EXISTS "ProductName" text NULL;
+                                               """);
+
+            dataContext.Database.ExecuteSqlRaw("""
+                                               ALTER TABLE "OrderDetail"
+                                               ADD COLUMN IF NOT EXISTS "ProductImageUrl" text NULL;
+                                               """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            if (!SqliteColumnExists(dataContext, "OrderDetail", "ProductName"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "OrderDetail" ADD COLUMN "ProductName" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "OrderDetail", "ProductImageUrl"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "OrderDetail" ADD COLUMN "ProductImageUrl" TEXT NULL;""");
+            }
         }
     }
 

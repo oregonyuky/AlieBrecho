@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.Data;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using static Domain.Common.Constants;
@@ -88,9 +89,10 @@ public class SecurityService : ISecurityService
             throw new Exception("Invalid login credentials. NotSucceeded.");
         }
 
-        var accessToken = _tokenService.GenerateToken(user, null);
-        var refreshToken = _tokenService.GenerateRefreshToken();
         var roles = await _userManager.GetRolesAsync(user);
+        var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role)).ToList();
+        var accessToken = _tokenService.GenerateToken(user, roleClaims);
+        var refreshToken = _tokenService.GenerateRefreshToken();
 
         var tokens = await _context.Token.Where(x => x.UserId == user.Id).ToListAsync(cancellationToken);
         foreach (var item in tokens)
@@ -310,9 +312,10 @@ public class SecurityService : ISecurityService
         }
         _context.Token.Remove(registeredToken!);
 
-        var newAccessToken = _tokenService.GenerateToken(user, null);
-        var newRefreshToken = _tokenService.GenerateRefreshToken();
         var roles = await _userManager.GetRolesAsync(user);
+        var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role)).ToList();
+        var newAccessToken = _tokenService.GenerateToken(user, roleClaims);
+        var newRefreshToken = _tokenService.GenerateRefreshToken();
 
         var token = new Token();
         token.UserId = user.Id;

@@ -33,6 +33,7 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
     public DbSet<BagExpirationHistory> BagExpirationHistory { get; set; }
     public DbSet<ShippingBox> ShippingBox { get; set; }
     public DbSet<DropConfig> DropConfig { get; set; }
+    public DbSet<ContactMessage> ContactMessage { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -54,5 +55,6 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new BagExpirationHistoryConfiguration());
         modelBuilder.ApplyConfiguration(new ShippingBoxConfiguration());
         modelBuilder.ApplyConfiguration(new DropConfigConfiguration());
+        modelBuilder.ApplyConfiguration(new ContactMessageConfiguration());
     }
 }

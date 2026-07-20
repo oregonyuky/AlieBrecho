@@ -184,6 +184,8 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             {
                 OrderId = entity.Id,
                 ProductId = item.ProductId,
+                ProductName = product.Name,
+                ProductImageUrl = product.MainImageURL ?? product.Picture1,
                 Quantity = quantity,
                 UnitPrice = unitPrice,
                 TotalPrice = unitPrice * quantity

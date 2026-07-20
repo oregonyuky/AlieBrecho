@@ -80,6 +80,18 @@ public static class NavigationTreeStructure
         },
         {
             "URL": "#",
+            "Name": "Mensagens",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Messages/Message",
+                    "Name": "Mensagens",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
             "Name": "Acesso",
             "IsModule": true,
             "Children": [

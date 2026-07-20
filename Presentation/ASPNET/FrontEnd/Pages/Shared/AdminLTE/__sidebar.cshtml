@@ -63,7 +63,10 @@
                 const childMenus = menuData.filter(menu => {
                     if (menu.navURL) {
                         const firstSegment = menu.navURL.split('/')[1];
-                        return userRoles.some(role => role.toLowerCase() === firstSegment.toLowerCase());
+                        const requiredRole = firstSegment.toLowerCase() === 'messages'
+                            ? 'orders'
+                            : firstSegment.toLowerCase();
+                        return userRoles.some(role => role.toLowerCase() === requiredRole);
                     }
                     return false;
                 });
@@ -109,6 +112,7 @@
                 'Categorias de Produtos': 'fas fa-tags',
                 'Drop de Lançamento': 'fas fa-bolt',
                 'Clientes': 'fas fa-user-friends',
+                'Mensagens': 'fas fa-comments',
                 'Acesso': 'fas fa-user-shield',
                 'Usuários': 'fas fa-users',
                 'Perfis de Acesso': 'fas fa-id-badge',
@@ -126,6 +130,7 @@
                 '/Products/Product': 'fas fa-tshirt',
                 '/DropConfigs/DropConfig': 'fas fa-bolt',
                 '/Customers/Customer': 'fas fa-user-friends',
+                '/Messages/Message': 'fas fa-comments',
                 '/Users/UserList': 'fas fa-users',
                 '/Roles/RoleList': 'fas fa-id-badge',
                 '/Profiles/MyProfile': 'fas fa-address-card',

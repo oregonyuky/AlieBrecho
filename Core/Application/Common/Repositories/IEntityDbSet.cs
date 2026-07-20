@@ -26,5 +26,6 @@ public interface IEntityDbSet
     public DbSet<BagExpirationHistory> BagExpirationHistory { get; set; }
     public DbSet<ShippingBox> ShippingBox { get; set; }
     public DbSet<DropConfig> DropConfig { get; set; }
+    public DbSet<ContactMessage> ContactMessage { get; set; }
 
 }

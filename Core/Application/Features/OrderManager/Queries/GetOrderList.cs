@@ -42,6 +42,17 @@ public record GetOrderListDto
     public bool IsMelhorEnvioGenerated { get; init; }
     public DateTime OrderDate { get; init; }
     public DateTime CreatedAt { get; init; }
+    public List<OrderItemDto>? Items { get; init; }
+}
+
+public record OrderItemDto
+{
+    public string? ProductId { get; init; }
+    public string? ProductName { get; init; }
+    public string? ProductImageUrl { get; init; }
+    public int Quantity { get; init; }
+    public decimal? UnitPrice { get; init; }
+    public decimal? TotalPrice { get; init; }
 }
 
 public class GetOrderListProfile : Profile
@@ -69,7 +80,23 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.ShippingPostCode, opt => opt.MapFrom(src => src.ShippingDetail != null ? src.ShippingDetail.PostCode : null))
             .ForMember(dest => dest.IsMelhorEnvioCartAdded, opt => opt.MapFrom(src => !string.IsNullOrWhiteSpace(src.MelhorEnvioCartId)))
             .ForMember(dest => dest.IsMelhorEnvioCheckedOut, opt => opt.MapFrom(src => src.MelhorEnvioCheckoutAt != null))
-            .ForMember(dest => dest.IsMelhorEnvioGenerated, opt => opt.MapFrom(src => src.MelhorEnvioGeneratedAt != null));
+            .ForMember(dest => dest.IsMelhorEnvioGenerated, opt => opt.MapFrom(src => src.MelhorEnvioGeneratedAt != null))
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.OrderDetails
+                .Where(x => !x.IsDeleted)
+                .Select(x => new OrderItemDto
+                {
+                    ProductId = x.ProductId,
+                    ProductName = !string.IsNullOrWhiteSpace(x.ProductName)
+                        ? x.ProductName
+                        : x.Product != null ? x.Product.Name : null,
+                    ProductImageUrl = !string.IsNullOrWhiteSpace(x.ProductImageUrl)
+                        ? x.ProductImageUrl
+                        : x.Product != null ? x.Product.MainImageURL ?? x.Product.Picture1 : null,
+                    Quantity = x.Quantity,
+                    UnitPrice = x.UnitPrice,
+                    TotalPrice = x.TotalPrice
+                })
+                .ToList()));
     }
 
     private static string? FormatShippingBoxData(ShippingBox? shippingBox)
@@ -123,6 +150,7 @@ public class GetOrderListHandler : IRequestHandler<GetOrderListRequest, GetOrder
             .Include(x => x.ShippingBox)
             .Include(x => x.ShippingDetail)
             .Include(x => x.OrderDetails)
+                .ThenInclude(x => x.Product)
             .ApplyIsDeletedFilter(request.IsDeleted)
             .AsQueryable();
 
