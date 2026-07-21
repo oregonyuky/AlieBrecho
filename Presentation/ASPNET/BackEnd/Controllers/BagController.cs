@@ -251,6 +251,75 @@ public class BagController : BaseApiController
     }
 
     [Authorize]
+    [HttpGet("GetPurchaseHistory")]
+    public async Task<ActionResult<ApiSuccessResult<List<BagPurchaseHistoryResponse>>>> GetPurchaseHistoryAsync(
+        [FromQuery] string customerId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(customerId))
+        {
+            return BadRequest("Cliente nao informado.");
+        }
+
+        var bags = await _bagRepository.GetQuery()
+            .AsNoTracking()
+            .Include(x => x.Items)
+            .Where(x => x.CustomerId == customerId && !x.IsDeleted &&
+                x.Items != null && x.Items.Any(item => !item.IsDeleted && item.IsPaid))
+            .OrderByDescending(x => x.Items!.Max(item => item.PaidAt))
+            .ToListAsync(cancellationToken);
+
+        var productIds = bags
+            .SelectMany(x => x.Items ?? [])
+            .Where(x => x.IsPaid && !x.IsDeleted && !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct()
+            .ToList();
+        var productImages = await _productRepository.GetQuery()
+            .AsNoTracking()
+            .Where(x => x.Id != null && productIds.Contains(x.Id))
+            .Select(x => new { x.Id, ImageUrl = x.MainImageURL ?? x.Picture1 })
+            .ToDictionaryAsync(x => x.Id!, x => x.ImageUrl, cancellationToken);
+
+        var history = bags.Select(bag =>
+        {
+            var items = (bag.Items ?? [])
+                .Where(x => x.IsPaid && !x.IsDeleted)
+                .OrderByDescending(x => x.PaidAt)
+                .Select(x => new BagPurchaseItemResponse
+                {
+                    ProductId = x.ProductId,
+                    ProductName = x.ProductName,
+                    ProductImageUrl = !string.IsNullOrWhiteSpace(x.ProductId) && productImages.TryGetValue(x.ProductId, out var image)
+                        ? image
+                        : null,
+                    Quantity = x.Quantity,
+                    Price = x.Price,
+                    IsPaid = true,
+                    PaidAt = x.PaidAt
+                })
+                .ToList();
+
+            return new BagPurchaseHistoryResponse
+            {
+                Id = bag.Id,
+                Status = "Paid",
+                PaidAt = items.Max(x => x.PaidAt),
+                TotalItemsValue = items.Sum(x => x.Price * x.Quantity),
+                ShippingCost = bag.Status == BagStatus.Shipped ? bag.ShippingCost : null,
+                Items = items
+            };
+        }).ToList();
+
+        return Ok(new ApiSuccessResult<List<BagPurchaseHistoryResponse>>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = $"Success executing {nameof(GetPurchaseHistoryAsync)}",
+            Content = history
+        });
+    }
+
+    [Authorize]
     [HttpPost("CheckoutBag")]
     public async Task<ActionResult<ApiSuccessResult<CheckoutBagResponse>>> CheckoutBagAsync(
         CheckoutBagRequest request,
@@ -667,6 +736,27 @@ public sealed record BagSummaryResponse
     public decimal TotalItemsValue { get; init; }
     public decimal? ShippingCost { get; init; }
     public int ItemCount { get; init; }
+}
+
+public sealed record BagPurchaseHistoryResponse
+{
+    public string? Id { get; init; }
+    public string? Status { get; init; }
+    public DateTime? PaidAt { get; init; }
+    public decimal TotalItemsValue { get; init; }
+    public decimal? ShippingCost { get; init; }
+    public List<BagPurchaseItemResponse> Items { get; init; } = [];
+}
+
+public sealed record BagPurchaseItemResponse
+{
+    public string? ProductId { get; init; }
+    public string? ProductName { get; init; }
+    public string? ProductImageUrl { get; init; }
+    public int Quantity { get; init; }
+    public decimal Price { get; init; }
+    public bool IsPaid { get; init; }
+    public DateTime? PaidAt { get; init; }
 }
 
 public sealed record BagSettingsResponse

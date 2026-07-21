@@ -121,6 +121,18 @@ public static class NavigationTreeStructure
         },
         {
             "URL": "#",
+            "Name": "Site",
+            "IsModule": true,
+            "Children": [
+                {
+                    "URL": "/Site/SiteSettings",
+                    "Name": "Imagem da Página Inicial",
+                    "IsModule": false
+                }
+            ]
+        },
+        {
+            "URL": "#",
             "Name": "Configurações",
             "IsModule": true,
             "Children": [
