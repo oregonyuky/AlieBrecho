@@ -4,11 +4,15 @@ const App = {
 
         const emptyState = () => ({
             id: '',
+            name: '',
             width: null,
             length: null,
             height: null,
             weight: null,
             insuranceValue: null,
+            capacityPoints: 1,
+            stockQuantity: 0,
+            maxWeight: null,
             isActive: true
         });
 
@@ -179,21 +183,29 @@ const App = {
             setFormData: (box) => {
                 Object.assign(state, {
                     id: box?.id ?? '',
+                    name: box?.name ?? '',
                     width: box?.width ?? null,
                     length: box?.length ?? null,
                     height: box?.height ?? null,
                     weight: box?.weight ?? null,
                     insuranceValue: box?.insuranceValue ?? null,
+                    capacityPoints: box?.capacityPoints ?? 1,
+                    stockQuantity: box?.stockQuantity ?? 0,
+                    maxWeight: box?.maxWeight ?? null,
                     isActive: box?.isActive ?? true
                 });
             },
             buildPayload: () => ({
                 id: state.id,
+                name: state.name,
                 width: state.width,
                 length: state.length,
                 height: state.height,
                 weight: state.weight,
                 insuranceValue: state.insuranceValue,
+                capacityPoints: state.capacityPoints,
+                stockQuantity: state.stockQuantity,
+                maxWeight: state.maxWeight,
                 isActive: state.isActive
             }),
             validateForm: () => {
@@ -205,6 +217,16 @@ const App = {
                     weight: '',
                     insuranceValue: ''
                 };
+
+                if (!state.name?.trim()) {
+                    isValid = false;
+                }
+                if (!Number.isInteger(Number(state.capacityPoints)) || Number(state.capacityPoints) <= 0) {
+                    isValid = false;
+                }
+                if (!Number.isInteger(Number(state.stockQuantity)) || Number(state.stockQuantity) < 0) {
+                    isValid = false;
+                }
 
                 ['width', 'length', 'height', 'weight', 'insuranceValue'].forEach((field) => {
                     const value = Number(state[field]);

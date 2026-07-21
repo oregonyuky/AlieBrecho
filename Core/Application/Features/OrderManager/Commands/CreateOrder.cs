@@ -45,19 +45,22 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryContext _context;
     private readonly IShippingCostService _shippingCostService;
+    private readonly IAutomaticPackageSelectionService _packageSelectionService;
 
     public CreateOrderHandler(
         ICommandRepository<Order> repository,
         ICommandRepository<Product> productRepository,
         IUnitOfWork unitOfWork,
         IQueryContext context,
-        IShippingCostService shippingCostService)
+        IShippingCostService shippingCostService,
+        IAutomaticPackageSelectionService packageSelectionService)
     {
         _repository = repository;
         _productRepository = productRepository;
         _unitOfWork = unitOfWork;
         _context = context;
         _shippingCostService = shippingCostService;
+        _packageSelectionService = packageSelectionService;
     }
 
     public async Task<CreateOrderResult> Handle(CreateOrderRequest request, CancellationToken cancellationToken)
@@ -73,18 +76,16 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
 
         EnsureShippingPostCodeMatchesCustomer(customer, request.ShippingDetail?.PostCode);
 
-        ShippingBox? shippingBox = null;
-
-        if (!string.IsNullOrWhiteSpace(request.ShippingBoxId))
+        var selection = await _packageSelectionService.SelectBestPackageAsync(
+            (request.OrderDetails ?? [])
+                .Where(x => !string.IsNullOrWhiteSpace(x.ProductId))
+                .Select(x => new PackageSelectionItem(x.ProductId!, x.Quantity))
+                .ToList(),
+            cancellationToken);
+        var shippingBox = selection.Package;
+        if (shippingBox is null)
         {
-            shippingBox = await _context.ShippingBox
-                .AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == request.ShippingBoxId, cancellationToken);
-
-            if (shippingBox == null)
-            {
-                throw new Exception($"ShippingBox not found: {request.ShippingBoxId}");
-            }
+            throw new ValidationException("Nenhuma embalagem disponivel comporta os produtos deste pedido.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Payment?.PaymentTypeId))
@@ -104,7 +105,14 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             Discount = request.Discount,
             Taxes = request.Taxes,
             Notes = request.Notes,
-            ShippingBoxId = request.ShippingBoxId,
+            ShippingBoxId = shippingBox.Id,
+            PackageName = shippingBox.Name,
+            PackageLength = shippingBox.Length,
+            PackageWidth = shippingBox.Width,
+            PackageHeight = shippingBox.Height,
+            PackageWeight = shippingBox.Weight,
+            PackageCapacityPoints = shippingBox.CapacityPoints,
+            PackageOccupationPoints = selection.TotalOccupationPoints,
             OrderDate = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
@@ -192,7 +200,8 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             });
         }
 
-        entity.TotalAmount = await CalculateTotalAsync(entity, shippingBox, cancellationToken);
+        var shippingPackage = CreateShippingPackage(shippingBox, selection.TotalProductWeight);
+        entity.TotalAmount = await CalculateTotalAsync(entity, shippingPackage, cancellationToken);
         await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
 
         await _repository.CreateAsync(entity, cancellationToken);
@@ -203,6 +212,21 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             Data = entity
         };
     }
+
+    private static ShippingBox CreateShippingPackage(ShippingBox box, decimal productWeight) => new()
+    {
+        Id = box.Id,
+        Name = box.Name,
+        Width = box.Width,
+        Length = box.Length,
+        Height = box.Height,
+        Weight = (box.Weight ?? 0m) + productWeight,
+        InsuranceValue = box.InsuranceValue,
+        CapacityPoints = box.CapacityPoints,
+        StockQuantity = box.StockQuantity,
+        MaxWeight = box.MaxWeight,
+        IsActive = box.IsActive
+    };
 
     private async Task<decimal> CalculateTotalAsync(
         Order entity,

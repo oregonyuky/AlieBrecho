@@ -10,12 +10,16 @@ namespace Application.Features.ShippingBoxManager.Queries;
 public record GetShippingBoxListDto
 {
     public string? Id { get; init; }
+    public string? Name { get; init; }
     public decimal? Width { get; init; }
     public decimal? Length { get; init; }
     public decimal? Height { get; init; }
     public decimal? Weight { get; init; }
     public decimal? InsuranceValue { get; init; }
     public bool IsActive { get; init; }
+    public int CapacityPoints { get; init; }
+    public int StockQuantity { get; init; }
+    public decimal? MaxWeight { get; init; }
     public DateTime CreatedAt { get; init; }
 }
 

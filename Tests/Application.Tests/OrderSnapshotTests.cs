@@ -38,6 +38,17 @@ public class OrderSnapshotTests
 
         context.Customer.Add(customer);
         context.Product.Add(product);
+        context.ShippingBox.Add(new ShippingBox
+        {
+            Name = "Caixa teste",
+            CapacityPoints = 5,
+            StockQuantity = 1,
+            IsActive = true,
+            Width = 20,
+            Length = 20,
+            Height = 10,
+            Weight = 0.2m
+        });
         await context.SaveChangesAsync();
 
         var orderRepository = new CapturingRepository<Order>();
@@ -46,7 +57,8 @@ public class OrderSnapshotTests
             new CapturingRepository<Product>(),
             new NoOpUnitOfWork(),
             context,
-            new FixedShippingCostService());
+            new FixedShippingCostService(),
+            new AutomaticPackageSelectionService(context));
 
         await handler.Handle(new CreateOrderRequest
         {

@@ -354,7 +354,8 @@ public class SecurityService : ISecurityService
                 Id = x.Id,
                 FirstName = x.FirstName,
                 LastName = x.LastName,
-                CompanyName = x.CompanyName
+                CompanyName = x.CompanyName,
+                PostCode = x.PostCode
             })
             .ToListAsync(cancellationToken);
 
@@ -366,6 +367,7 @@ public class SecurityService : ISecurityService
         string firstName,
         string lastName,
         string companyName,
+        string postCode,
         CancellationToken cancellationToken
         )
     {
@@ -379,6 +381,7 @@ public class SecurityService : ISecurityService
         user.FirstName = firstName;
         user.LastName = lastName;
         user.CompanyName = companyName;
+        user.PostCode = new string(postCode.Where(char.IsDigit).ToArray());
 
         _context.Update(user);
         await _context.SaveChangesAsync();

@@ -56,6 +56,7 @@ public interface ISecurityService
         string firstName,
         string lastName,
         string companyName,
+        string postCode,
         CancellationToken cancellationToken
         );
 

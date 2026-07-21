@@ -20,6 +20,10 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
             .HasMaxLength(NameConsts.MaxLength)
             .IsRequired(false);
 
+        builder.Property(u => u.PostCode)
+            .HasMaxLength(20)
+            .IsRequired(false);
+
         builder.Property(u => u.IsDeleted)
             .IsRequired(false);
 

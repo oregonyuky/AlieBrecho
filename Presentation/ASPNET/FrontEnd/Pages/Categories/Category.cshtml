@@ -488,6 +488,15 @@
                     <th>
                         <button type="button"
                                 class="category-sort-button"
+                                v-bind:class="{ 'category-sort-button--active': state.sort.field === 'packageOccupationPoints' }"
+                                v-on:click="handler.handleSort('packageOccupationPoints')">
+                            Pontos
+                            <i class="fa category-sort-icon" v-bind:class="methods.getSortIcon('packageOccupationPoints')" aria-hidden="true"></i>
+                        </button>
+                    </th>
+                    <th>
+                        <button type="button"
+                                class="category-sort-button"
                                 v-bind:class="{ 'category-sort-button--active': state.sort.field === 'status' }"
                                 v-on:click="handler.handleSort('status')">
                             Status
@@ -508,6 +517,10 @@
                             {{ methods.formatInsertedDate(category).date }}
                             <span class="category-table__time">{{ methods.formatInsertedDate(category).time }}</span>
                         </span>
+                    </td>
+                    <td>
+                        <strong>{{ category.packageOccupationPoints || 1 }}</strong>
+                        <span class="text-muted"> pt</span>
                     </td>
                     <td>
                         <span class="category-status" v-bind:class="methods.getStatusClass(category)">
@@ -562,6 +575,17 @@
                                           rows="3"
                                           v-bind:disabled="state.deleteMode"></textarea>
                                 <label class="text-danger">{{ state.errors.description }}</label>
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-12">
+                                <label>Ocupacao para embalagem (pontos)</label>
+                                <input v-model.number="state.packageOccupationPoints"
+                                       type="number" min="1" step="1"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <small class="text-muted">Quantidade de pontos consumida por uma peca desta categoria.</small>
                             </div>
                         </div>
 

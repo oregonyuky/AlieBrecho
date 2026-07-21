@@ -27,6 +27,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IShippingCostService, ShippingCostService>();
+        services.AddScoped<IAutomaticPackageSelectionService, AutomaticPackageSelectionService>();
         services.AddSingleton<IBrazilTimeZoneConverter, BrazilTimeZoneConverter>();
 
         //>>> Register services in Application.Features 

@@ -8,6 +8,7 @@ public class ApplicationUser : IdentityUser
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? CompanyName { get; set; }
+    public string? PostCode { get; set; }
     public string? ProfilePictureName { get; set; }
     public bool? IsBlocked { get; set; }
     public bool? IsDeleted { get; set; }

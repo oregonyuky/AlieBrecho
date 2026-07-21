@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Application.Common.Repositories;
 using Application.Common.Services.MercadoPagoManager;
+using Application.Common.Services;
 using ASPNET.BackEnd.Hubs;
 using Domain.Entities;
 using Domain.Enums;
@@ -23,6 +24,7 @@ public class PixController : ControllerBase
     private readonly ICommandRepository<Bag> _bagRepository;
     private readonly ICommandRepository<Payment> _paymentRepository;
     private readonly ICommandRepository<Product> _productRepository;
+    private readonly ICommandRepository<ShippingBox> _shippingBoxRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMercadoPagoService _mercadoPagoService;
     private readonly MercadoPagoSettings _settings;
@@ -34,6 +36,7 @@ public class PixController : ControllerBase
         ICommandRepository<Bag> bagRepository,
         ICommandRepository<Payment> paymentRepository,
         ICommandRepository<Product> productRepository,
+        ICommandRepository<ShippingBox> shippingBoxRepository,
         IUnitOfWork unitOfWork,
         IMercadoPagoService mercadoPagoService,
         IOptions<MercadoPagoSettings> settings,
@@ -44,6 +47,7 @@ public class PixController : ControllerBase
         _bagRepository = bagRepository;
         _paymentRepository = paymentRepository;
         _productRepository = productRepository;
+        _shippingBoxRepository = shippingBoxRepository;
         _unitOfWork = unitOfWork;
         _mercadoPagoService = mercadoPagoService;
         _settings = settings.Value;
@@ -245,6 +249,7 @@ public class PixController : ControllerBase
             payment.PaymentDetail.CapturedAt = paidAt;
 
             await MarkProductsUnavailableAsync(order, cancellationToken);
+            await DeductShippingBoxStockAsync(order, cancellationToken);
         }
         else if (IsExpiredOrCancelledStatus(mercadoPagoPayment.Status))
         {
@@ -261,6 +266,26 @@ public class PixController : ControllerBase
         await _unitOfWork.SaveAsync(cancellationToken);
 
         return originalOrderStatus != order.Status || originalPaymentStatus != payment.Status;
+    }
+
+    private async Task DeductShippingBoxStockAsync(Order order, CancellationToken cancellationToken)
+    {
+        if (order.ShippingBoxStockDeducted || string.IsNullOrWhiteSpace(order.ShippingBoxId))
+        {
+            return;
+        }
+
+        var box = await _shippingBoxRepository.GetQuery()
+            .SingleOrDefaultAsync(x => x.Id == order.ShippingBoxId && !x.IsDeleted, cancellationToken);
+        if (box is null)
+        {
+            throw new InvalidOperationException("A embalagem selecionada nao foi encontrada.");
+        }
+
+        if (PackageStockService.DeductOnce(order, box))
+        {
+            _shippingBoxRepository.Update(box);
+        }
     }
 
     private Task NotifyOrderChangedAsync(

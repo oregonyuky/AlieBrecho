@@ -21,32 +21,42 @@ public class ShippingCostService : IShippingCostService
         string? destinationPostCode,
         CancellationToken cancellationToken = default)
     {
+        return (await CalculateQuoteAsync(shippingBox, destinationPostCode, cancellationToken)).Cost;
+    }
+
+    public async Task<ShippingCostQuote> CalculateQuoteAsync(
+        ShippingBox? shippingBox,
+        string? destinationPostCode,
+        CancellationToken cancellationToken = default)
+    {
         var fallbackCost = ShippingCostCalculator.Calculate(shippingBox);
 
         if (shippingBox == null || string.IsNullOrWhiteSpace(destinationPostCode))
         {
-            return fallbackCost;
+            return new ShippingCostQuote(fallbackCost, null);
         }
 
         var originPostCode = _shippingOriginProvider.GetOriginPostCode();
         if (string.IsNullOrWhiteSpace(originPostCode))
         {
-            return fallbackCost;
+            return new ShippingCostQuote(fallbackCost, null);
         }
 
         try
         {
-            var shippingCost = await _melhorEnvioService.CalculateShippingCostAsync(
+            var quote = await _melhorEnvioService.CalculateCheapestShippingAsync(
                 shippingBox,
                 originPostCode,
                 destinationPostCode,
                 cancellationToken);
 
-            return shippingCost ?? fallbackCost;
+            return quote is null
+                ? new ShippingCostQuote(fallbackCost, null)
+                : new ShippingCostQuote(quote.Price, quote.CarrierName);
         }
         catch
         {
-            return fallbackCost;
+            return new ShippingCostQuote(fallbackCost, null);
         }
     }
 }

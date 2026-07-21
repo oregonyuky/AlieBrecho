@@ -270,7 +270,24 @@ public class MelhorEnvioService : IMelhorEnvioService
         };
 
         var response = await CalcularFreteAsync(request, cancellationToken);
-        return GetCheapestPrice(response);
+        return GetCheapestQuote(response)?.Price;
+    }
+
+    public async Task<MelhorEnvioShippingQuote?> CalculateCheapestShippingAsync(
+        ShippingBox shippingBox,
+        string originPostCode,
+        string destinationPostCode,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new
+        {
+            from = new { postal_code = OnlyDigits(originPostCode) },
+            to = new { postal_code = OnlyDigits(destinationPostCode) },
+            products = new[] { new { id = shippingBox.Id, width = shippingBox.Width ?? 0m, height = shippingBox.Height ?? 0m, length = shippingBox.Length ?? 0m, weight = shippingBox.Weight ?? 0m, insurance_value = shippingBox.InsuranceValue ?? 0m, quantity = 1 } },
+            options = new { receipt = false, own_hand = false }
+        };
+
+        return GetCheapestQuote(await CalcularFreteAsync(request, cancellationToken));
     }
 
     private async Task<string> CalcularFreteAsync(object request, CancellationToken cancellationToken)
@@ -298,7 +315,7 @@ public class MelhorEnvioService : IMelhorEnvioService
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
-    private static decimal? GetCheapestPrice(string json)
+    private static MelhorEnvioShippingQuote? GetCheapestQuote(string json)
     {
         using var document = JsonDocument.Parse(json);
         if (document.RootElement.ValueKind != JsonValueKind.Array)
@@ -306,7 +323,7 @@ public class MelhorEnvioService : IMelhorEnvioService
             return null;
         }
 
-        decimal? cheapestPrice = null;
+        MelhorEnvioShippingQuote? cheapest = null;
 
         foreach (var item in document.RootElement.EnumerateArray())
         {
@@ -316,12 +333,29 @@ public class MelhorEnvioService : IMelhorEnvioService
                 continue;
             }
 
-            cheapestPrice = cheapestPrice == null
-                ? price
-                : Math.Min(cheapestPrice.Value, price.Value);
+            var carrierName = GetCarrierName(item);
+            if (cheapest is null || price.Value < cheapest.Price)
+            {
+                cheapest = new MelhorEnvioShippingQuote(price.Value, carrierName);
+            }
         }
 
-        return cheapestPrice;
+        return cheapest;
+    }
+
+    private static string? GetCarrierName(JsonElement item)
+    {
+        if (item.TryGetProperty("company", out var company) &&
+            company.ValueKind == JsonValueKind.Object &&
+            company.TryGetProperty("name", out var companyName) &&
+            companyName.ValueKind == JsonValueKind.String)
+        {
+            return companyName.GetString();
+        }
+
+        return item.TryGetProperty("name", out var serviceName) && serviceName.ValueKind == JsonValueKind.String
+            ? serviceName.GetString()
+            : null;
     }
 
     private static decimal? GetDecimal(JsonElement element, string propertyName)

@@ -100,6 +100,21 @@ public class OrderController : BaseApiController
         });
     }
 
+    [AllowAnonymous]
+    [HttpPost("CalculateAutomaticShipping")]
+    public async Task<ActionResult<ApiSuccessResult<CalculateAutomaticShippingResult>>> CalculateAutomaticShippingAsync(
+        CalculateAutomaticShippingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _sender.Send(request, cancellationToken);
+        return Ok(new ApiSuccessResult<CalculateAutomaticShippingResult>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = response.Message ?? "Frete calculado com sucesso.",
+            Content = response
+        });
+    }
+
     [Authorize]
     [HttpGet("GetMelhorEnvioBalance")]
     public async Task<ActionResult<ApiSuccessResult<GetMelhorEnvioBalanceResult>>> GetMelhorEnvioBalanceAsync(

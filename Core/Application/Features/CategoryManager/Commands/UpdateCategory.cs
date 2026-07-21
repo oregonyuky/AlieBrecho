@@ -16,6 +16,7 @@ public class UpdateCategoryRequest : IRequest<UpdateCategoryResult>
     public string? Name { get; init; }
     public string? Description { get; init; }
     public bool? IsActive { get; init; }
+    public int PackageOccupationPoints { get; init; } = 1;
 }
 public class UpdateCategoryValidator : AbstractValidator<UpdateCategoryRequest>
 {
@@ -23,6 +24,7 @@ public class UpdateCategoryValidator : AbstractValidator<UpdateCategoryRequest>
     {
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.Name).NotEmpty();
+        RuleFor(x => x.PackageOccupationPoints).GreaterThan(0);
     }
 }
 public class UpdateCategoryHandler : IRequestHandler<UpdateCategoryRequest, UpdateCategoryResult>
@@ -51,6 +53,7 @@ public class UpdateCategoryHandler : IRequestHandler<UpdateCategoryRequest, Upda
 
         entity.Name = request.Name;
         entity.Description = request.Description;
+        entity.PackageOccupationPoints = request.PackageOccupationPoints;
 
         if (request.IsActive.HasValue)
         {

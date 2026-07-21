@@ -85,6 +85,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
     private readonly ICommandRepository<Order> _repository;
     private readonly ICommandRepository<OrderDetail> _orderDetailRepository;
     private readonly ICommandRepository<Product> _productRepository;
+    private readonly ICommandRepository<ShippingBox> _shippingBoxRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQueryContext _context;
     private readonly IShippingCostService _shippingCostService;
@@ -93,6 +94,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         ICommandRepository<Order> repository,
         ICommandRepository<OrderDetail> orderDetailRepository,
         ICommandRepository<Product> productRepository,
+        ICommandRepository<ShippingBox> shippingBoxRepository,
         IUnitOfWork unitOfWork,
         IQueryContext context,
         IShippingCostService shippingCostService)
@@ -100,6 +102,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         _repository = repository;
         _orderDetailRepository = orderDetailRepository;
         _productRepository = productRepository;
+        _shippingBoxRepository = shippingBoxRepository;
         _unitOfWork = unitOfWork;
         _context = context;
         _shippingCostService = shippingCostService;
@@ -124,6 +127,17 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             Enum.TryParse<OrderStatus>(request.Status, out var status))
         {
             entity.Status = status;
+            if (status == OrderStatus.Cancelled && entity.ShippingBoxStockDeducted &&
+                !string.IsNullOrWhiteSpace(entity.ShippingBoxId))
+            {
+                var boxToRestore = await _shippingBoxRepository.GetQuery()
+                    .SingleOrDefaultAsync(x => x.Id == entity.ShippingBoxId, cancellationToken);
+                if (boxToRestore is not null)
+                {
+                    PackageStockService.RestoreOnce(entity, boxToRestore);
+                    _shippingBoxRepository.Update(boxToRestore);
+                }
+            }
         }
 
         var customerId = !string.IsNullOrWhiteSpace(request.CustomerId)
@@ -165,6 +179,44 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             {
                 throw new Exception($"ShippingBox not found: {request.ShippingBoxId}");
             }
+
+            var requiredPoints = Math.Max(entity.PackageOccupationPoints ?? 1, 1);
+            var productIds = entity.OrderDetails.Where(x => !x.IsDeleted && x.ProductId != null)
+                .Select(x => x.ProductId!).Distinct().ToList();
+            var productWeights = await _context.Product.AsNoTracking()
+                .Where(x => productIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.UnitWeight ?? 0m, cancellationToken);
+            var totalWeight = entity.OrderDetails.Where(x => !x.IsDeleted && x.ProductId != null)
+                .Sum(x => productWeights.GetValueOrDefault(x.ProductId!) * Math.Max(x.Quantity, 1));
+
+            if (!shippingBox.IsActive || shippingBox.StockQuantity <= 0 ||
+                shippingBox.CapacityPoints < requiredPoints ||
+                (shippingBox.MaxWeight.HasValue && shippingBox.MaxWeight.Value < totalWeight))
+            {
+                throw new ValidationException("A embalagem selecionada nao esta ativa, sem estoque ou nao comporta o pedido.");
+            }
+
+            if (entity.ShippingBoxStockDeducted && entity.ShippingBoxId != shippingBox.Id)
+            {
+                var oldBox = await _shippingBoxRepository.GetQuery()
+                    .SingleOrDefaultAsync(x => x.Id == entity.ShippingBoxId, cancellationToken);
+                if (oldBox is not null)
+                {
+                    oldBox.StockQuantity++;
+                    _shippingBoxRepository.Update(oldBox);
+                }
+                var newBox = await _shippingBoxRepository.GetQuery()
+                    .SingleAsync(x => x.Id == shippingBox.Id, cancellationToken);
+                newBox.StockQuantity--;
+                _shippingBoxRepository.Update(newBox);
+            }
+
+            entity.PackageName = shippingBox.Name;
+            entity.PackageLength = shippingBox.Length;
+            entity.PackageWidth = shippingBox.Width;
+            entity.PackageHeight = shippingBox.Height;
+            entity.PackageWeight = shippingBox.Weight;
+            entity.PackageCapacityPoints = shippingBox.CapacityPoints;
         }
 
         // Set ShippingBox (permite null também)

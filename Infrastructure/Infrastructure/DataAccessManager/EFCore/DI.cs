@@ -127,8 +127,98 @@ public static class DI
         EnsureBagSettingsTable(dataContext);
         EnsureBagExpirationHistoryTable(dataContext);
         EnsureContactMessageTable(dataContext);
+        EnsureAutomaticPackageSelectionColumns(dataContext);
+        EnsureAdminProfilePostCodeColumn(dataContext);
 
         return host;
+    }
+
+    private static void EnsureAdminProfilePostCodeColumn(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("IF COL_LENGTH('dbo.AspNetUsers', 'PostCode') IS NULL ALTER TABLE [AspNetUsers] ADD [PostCode] nvarchar(20) NULL;");
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("ALTER TABLE \"AspNetUsers\" ADD COLUMN IF NOT EXISTS \"PostCode\" varchar(20) NULL;");
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            EnsureSqliteColumn(dataContext, "AspNetUsers", "PostCode", "TEXT NULL");
+        }
+    }
+
+    private static void EnsureAutomaticPackageSelectionColumns(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                IF COL_LENGTH('dbo.Category', 'PackageOccupationPoints') IS NULL ALTER TABLE [Category] ADD [PackageOccupationPoints] int NOT NULL CONSTRAINT [DF_Category_PackageOccupationPoints] DEFAULT 1;
+                IF COL_LENGTH('dbo.ShippingBox', 'Name') IS NULL ALTER TABLE [ShippingBox] ADD [Name] nvarchar(150) NOT NULL CONSTRAINT [DF_ShippingBox_Name] DEFAULT N'Embalagem existente';
+                IF COL_LENGTH('dbo.ShippingBox', 'CapacityPoints') IS NULL ALTER TABLE [ShippingBox] ADD [CapacityPoints] int NOT NULL CONSTRAINT [DF_ShippingBox_CapacityPoints] DEFAULT 1;
+                IF COL_LENGTH('dbo.ShippingBox', 'StockQuantity') IS NULL ALTER TABLE [ShippingBox] ADD [StockQuantity] int NOT NULL CONSTRAINT [DF_ShippingBox_StockQuantity] DEFAULT 0;
+                IF COL_LENGTH('dbo.ShippingBox', 'MaxWeight') IS NULL ALTER TABLE [ShippingBox] ADD [MaxWeight] decimal(10,3) NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageName') IS NULL ALTER TABLE [Order] ADD [PackageName] nvarchar(max) NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageLength') IS NULL ALTER TABLE [Order] ADD [PackageLength] decimal(18,2) NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageWidth') IS NULL ALTER TABLE [Order] ADD [PackageWidth] decimal(18,2) NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageHeight') IS NULL ALTER TABLE [Order] ADD [PackageHeight] decimal(18,2) NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageWeight') IS NULL ALTER TABLE [Order] ADD [PackageWeight] decimal(18,2) NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageCapacityPoints') IS NULL ALTER TABLE [Order] ADD [PackageCapacityPoints] int NULL;
+                IF COL_LENGTH('dbo.Order', 'PackageOccupationPoints') IS NULL ALTER TABLE [Order] ADD [PackageOccupationPoints] int NULL;
+                IF COL_LENGTH('dbo.Order', 'ShippingBoxStockDeducted') IS NULL ALTER TABLE [Order] ADD [ShippingBoxStockDeducted] bit NOT NULL CONSTRAINT [DF_Order_ShippingBoxStockDeducted] DEFAULT 0;
+                """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "PackageOccupationPoints" integer NOT NULL DEFAULT 1;
+                ALTER TABLE "ShippingBox" ADD COLUMN IF NOT EXISTS "Name" varchar(150) NOT NULL DEFAULT 'Embalagem existente';
+                ALTER TABLE "ShippingBox" ADD COLUMN IF NOT EXISTS "CapacityPoints" integer NOT NULL DEFAULT 1;
+                ALTER TABLE "ShippingBox" ADD COLUMN IF NOT EXISTS "StockQuantity" integer NOT NULL DEFAULT 0;
+                ALTER TABLE "ShippingBox" ADD COLUMN IF NOT EXISTS "MaxWeight" numeric(10,3) NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageName" text NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageLength" numeric NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageWidth" numeric NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageHeight" numeric NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageWeight" numeric NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageCapacityPoints" integer NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "PackageOccupationPoints" integer NULL;
+                ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "ShippingBoxStockDeducted" boolean NOT NULL DEFAULT false;
+                """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            EnsureSqliteColumn(dataContext, "Category", "PackageOccupationPoints", "INTEGER NOT NULL DEFAULT 1");
+            EnsureSqliteColumn(dataContext, "ShippingBox", "Name", "TEXT NOT NULL DEFAULT 'Embalagem existente'");
+            EnsureSqliteColumn(dataContext, "ShippingBox", "CapacityPoints", "INTEGER NOT NULL DEFAULT 1");
+            EnsureSqliteColumn(dataContext, "ShippingBox", "StockQuantity", "INTEGER NOT NULL DEFAULT 0");
+            EnsureSqliteColumn(dataContext, "ShippingBox", "MaxWeight", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageName", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageLength", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageWidth", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageHeight", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageWeight", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageCapacityPoints", "INTEGER NULL");
+            EnsureSqliteColumn(dataContext, "Order", "PackageOccupationPoints", "INTEGER NULL");
+            EnsureSqliteColumn(dataContext, "Order", "ShippingBoxStockDeducted", "INTEGER NOT NULL DEFAULT 0");
+        }
+    }
+
+    private static void EnsureSqliteColumn(DataContext context, string table, string column, string definition)
+    {
+        if (!SqliteColumnExists(context, table, column))
+        {
+            context.Database.ExecuteSqlRaw($"ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition};");
+        }
     }
 
     private static void EnsureBagSettingsTable(DataContext dataContext)

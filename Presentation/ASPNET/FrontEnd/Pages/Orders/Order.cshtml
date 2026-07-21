@@ -873,8 +873,8 @@
                             <div class="input-group">
                                 <select class="form-select" v-model="state.shippingBoxId" v-on:change="methods.handleShippingBoxChange" v-bind:disabled="state.deleteMode">
                                     <option value="">Selecione</option>
-                                    <option v-for="item in state.shippingBoxes" :value="item.id">
-                                        {{ formatShippingBoxData(item) }}
+                                    <option v-for="item in getCompatibleShippingBoxes()" :value="item.id">
+                                        {{ item.name || 'Embalagem' }} — {{ item.capacityPoints }} pontos — estoque {{ item.stockQuantity }}
                                     </option>
                                 </select>
                                 <button type="button" class="btn btn-outline-secondary" v-on:click="methods.showShippingBoxInfo" v-bind:disabled="!state.shippingBoxId">
@@ -891,6 +891,7 @@
                     <div class="row mb-3" v-if="state.shippingBoxId">
                         <div class="col-12">
                             <div class="border rounded p-3 bg-light">
+                                <div class="mb-2"><strong>Embalagem sugerida automaticamente</strong></div>
                                 <div class="row g-3">
                                     <div class="col-2">
                                         <small class="text-muted d-block">Largura</small>

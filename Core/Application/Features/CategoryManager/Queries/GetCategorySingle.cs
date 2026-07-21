@@ -13,6 +13,7 @@ public record GetCategorySingleDto
     public string? Name { get; init; }
     public string? Description { get; init; }
     public bool IsActive { get; init; }
+    public int PackageOccupationPoints { get; init; }
     public DateTime CreatedAt { get; init; }
 }
 public class GetCategorySingleProfile : Profile

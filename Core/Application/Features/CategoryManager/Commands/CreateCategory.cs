@@ -15,6 +15,7 @@ public class CreateCategoryRequest : IRequest<CreateCategoryResult>
     public string? Name { get; init; }
     public string? Description { get; init; }
     public bool? IsActive { get; init; }
+    public int PackageOccupationPoints { get; init; } = 1;
 }
 
 public class CreateCategoryValidator : AbstractValidator<CreateCategoryRequest>
@@ -22,6 +23,7 @@ public class CreateCategoryValidator : AbstractValidator<CreateCategoryRequest>
     public CreateCategoryValidator()
     {
         RuleFor(x => x.Name).NotEmpty();
+        RuleFor(x => x.PackageOccupationPoints).GreaterThan(0);
     }
 }
 
@@ -46,6 +48,7 @@ public class CreateCategoryHandler : IRequestHandler<CreateCategoryRequest, Crea
             Name = request.Name ?? string.Empty,
             Description = request.Description,
             IsActive = request.IsActive ?? true,
+            PackageOccupationPoints = request.PackageOccupationPoints,
             CreatedAt = DateTime.UtcNow
         };
 

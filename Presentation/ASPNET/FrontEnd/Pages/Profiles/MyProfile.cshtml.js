@@ -2,10 +2,12 @@
     setup() {
         const state = Vue.reactive({
             mainData: [],
+            search: '',
             userId: '',
             firstName: '',
             lastName: '',
             companyName: '',
+            postCode: '',
             oldPassword: '',
             newPassword: '',
             confirmNewPassword: '',
@@ -15,6 +17,7 @@
             errors: {
                 firstName: '',
                 lastName: '',
+                postCode: '',
                 oldPassword: '',
                 newPassword: '',
                 confirmNewPassword: ''
@@ -29,6 +32,7 @@
         const firstNameRef = Vue.ref(null);
         const lastNameRef = Vue.ref(null);
         const companyNameRef = Vue.ref(null);
+        const postCodeRef = Vue.ref(null);
         const oldPasswordRef = Vue.ref(null);
         const newPasswordRef = Vue.ref(null);
         const confirmNewPasswordRef = Vue.ref(null);
@@ -43,10 +47,10 @@
                     throw error;
                 }
             },
-            updateMainData: async (userId, firstName, lastName, companyName) => {
+            updateMainData: async (userId, firstName, lastName, companyName, postCode) => {
                 try {
                     const response = await AxiosManager.post('/Security/UpdateMyProfile', {
-                        userId, firstName, lastName, companyName
+                        userId, firstName, lastName, companyName, postCode
                     });
                     return response;
                 } catch (error) {
@@ -118,6 +122,7 @@
                         { field: 'firstName', headerText: 'Primeiro Nome', width: 200, minWidth: 200 },
                         { field: 'lastName', headerText: 'Sobrenome', width: 200, minWidth: 200 },
                         { field: 'companyName', headerText: 'Empresa', width: 400, minWidth: 400 },
+                        { field: 'postCode', headerText: 'CEP de Origem', width: 160, minWidth: 160 },
                     ],
                     toolbar: [
                         'ExcelExport', 'Search',
@@ -130,7 +135,7 @@
                     beforeDataBound: () => { },
                     dataBound: function () {
                         mainGrid.obj.toolbarModule.enableItems(['EditCustom', 'ChangePasswordCustom', 'ChangeAvatarCustom'], false);
-                        mainGrid.obj.autoFitColumns(['firstName', 'lastName', 'companyName']);
+                        mainGrid.obj.autoFitColumns(['firstName', 'lastName', 'companyName', 'postCode']);
                     },
                     excelExportComplete: () => { },
                     rowSelected: () => {
@@ -164,6 +169,7 @@
                                 state.firstName = selectedRecord.firstName ?? '';
                                 state.lastName = selectedRecord.lastName ?? '';
                                 state.companyName = selectedRecord.companyName ?? '';
+                                state.postCode = selectedRecord.postCode ? handler.formatPostCode(selectedRecord.postCode) : '';
                                 mainModal.obj.show();
                             }
                         }
@@ -194,12 +200,32 @@
         };
 
         const handler = {
+            handleEdit: (profile) => {
+                state.userId = profile.id ?? '';
+                state.firstName = profile.firstName ?? '';
+                state.lastName = profile.lastName ?? '';
+                state.companyName = profile.companyName ?? '';
+                state.postCode = handler.formatPostCode(profile.postCode);
+                mainModal.obj.show();
+            },
+            handleOpenPassword: (profile) => {
+                state.userId = profile.id ?? '';
+                state.oldPassword = '';
+                state.newPassword = '';
+                state.confirmNewPassword = '';
+                changePasswordModal.obj.show();
+            },
+            handleOpenAvatar: (profile) => {
+                state.userId = profile.id ?? '';
+                changeAvatarModal.obj.show();
+            },
             handleSubmit: async () => {
                 state.isSubmitting = true;
                 await new Promise(resolve => setTimeout(resolve, 200));
 
                 state.errors.firstName = '';
                 state.errors.lastName = '';
+                state.errors.postCode = '';
                 let isValid = true;
 
                 // Validasi firstName
@@ -214,16 +240,21 @@
                     isValid = false;
                 }
 
+                const postCodeDigits = (state.postCode || '').replace(/\D/g, '');
+                if (postCodeDigits.length !== 8) {
+                    state.errors.postCode = 'Informe um CEP valido com 8 digitos.';
+                    isValid = false;
+                }
+
                 if (!isValid) {
                     state.isSubmitting = false;
                     return;
                 }
 
                 try {
-                    const response = await services.updateMainData(state.userId, state.firstName, state.lastName, state.companyName);
+                    const response = await services.updateMainData(state.userId, state.firstName, state.lastName, state.companyName, postCodeDigits);
                     if (response.data.code === 200) {
                         await methods.populateMainData();
-                        mainGrid.refresh();
                         Swal.fire({
                             icon: 'success',
                             title: 'Salvo com Sucesso',
@@ -252,6 +283,14 @@
                 } finally {
                     state.isSubmitting = false;
                 }
+            },
+            formatPostCode: (value) => {
+                const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+                return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+            },
+            handlePostCodeInput: () => {
+                state.postCode = handler.formatPostCode(state.postCode);
+                state.errors.postCode = '';
             },
             handleChangePassword: async () => {
                 state.isSubmitting = true;
@@ -370,13 +409,25 @@
             },
         };
 
+        const filteredProfiles = Vue.computed(() => {
+            const term = (state.search || '').trim().toLocaleLowerCase('pt-BR');
+            if (!term) return state.mainData || [];
+
+            return (state.mainData || []).filter(profile => [
+                profile.firstName,
+                profile.lastName,
+                profile.companyName,
+                profile.postCode,
+                handler.formatPostCode(profile.postCode)
+            ].some(value => String(value || '').toLocaleLowerCase('pt-BR').includes(term)));
+        });
+
         Vue.onMounted(async () => {
             Dropzone.autoDiscover = false;
             try {
                 await SecurityManager.authorizePage(['Profiles']);
                 await SecurityManager.validateToken();
                 await methods.populateMainData();
-                await mainGrid.create(state.mainData);
 
                 mainModal.create();
                 changePasswordModal.create();
@@ -456,6 +507,7 @@
             newPasswordRef,
             confirmNewPasswordRef,
             imageUploadRef,
+            filteredProfiles,
             handler
         };
     }

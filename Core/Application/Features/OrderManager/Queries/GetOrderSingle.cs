@@ -65,6 +65,13 @@ public record GetOrderSingleDto
     public string? CustomerId { get; init; }
     public string? CustomerName { get; init; }
     public string? ShippingBoxId { get; init; }
+    public string? PackageName { get; init; }
+    public decimal? PackageLength { get; init; }
+    public decimal? PackageWidth { get; init; }
+    public decimal? PackageHeight { get; init; }
+    public decimal? PackageWeight { get; init; }
+    public int? PackageCapacityPoints { get; init; }
+    public int? PackageOccupationPoints { get; init; }
     public string? Status { get; init; }
     public decimal? Discount { get; init; }
     public decimal? Taxes { get; init; }

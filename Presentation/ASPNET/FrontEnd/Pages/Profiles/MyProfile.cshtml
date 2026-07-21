@@ -3,18 +3,70 @@
     ViewData["Title"] = "Meu Perfil";
 }
 
+<style>
+    .profile-admin { background:#f7f7f5; color:#171717; font-family:"Source Sans Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; min-height:calc(100vh - 120px); padding:28px; }
+    .profile-page-header { align-items:center; display:flex; justify-content:space-between; margin-bottom:24px; }
+    .profile-page-title { color:#161616; font-size:32px; font-weight:800; line-height:1.1; margin:0; }
+    .profile-page-subtitle { color:#777b82; font-size:14px; margin:7px 0 0; }
+    .profile-filters { margin-bottom:24px; max-width:520px; position:relative; }
+    .profile-filter-icon { color:#9ca3af; left:15px; position:absolute; top:15px; }
+    .profile-filter-control { background:#fff; border:1px solid #d8dce1; border-radius:10px; color:#1f2937; font-size:14px; min-height:44px; outline:none; padding:0 14px 0 42px; width:100%; }
+    .profile-filter-control:focus { border-color:#9ca3af; box-shadow:0 0 0 3px rgba(156,163,175,.16); }
+    .profile-table-card { background:#fff; border:1px solid #e1e5ea; border-radius:14px; overflow:auto; }
+    .profile-table { border-collapse:collapse; margin:0; min-width:780px; width:100%; }
+    .profile-table thead th { background:#fff; border-bottom:1px solid #e5e7eb; color:#374151; font-size:13px; font-weight:800; padding:14px 18px; text-align:left; }
+    .profile-table tbody td { border-bottom:1px solid #edf0f3; color:#6b7280; font-size:14px; padding:14px 18px; vertical-align:middle; }
+    .profile-table tbody tr:last-child td { border-bottom:0; }
+    .profile-table__name { color:#171717; font-size:15px; font-weight:800; }
+    .profile-postcode { background:#eff6ff; border-radius:999px; color:#1d4ed8; display:inline-flex; font-size:12px; font-weight:900; padding:7px 12px; }
+    .profile-table__actions { text-align:right !important; white-space:nowrap; }
+    .profile-action-button { align-items:center; background:#fff; border:1px solid #d9dee5; border-radius:9px; color:#4b5563; display:inline-flex; height:36px; justify-content:center; margin-left:8px; width:36px; }
+    .profile-action-button:hover { background:#f9fafb; color:#111827; }
+    .profile-empty-row { color:#9ca3af !important; padding:34px 22px !important; text-align:center; }
+    .profile-modal { border:1px solid #dde3ea; border-radius:8px; border-top:4px solid #222831; box-shadow:0 10px 28px rgba(31,41,51,.08); overflow:hidden; }
+    .profile-modal .modal-header { background:#f8fafc; border-bottom:1px solid #e5e7eb; }
+    .profile-modal .modal-footer { background:#f8fafc; border-top:1px solid #e5e7eb; }
+    @@media (max-width:767px) { .profile-admin{padding:18px 12px}.profile-page-title{font-size:27px} }
+</style>
+
 <div id="app" v-cloak>
-    <div class="row">
-        <div class="col-12">
-            <div class="grid-container">
-                <div ref="mainGridRef"></div>
+    <main class="profile-admin">
+        <header class="profile-page-header">
+            <div>
+                <h1 class="profile-page-title">Meu Perfil</h1>
+                <p class="profile-page-subtitle">Gerencie seus dados e o CEP utilizado como origem do frete.</p>
             </div>
+        </header>
+
+        <div class="profile-filters">
+            <i class="fas fa-search profile-filter-icon" aria-hidden="true"></i>
+            <input v-model="state.search" type="search" class="profile-filter-control" placeholder="Buscar por nome, empresa ou CEP">
         </div>
-    </div>
+
+        <section class="profile-table-card">
+            <table class="profile-table">
+                <thead><tr><th>Primeiro Nome</th><th>Sobrenome</th><th>Empresa</th><th>CEP de Origem</th><th class="profile-table__actions">Acoes</th></tr></thead>
+                <tbody>
+                    <tr v-for="profile in filteredProfiles" v-bind:key="profile.id">
+                        <td><span class="profile-table__name">{{ profile.firstName || '-' }}</span></td>
+                        <td>{{ profile.lastName || '-' }}</td>
+                        <td>{{ profile.companyName || '-' }}</td>
+                        <td><span class="profile-postcode">{{ handler.formatPostCode(profile.postCode) || 'Nao informado' }}</span></td>
+                        <td class="profile-table__actions">
+                            <button type="button" class="profile-action-button" title="Editar perfil" v-on:click="handler.handleEdit(profile)"><i class="fas fa-pencil-alt"></i></button>
+                            <button type="button" class="profile-action-button" title="Alterar senha" v-on:click="handler.handleOpenPassword(profile)"><i class="fas fa-key"></i></button>
+                            <button type="button" class="profile-action-button" title="Alterar avatar" v-on:click="handler.handleOpenAvatar(profile)"><i class="fas fa-camera"></i></button>
+                        </td>
+                    </tr>
+                    <tr v-if="filteredProfiles.length === 0"><td colspan="5" class="profile-empty-row">Nenhum perfil encontrado.</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
+            <div class="modal-content profile-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.mainTitle }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -47,6 +99,22 @@
                                                 <textarea ref="companyNameRef" v-model="state.companyName" class="form-control" rows="3"></textarea>
                                             </div>
                                         </div>
+                                        <div class="row mt-3 mb-0">
+                                            <div class="col-md-6">
+                                                <label for="PostCode">CEP de origem do frete</label>
+                                                <input id="PostCode"
+                                                       ref="postCodeRef"
+                                                       v-model="state.postCode"
+                                                       v-on:input="handler.handlePostCodeInput"
+                                                       type="text"
+                                                       inputmode="numeric"
+                                                       maxlength="9"
+                                                       class="form-control"
+                                                       placeholder="00000-000">
+                                                <small class="text-muted">Este CEP sera comparado com o CEP informado pelo cliente no carrinho.</small>
+                                                <label class="text-danger d-block">{{ state.errors.postCode }}</label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -73,7 +141,7 @@
     <!-- Modal untuk Change Password -->
     <div class="modal fade" ref="changePasswordModalRef" id="ChangePasswordModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
+            <div class="modal-content profile-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.changePasswordTitle }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -133,7 +201,7 @@
     <!-- Modal untuk Change Avatar -->
     <div class="modal fade" ref="changeAvatarModalRef" id="ChangeAvatarModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
+            <div class="modal-content profile-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">{{ state.changeAvatarTitle }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
@@ -162,5 +230,5 @@
 </div>
 
 @section scripts {
-    <script src="~/FrontEnd/Pages/Profiles/MyProfile.cshtml.js"></script>
+    <script src="~/FrontEnd/Pages/Profiles/MyProfile.cshtml.js?v=20260721"></script>
 }

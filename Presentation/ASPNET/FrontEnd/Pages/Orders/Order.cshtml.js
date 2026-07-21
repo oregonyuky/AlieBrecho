@@ -82,6 +82,7 @@ const App = {
             totalAmount: 0,
             notes: '',
             shippingBoxId: '',
+            packageOccupationPoints: 1,
             payment: emptyPayment(),
             shipping: emptyShipping(),
             orderDetails: [],
@@ -205,6 +206,10 @@ const App = {
 
         const getSelectedShippingBox = () =>
             state.shippingBoxes.find(x => x.id === state.shippingBoxId) ?? null;
+
+        const getCompatibleShippingBoxes = () => state.shippingBoxes.filter(box =>
+            box.isActive === true && Number(box.stockQuantity || 0) > 0 &&
+            Number(box.capacityPoints || 0) >= Number(state.packageOccupationPoints || 1));
 
         const calculateCubicWeight = (shippingBox) => {
             if (!shippingBox) return 0;
@@ -446,6 +451,7 @@ const App = {
             state.totalAmount = order.totalAmount ?? 0;
             state.notes = order.notes ?? '';
             state.shippingBoxId = order.shippingBoxId ?? '';
+            state.packageOccupationPoints = order.packageOccupationPoints ?? 1;
 
             state.payment.id = order.payment?.id ?? '';
             state.payment.name = order.payment?.name ?? '';
@@ -1729,6 +1735,7 @@ const App = {
             calculateCubicWeight,
             calculateChargedWeight,
             getSelectedShippingBox,
+            getCompatibleShippingBoxes,
             getItemShippingCost,
             getItemTotal,
             formatCurrency,

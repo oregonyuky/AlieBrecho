@@ -12,22 +12,30 @@ public class CreateShippingBoxResult
 
 public class CreateShippingBoxRequest : IRequest<CreateShippingBoxResult>
 {
+    public string? Name { get; init; }
     public decimal? Width { get; init; }
     public decimal? Length { get; init; }
     public decimal? Height { get; init; }
     public decimal? Weight { get; init; }
     public decimal? InsuranceValue { get; init; }
     public bool? IsActive { get; init; }
+    public int CapacityPoints { get; init; }
+    public int StockQuantity { get; init; }
+    public decimal? MaxWeight { get; init; }
 }
 
 public class CreateShippingBoxValidator : AbstractValidator<CreateShippingBoxRequest>
 {
     public CreateShippingBoxValidator()
     {
+        RuleFor(x => x.Name).NotEmpty();
         RuleFor(x => x.Width).NotNull().GreaterThan(0);
         RuleFor(x => x.Length).NotNull().GreaterThan(0);
         RuleFor(x => x.Height).NotNull().GreaterThan(0);
         RuleFor(x => x.Weight).NotNull().GreaterThan(0);
+        RuleFor(x => x.CapacityPoints).GreaterThan(0);
+        RuleFor(x => x.StockQuantity).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.MaxWeight).GreaterThan(0).When(x => x.MaxWeight.HasValue);
 
         RuleFor(x => x.InsuranceValue)
             .GreaterThanOrEqualTo(0)
@@ -53,12 +61,16 @@ public class CreateShippingBoxHandler : IRequestHandler<CreateShippingBoxRequest
     {
         var entity = new ShippingBox
         {
+            Name = request.Name ?? string.Empty,
             Width = request.Width,
             Length = request.Length,
             Height = request.Height,
             Weight = request.Weight,
             InsuranceValue = request.InsuranceValue ?? 0,
             IsActive = request.IsActive ?? true,
+            CapacityPoints = request.CapacityPoints,
+            StockQuantity = request.StockQuantity,
+            MaxWeight = request.MaxWeight,
             CreatedAt = DateTime.UtcNow
         };
 

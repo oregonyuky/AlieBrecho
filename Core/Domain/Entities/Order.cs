@@ -11,6 +11,14 @@ public class Order : BaseEntity
     public Payment? Payment { get; set; }
     public string? ShippingBoxId { get; set; }
     public ShippingBox? ShippingBox { get; set; }
+    public string? PackageName { get; set; }
+    public decimal? PackageLength { get; set; }
+    public decimal? PackageWidth { get; set; }
+    public decimal? PackageHeight { get; set; }
+    public decimal? PackageWeight { get; set; }
+    public int? PackageCapacityPoints { get; set; }
+    public int? PackageOccupationPoints { get; set; }
+    public bool ShippingBoxStockDeducted { get; set; }
     public ShippingDetail? ShippingDetail { get; set; }
     public decimal? Discount { get; set; }
     public decimal? Taxes { get; set; }

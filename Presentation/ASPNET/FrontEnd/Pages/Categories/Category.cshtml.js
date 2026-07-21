@@ -6,6 +6,7 @@ const App = {
             id: '',
             name: '',
             description: '',
+            packageOccupationPoints: 1,
             isActive: true
         });
 
@@ -45,23 +46,25 @@ const App = {
                     throw error;
                 }
             },
-            createMainData: async (name, description, isActive) => {
+            createMainData: async (name, description, packageOccupationPoints, isActive) => {
                 try {
                     return await AxiosManager.post('/Category/CreateCategory', {
                         name,
                         description,
+                        packageOccupationPoints,
                         isActive
                     });
                 } catch (error) {
                     throw error;
                 }
             },
-            updateMainData: async (id, name, description, isActive) => {
+            updateMainData: async (id, name, description, packageOccupationPoints, isActive) => {
                 try {
                     return await AxiosManager.post('/Category/UpdateCategory', {
                         id,
                         name,
                         description,
+                        packageOccupationPoints,
                         isActive
                     });
                 } catch (error) {
@@ -107,6 +110,7 @@ const App = {
                     id: category?.id ?? '',
                     name: category?.name ?? '',
                     description: category?.description ?? '',
+                    packageOccupationPoints: category?.packageOccupationPoints ?? 1,
                     isActive: category?.isActive ?? true
                 });
             },
@@ -124,6 +128,7 @@ const App = {
             getSortValue: (category, field) => {
                 if (field === 'name') return String(category?.name ?? '').toLowerCase();
                 if (field === 'description') return String(category?.description ?? '').toLowerCase();
+                if (field === 'packageOccupationPoints') return Number(category?.packageOccupationPoints ?? 1);
                 if (field === 'status') return methods.getStatusLabel(category).toLowerCase();
 
                 if (field === 'createdAt') {
@@ -323,6 +328,11 @@ const App = {
                         isValid = false;
                     }
 
+                    if (!Number.isInteger(Number(state.packageOccupationPoints)) || Number(state.packageOccupationPoints) <= 0) {
+                        Swal.fire({ icon: 'warning', title: 'Categoria', text: 'A ocupacao para embalagem deve ser um inteiro positivo.' });
+                        isValid = false;
+                    }
+
                     if (!isValid) return;
 
                     const response = state.id
@@ -330,11 +340,13 @@ const App = {
                             state.id,
                             state.name,
                             state.description,
+                            state.packageOccupationPoints,
                             state.isActive
                         )
                         : await services.createMainData(
                             state.name,
                             state.description,
+                            state.packageOccupationPoints,
                             state.isActive
                         );
 
