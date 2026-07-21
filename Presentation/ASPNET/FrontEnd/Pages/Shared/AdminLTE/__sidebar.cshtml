@@ -41,11 +41,12 @@
 
 @* _sidebar.cshtml *@
 <script id="mainMenuTemplate" type="text/x-template">
-    <div class="app-sidebar__menu-item">
+    <div class="app-sidebar__menu-item" data-menu-url="${navURL}">
         <span class="app-sidebar__menu-icon">
             <i class="${menuIconCss}"></i>
         </span>
         <span class="app-sidebar__menu-text">${name}</span>
+        <span class="app-sidebar__unread-badge" data-sidebar-unread-count aria-label="itens não visualizados"></span>
     </div>
 </script>
 
@@ -184,6 +185,7 @@
                 enablePersistence: false,
             });
             mainMenu.appendTo('#mainMenu');
+            window.AdminSidebarNotifications?.init();
 
         } catch (error) {
             console.error('Error fetching data from StorageManager:', error);

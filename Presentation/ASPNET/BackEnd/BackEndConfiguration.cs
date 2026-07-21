@@ -84,6 +84,7 @@ public static class BackEndConfiguration
         endpoints.MapHub<OrderNotificationsHub>("/hubs/orders");
         endpoints.MapHub<CatalogNotificationsHub>("/hubs/catalog");
         endpoints.MapHub<CustomerNotificationsHub>("/hubs/customers");
+        endpoints.MapHub<MessageNotificationsHub>("/hubs/messages");
 
         return endpoints;
     }

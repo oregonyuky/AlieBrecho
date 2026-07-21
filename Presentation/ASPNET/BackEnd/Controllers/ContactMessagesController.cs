@@ -2,17 +2,24 @@ using Application.Features.ContactMessageManager.Commands;
 using Application.Features.ContactMessageManager.Queries;
 using ASPNET.BackEnd.Common.Base;
 using ASPNET.BackEnd.Common.Models;
+using ASPNET.BackEnd.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ASPNET.BackEnd.Controllers;
 
 [Route("api/contact-messages")]
 public sealed class ContactMessagesController : BaseApiController
 {
-    public ContactMessagesController(ISender sender) : base(sender)
+    private readonly IHubContext<MessageNotificationsHub> _messageNotifications;
+
+    public ContactMessagesController(
+        ISender sender,
+        IHubContext<MessageNotificationsHub> messageNotifications) : base(sender)
     {
+        _messageNotifications = messageNotifications;
     }
 
     [AllowAnonymous]
@@ -22,6 +29,21 @@ public sealed class ContactMessagesController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _sender.Send(request, cancellationToken);
+        await _messageNotifications.Clients.All.SendAsync(
+            "MessageReceived",
+            new
+            {
+                messageId = response.Id,
+                name = request.Name?.Trim(),
+                email = request.Email?.Trim(),
+                phone = request.Phone?.Trim(),
+                subject = request.Subject?.Trim(),
+                message = request.Message?.Trim(),
+                isRead = false,
+                receivedAtUtc = DateTime.UtcNow
+            },
+            cancellationToken);
+
         return Ok(new ApiSuccessResult<CreateContactMessageResult>
         {
             Code = StatusCodes.Status200OK,

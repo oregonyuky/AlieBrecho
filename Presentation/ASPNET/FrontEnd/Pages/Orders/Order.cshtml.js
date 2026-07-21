@@ -1386,6 +1386,7 @@ const App = {
                 });
             },
             showOrderDetails: async (id) => {
+                window.AdminSidebarNotifications?.markViewed('orders', id);
                 try {
                     const response = await services.getSingleData(id);
                     const order = response?.data?.content?.data;

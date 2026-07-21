@@ -467,6 +467,26 @@
         white-space: nowrap;
     }
 
+    .app-sidebar__unread-badge {
+        align-items: center;
+        background: #dc2626;
+        border-radius: 999px;
+        color: #fff;
+        display: inline-flex;
+        flex: 0 0 auto;
+        font-size: 0.68rem;
+        font-weight: 800;
+        justify-content: center;
+        line-height: 1;
+        min-height: 20px;
+        min-width: 20px;
+        padding: 4px 6px;
+    }
+
+    .app-sidebar__unread-badge:empty {
+        display: none;
+    }
+
     .app-sidebar .e-treeview .e-list-item.e-hover > .e-fullrow,
     .app-sidebar .e-treeview .e-list-item.e-active > .e-fullrow,
     .app-sidebar .e-treeview .e-list-item.e-active.e-animation-active > .e-fullrow,

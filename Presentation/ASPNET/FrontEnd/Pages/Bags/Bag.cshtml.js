@@ -614,6 +614,7 @@ const App = {
                 }
             },
             showBagDetails: async (id) => {
+                window.AdminSidebarNotifications?.markViewed('bags', id);
                 try {
                     const response = await services.getSingleData(id);
                     const bag = response?.data?.content?.data;

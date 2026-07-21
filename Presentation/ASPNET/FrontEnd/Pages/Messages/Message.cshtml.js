@@ -14,6 +14,8 @@ const App = {
             markRead: async (id) => AxiosManager.put(`/contact-messages/${encodeURIComponent(id)}/read`, {})
         };
 
+        let messageNotificationsConnection = null;
+
         const getDateParts = (value) => new Intl.DateTimeFormat('pt-BR', {
             timeZone: 'America/Sao_Paulo',
             year: 'numeric',
@@ -28,6 +30,11 @@ const App = {
         }, {});
 
         const methods = {
+            notifyUnreadCount: () => {
+                window.dispatchEvent(new CustomEvent('contact-messages:unread-count-changed', {
+                    detail: { count: state.unreadCount }
+                }));
+            },
             load: async () => {
                 state.isLoading = true;
                 try {
@@ -35,6 +42,7 @@ const App = {
                     const content = response?.data?.content ?? {};
                     state.messages = content.data ?? [];
                     state.unreadCount = content.unreadCount ?? state.messages.filter(item => !item.isRead).length;
+                    methods.notifyUnreadCount();
                 } finally {
                     state.isLoading = false;
                 }
@@ -59,6 +67,44 @@ const App = {
                     dateStyle: 'long',
                     timeStyle: 'short'
                 }).format(new Date(value));
+            },
+            connectMessageNotifications: async () => {
+                if (!window.signalR || messageNotificationsConnection) return;
+
+                messageNotificationsConnection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/messages', {
+                        accessTokenFactory: () => StorageManager.getAccessToken() ?? ''
+                    })
+                    .withAutomaticReconnect()
+                    .build();
+
+                messageNotificationsConnection.on('MessageReceived', (message) => {
+                    const messageId = String(message?.messageId || '');
+                    if (!messageId || state.messages.some(item => String(item.id) === messageId)) {
+                        return;
+                    }
+
+                    state.messages.unshift({
+                        id: messageId,
+                        name: message.name || '',
+                        email: message.email || '',
+                        phone: message.phone || '',
+                        subject: message.subject || '',
+                        message: message.message || '',
+                        isRead: false,
+                        receivedAtUtc: message.receivedAtUtc || new Date().toISOString(),
+                        readAtUtc: null
+                    });
+                    state.unreadCount += 1;
+                    methods.notifyUnreadCount();
+                });
+
+                try {
+                    await messageNotificationsConnection.start();
+                } catch (error) {
+                    console.error('Não foi possível conectar as notificações de mensagens.', error);
+                    messageNotificationsConnection = null;
+                }
             }
         };
 
@@ -93,6 +139,7 @@ const App = {
                     message.isRead = true;
                     message.readAtUtc = new Date().toISOString();
                     state.unreadCount = Math.max(0, state.unreadCount - 1);
+                    methods.notifyUnreadCount();
                 } catch (error) {
                     console.error('Não foi possível marcar a mensagem como lida.', error);
                 }
@@ -105,7 +152,14 @@ const App = {
         Vue.onMounted(async () => {
             await SecurityManager.authorizePage(['Messages']);
             const isTokenValid = await SecurityManager.validateToken();
-            if (isTokenValid) await handler.refresh();
+            if (isTokenValid) {
+                await handler.refresh();
+                await methods.connectMessageNotifications();
+            }
+        });
+
+        Vue.onBeforeUnmount(() => {
+            messageNotificationsConnection?.stop();
         });
 
         return { state, methods, handler, filteredMessages };
