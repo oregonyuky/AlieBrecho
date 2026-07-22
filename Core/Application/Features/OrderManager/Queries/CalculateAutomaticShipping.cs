@@ -72,7 +72,7 @@ public sealed class CalculateAutomaticShippingHandler(
             PackageId = box.Id,
             PackageName = box.Name,
             OccupationPoints = selection.TotalOccupationPoints,
-            CapacityPoints = box.CapacityPoints
+            CapacityPoints = box.PackageCategory?.CapacityPoints ?? 0
         };
     }
 }

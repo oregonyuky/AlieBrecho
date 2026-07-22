@@ -2,6 +2,7 @@ using Application.Common.CQS.Queries;
 using Application.Common.Extensions;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,9 @@ public record GetShippingBoxListDto
     public decimal? Weight { get; init; }
     public decimal? InsuranceValue { get; init; }
     public bool IsActive { get; init; }
+    public bool IsInUse { get; set; }
+    public string? PackageCategoryId { get; init; }
+    public string? PackageCategoryName { get; init; }
     public int CapacityPoints { get; init; }
     public int StockQuantity { get; init; }
     public decimal? MaxWeight { get; init; }
@@ -60,9 +64,32 @@ public class GetShippingBoxListHandler : IRequestHandler<GetShippingBoxListReque
             .ApplyIsDeletedFilter(request.IsDeleted)
             .AsQueryable();
 
-        var entities = await query.ToListAsync(cancellationToken);
-
+        var entities = await query.Include(x => x.PackageCategory).ToListAsync(cancellationToken);
         var dtos = _mapper.Map<List<GetShippingBoxListDto>>(entities);
+        for (var index = 0; index < dtos.Count; index++)
+        {
+            dtos[index] = dtos[index] with
+            {
+                PackageCategoryName = entities[index].PackageCategory?.Name,
+                CapacityPoints = entities[index].PackageCategory?.CapacityPoints ?? 0
+            };
+        }
+
+        var shippingBoxIdsInUse = await _context.Order
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted &&
+                        x.ShippingBoxId != null &&
+                        x.Status != OrderStatus.Delivered &&
+                        x.Status != OrderStatus.Cancelled)
+            .Select(x => x.ShippingBoxId!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var shippingBoxesInUse = shippingBoxIdsInUse.ToHashSet();
+
+        foreach (var dto in dtos)
+        {
+            dto.IsInUse = dto.Id != null && shippingBoxesInUse.Contains(dto.Id);
+        }
 
         return new GetShippingBoxListResult
         {

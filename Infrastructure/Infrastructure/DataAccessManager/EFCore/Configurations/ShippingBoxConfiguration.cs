@@ -17,7 +17,11 @@ public class ShippingBoxConfiguration : BaseEntityConfiguration<ShippingBox>
         builder.Property(x => x.Height).HasColumnType("decimal(10,2)").IsRequired(false);
         builder.Property(x => x.Weight).HasColumnType("decimal(10,2)").IsRequired(false);
         builder.Property(x => x.InsuranceValue).HasColumnType("decimal(10,2)").IsRequired(false);
-        builder.Property(x => x.CapacityPoints).HasDefaultValue(1).IsRequired();
+        builder.HasOne(x => x.PackageCategory)
+            .WithMany(x => x.ShippingBoxes)
+            .HasForeignKey(x => x.PackageCategoryId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
         builder.Property(x => x.StockQuantity).HasDefaultValue(0).IsRequired();
         builder.Property(x => x.MaxWeight).HasColumnType("decimal(10,3)").IsRequired(false);
 

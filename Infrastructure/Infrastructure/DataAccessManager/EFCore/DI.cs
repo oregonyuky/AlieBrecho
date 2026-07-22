@@ -128,11 +128,82 @@ public static class DI
         EnsureBagExpirationHistoryTable(dataContext);
         EnsureContactMessageTable(dataContext);
         EnsureAutomaticPackageSelectionColumns(dataContext);
+        EnsurePackageCategories(dataContext);
         EnsureAdminProfilePostCodeColumn(dataContext);
         EnsureProductConcurrencyAndActiveReservationConstraint(dataContext);
         EnsureBagCurrentPaymentColumns(dataContext);
 
         return host;
+    }
+
+    private static void EnsurePackageCategories(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlite())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                CREATE TABLE IF NOT EXISTS "PackageCategory" (
+                    "Id" TEXT NOT NULL CONSTRAINT "PK_PackageCategory" PRIMARY KEY,
+                    "IsDeleted" INTEGER NOT NULL DEFAULT 0,
+                    "CreatedAtUtc" TEXT NULL, "CreatedById" TEXT NULL,
+                    "UpdatedAtUtc" TEXT NULL, "UpdatedById" TEXT NULL,
+                    "Name" TEXT NOT NULL, "CapacityPoints" INTEGER NOT NULL,
+                    "Description" TEXT NULL, "IsActive" INTEGER NOT NULL DEFAULT 1,
+                    "CreatedAt" TEXT NOT NULL);
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_PackageCategory_Name" ON "PackageCategory" ("Name");
+                """);
+            EnsureSqliteColumn(dataContext, "ShippingBox", "PackageCategoryId", "TEXT NULL");
+        }
+        else if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                IF OBJECT_ID('dbo.PackageCategory', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE [PackageCategory] ([Id] nvarchar(50) NOT NULL PRIMARY KEY, [IsDeleted] bit NOT NULL DEFAULT 0,
+                    [CreatedAtUtc] datetime2 NULL, [CreatedById] nvarchar(450) NULL, [UpdatedAtUtc] datetime2 NULL, [UpdatedById] nvarchar(450) NULL,
+                    [Name] nvarchar(150) NOT NULL, [CapacityPoints] int NOT NULL, [Description] nvarchar(500) NULL, [IsActive] bit NOT NULL, [CreatedAt] datetime2 NOT NULL);
+                    CREATE UNIQUE INDEX [IX_PackageCategory_Name] ON [PackageCategory]([Name]);
+                END
+                IF COL_LENGTH('dbo.ShippingBox', 'PackageCategoryId') IS NULL ALTER TABLE [ShippingBox] ADD [PackageCategoryId] nvarchar(50) NULL;
+                """);
+        }
+        else if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                CREATE TABLE IF NOT EXISTS "PackageCategory" ("Id" varchar(50) PRIMARY KEY, "IsDeleted" boolean NOT NULL DEFAULT false,
+                "CreatedAtUtc" timestamp with time zone NULL, "CreatedById" text NULL, "UpdatedAtUtc" timestamp with time zone NULL, "UpdatedById" text NULL,
+                "Name" varchar(150) NOT NULL, "CapacityPoints" integer NOT NULL, "Description" varchar(500) NULL, "IsActive" boolean NOT NULL, "CreatedAt" timestamp with time zone NOT NULL);
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_PackageCategory_Name" ON "PackageCategory" ("Name");
+                ALTER TABLE "ShippingBox" ADD COLUMN IF NOT EXISTS "PackageCategoryId" varchar(50) NULL;
+                """);
+        }
+
+        var defaults = new[] { ("Envelope P", 1), ("Envelope M", 3), ("Caixa P", 5), ("Caixa M", 8), ("Caixa G", 12) };
+        foreach (var (name, points) in defaults)
+        {
+            if (dataContext.PackageCategory.Any(x => x.Name == name)) continue;
+            dataContext.PackageCategory.Add(new Domain.Entities.PackageCategory { Name = name, CapacityPoints = points, IsActive = true });
+        }
+        dataContext.SaveChanges();
+
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                UPDATE box SET [PackageCategoryId] = category.[Id]
+                FROM [ShippingBox] box
+                CROSS APPLY (SELECT TOP 1 [Id] FROM [PackageCategory] WHERE [CapacityPoints] = box.[CapacityPoints] ORDER BY [Name]) category
+                WHERE box.[PackageCategoryId] IS NULL;
+                """);
+        }
+        else
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                UPDATE "ShippingBox" SET "PackageCategoryId" = (
+                    SELECT "Id" FROM "PackageCategory"
+                    WHERE "PackageCategory"."CapacityPoints" = "ShippingBox"."CapacityPoints"
+                    ORDER BY "Name" LIMIT 1)
+                WHERE "PackageCategoryId" IS NULL;
+                """);
+        }
     }
 
     private static void EnsureBagCurrentPaymentColumns(DataContext dataContext)

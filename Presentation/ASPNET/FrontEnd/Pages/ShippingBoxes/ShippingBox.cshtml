@@ -205,6 +205,19 @@
         color: #166534;
     }
 
+    .shipping-table__category-points {
+        color: #777b82;
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 3px;
+    }
+
+    .shipping-status--in-use {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
     .shipping-status--inactive {
         background: #fee2e2;
         color: #991b1b;
@@ -444,6 +457,7 @@
 
         <select v-model="state.filters.status" class="shipping-filter-control">
             <option value="">Todos os status</option>
+            <option value="in-use">Em uso</option>
             <option value="active">Ativas</option>
             <option value="inactive">Inativas</option>
         </select>
@@ -453,6 +467,15 @@
         <table class="shipping-table">
             <thead>
                 <tr>
+                    <th>
+                        <button type="button"
+                                class="shipping-sort-button"
+                                v-bind:class="{ 'shipping-sort-button--active': state.sort.field === 'packageCategoryName' }"
+                                v-on:click="handler.handleSort('packageCategoryName')">
+                            Categoria de Embalagem
+                            <i class="fa shipping-sort-icon" v-bind:class="methods.getSortIcon('packageCategoryName')" aria-hidden="true"></i>
+                        </button>
+                    </th>
                     <th>
                         <button type="button"
                                 class="shipping-sort-button"
@@ -503,6 +526,12 @@
             </thead>
             <tbody>
                 <tr v-for="box in filteredShippingBoxes" v-bind:key="box.id">
+                    <td class="shipping-table__strong">
+                        {{ box.packageCategoryName || 'Sem categoria' }}
+                        <span v-if="box.packageCategoryName" class="shipping-table__category-points">
+                            {{ box.capacityPoints }} {{ box.capacityPoints === 1 ? 'ponto' : 'pontos' }}
+                        </span>
+                    </td>
                     <td class="shipping-table__strong">{{ methods.formatDimensions(box) }}</td>
                     <td>{{ methods.formatNumber(box.weight) }} kg</td>
                     <td class="shipping-table__strong">{{ methods.formatCurrencyBRL(box.insuranceValue) }}</td>
@@ -527,7 +556,7 @@
                     </td>
                 </tr>
                 <tr v-if="filteredShippingBoxes.length === 0">
-                    <td colspan="6" class="shipping-empty-row">Nenhuma caixa de envio encontrada.</td>
+                    <td colspan="7" class="shipping-empty-row">Nenhuma caixa de envio encontrada.</td>
                 </tr>
             </tbody>
         </table>
@@ -553,6 +582,15 @@
                         </div>
                         <div class="row mb-2">
                             <div class="col-4">
+                                <label>Altura (cm)</label>
+                                <input v-model.number="state.height"
+                                       type="number"
+                                       class="form-control"
+                                       v-bind:disabled="state.deleteMode">
+                                <label class="text-danger">{{ state.errors.height }}</label>
+                            </div>
+
+                            <div class="col-4">
                                 <label>Largura (cm)</label>
                                 <input v-model.number="state.width"
                                        type="number"
@@ -568,15 +606,6 @@
                                        class="form-control"
                                        v-bind:disabled="state.deleteMode">
                                 <label class="text-danger">{{ state.errors.length }}</label>
-                            </div>
-
-                            <div class="col-4">
-                                <label>Altura (cm)</label>
-                                <input v-model.number="state.height"
-                                       type="number"
-                                       class="form-control"
-                                       v-bind:disabled="state.deleteMode">
-                                <label class="text-danger">{{ state.errors.height }}</label>
                             </div>
                         </div>
 
@@ -604,8 +633,13 @@
 
                         <div class="row mb-2">
                             <div class="col-4">
-                                <label>Capacidade de ocupacao (pontos)</label>
-                                <input v-model.number="state.capacityPoints" type="number" min="1" step="1" class="form-control" v-bind:disabled="state.deleteMode">
+                                <label>Categoria da embalagem</label>
+                                <select v-model="state.packageCategoryId" class="form-control" required v-bind:disabled="state.deleteMode">
+                                    <option value="">Selecione</option>
+                                    <option v-for="category in state.packageCategories" v-bind:key="category.id" v-bind:value="category.id">
+                                        {{ category.name }} — {{ category.capacityPoints }} pontos
+                                    </option>
+                                </select>
                             </div>
                             <div class="col-4">
                                 <label>Estoque</label>

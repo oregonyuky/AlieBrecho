@@ -17,7 +17,7 @@ public static class NavigationTreeStructure
     [
         {
             "URL": "#",
-            "Name": "Caixa de Papelão",
+            "Name": "Embalagens",
             "IsModule": true,
             "Children": [
                 {
@@ -124,6 +124,11 @@ public static class NavigationTreeStructure
             "Name": "Site",
             "IsModule": true,
             "Children": [
+                {
+                    "URL": "/PackageCategories/PackageCategory",
+                    "Name": "Categorias de Embalagem",
+                    "IsModule": false
+                },
                 {
                     "URL": "/Site/SiteSettings",
                     "Name": "Imagem da Página Inicial",

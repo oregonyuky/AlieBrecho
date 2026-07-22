@@ -177,6 +177,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         {
             shippingBox = await _context.ShippingBox
                 .AsNoTracking()
+                .Include(x => x.PackageCategory)
                 .SingleOrDefaultAsync(x => x.Id == request.ShippingBoxId, cancellationToken);
 
             if (shippingBox == null)
@@ -194,7 +195,8 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
                 .Sum(x => productWeights.GetValueOrDefault(x.ProductId!) * Math.Max(x.Quantity, 1));
 
             if (!shippingBox.IsActive || shippingBox.StockQuantity <= 0 ||
-                shippingBox.CapacityPoints < requiredPoints ||
+                shippingBox.PackageCategory is null || !shippingBox.PackageCategory.IsActive ||
+                shippingBox.PackageCategory.CapacityPoints < requiredPoints ||
                 (shippingBox.MaxWeight.HasValue && shippingBox.MaxWeight.Value < totalWeight))
             {
                 throw new ValidationException("A embalagem selecionada nao esta ativa, sem estoque ou nao comporta o pedido.");
@@ -220,7 +222,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
             entity.PackageWidth = shippingBox.Width;
             entity.PackageHeight = shippingBox.Height;
             entity.PackageWeight = shippingBox.Weight;
-            entity.PackageCapacityPoints = shippingBox.CapacityPoints;
+            entity.PackageCapacityPoints = shippingBox.PackageCategory?.CapacityPoints;
         }
 
         // Set ShippingBox (permite null também)

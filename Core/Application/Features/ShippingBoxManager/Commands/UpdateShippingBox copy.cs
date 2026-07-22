@@ -20,7 +20,7 @@ public class UpdateShippingBoxRequest : IRequest<UpdateShippingBoxResult>
     public decimal? Weight { get; init; }
     public decimal? InsuranceValue { get; init; }
     public bool? IsActive { get; init; }
-    public int? CapacityPoints { get; init; }
+    public string? PackageCategoryId { get; init; }
     public int? StockQuantity { get; init; }
     public decimal? MaxWeight { get; init; }
 }
@@ -36,7 +36,7 @@ public class UpdateShippingBoxValidator : AbstractValidator<UpdateShippingBoxReq
         RuleFor(x => x.Length).GreaterThan(0).When(x => x.Length.HasValue);
         RuleFor(x => x.Height).GreaterThan(0).When(x => x.Height.HasValue);
         RuleFor(x => x.Weight).GreaterThan(0).When(x => x.Weight.HasValue);
-        RuleFor(x => x.CapacityPoints).GreaterThan(0).When(x => x.CapacityPoints.HasValue);
+        RuleFor(x => x.PackageCategoryId).NotEmpty().When(x => x.PackageCategoryId is not null);
         RuleFor(x => x.StockQuantity).GreaterThanOrEqualTo(0).When(x => x.StockQuantity.HasValue);
         RuleFor(x => x.MaxWeight).GreaterThan(0).When(x => x.MaxWeight.HasValue);
 
@@ -49,14 +49,17 @@ public class UpdateShippingBoxValidator : AbstractValidator<UpdateShippingBoxReq
 public class UpdateShippingBoxHandler : IRequestHandler<UpdateShippingBoxRequest, UpdateShippingBoxResult>
 {
     private readonly ICommandRepository<ShippingBox> _repository;
+    private readonly ICommandRepository<PackageCategory> _packageCategoryRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public UpdateShippingBoxHandler(
         ICommandRepository<ShippingBox> repository,
+        ICommandRepository<PackageCategory> packageCategoryRepository,
         IUnitOfWork unitOfWork
     )
     {
         _repository = repository;
+        _packageCategoryRepository = packageCategoryRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -90,8 +93,13 @@ public class UpdateShippingBoxHandler : IRequestHandler<UpdateShippingBoxRequest
         if (request.IsActive.HasValue)
             entity.IsActive = request.IsActive.Value;
 
-        if (request.CapacityPoints.HasValue)
-            entity.CapacityPoints = request.CapacityPoints.Value;
+        if (request.PackageCategoryId is not null)
+        {
+            var category = await _packageCategoryRepository.GetAsync(request.PackageCategoryId, cancellationToken);
+            if (category is null || !category.IsActive)
+                throw new ValidationException("A categoria de embalagem selecionada nao esta ativa ou nao existe.");
+            entity.PackageCategoryId = request.PackageCategoryId;
+        }
 
         if (request.StockQuantity.HasValue)
             entity.StockQuantity = request.StockQuantity.Value;

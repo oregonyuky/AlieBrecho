@@ -40,7 +40,10 @@ public sealed class AutomaticPackageSelectionService(IQueryContext context)
 
         var packages = await context.ShippingBox
             .AsNoTracking()
-            .Where(x => !x.IsDeleted && x.IsActive && x.StockQuantity > 0 && x.CapacityPoints >= points)
+            .Include(x => x.PackageCategory)
+            .Where(x => !x.IsDeleted && x.IsActive && x.StockQuantity > 0 &&
+                        x.PackageCategory != null && !x.PackageCategory.IsDeleted &&
+                        x.PackageCategory.IsActive && x.PackageCategory.CapacityPoints >= points)
             .ToListAsync(cancellationToken);
 
         var selected = SelectSmallestCompatible(packages, points, productWeight);
@@ -54,9 +57,10 @@ public sealed class AutomaticPackageSelectionService(IQueryContext context)
     {
         return packages
             .Where(x => x.IsActive && x.StockQuantity > 0)
-            .Where(x => x.CapacityPoints >= totalOccupationPoints)
+            .Where(x => x.PackageCategory != null && x.PackageCategory.IsActive &&
+                        x.PackageCategory.CapacityPoints >= totalOccupationPoints)
             .Where(x => !x.MaxWeight.HasValue || x.MaxWeight.Value >= totalProductWeight)
-            .OrderBy(x => x.CapacityPoints)
+            .OrderBy(x => x.PackageCategory!.CapacityPoints)
             .ThenBy(x => (x.Length ?? decimal.MaxValue) * (x.Width ?? decimal.MaxValue) * (x.Height ?? decimal.MaxValue))
             .FirstOrDefault();
     }

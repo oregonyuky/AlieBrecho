@@ -57,7 +57,14 @@ public class AutomaticPackageSelectionServiceTests
     {
         Id = id,
         Name = id,
-        CapacityPoints = capacity,
+        PackageCategoryId = $"category-{capacity}",
+        PackageCategory = new PackageCategory
+        {
+            Id = $"category-{capacity}",
+            Name = $"Categoria {capacity}",
+            CapacityPoints = capacity,
+            IsActive = true
+        },
         StockQuantity = stock,
         IsActive = active,
         MaxWeight = maxWeight,

@@ -11,7 +11,8 @@ public class ShippingBox : BaseEntity
     public decimal? Height { get; set; }
     public decimal? Weight { get; set; }
     public decimal? InsuranceValue { get; set; }
-    public int CapacityPoints { get; set; } = 1;
+    public string? PackageCategoryId { get; set; }
+    public PackageCategory? PackageCategory { get; set; }
     public int StockQuantity { get; set; }
     public decimal? MaxWeight { get; set; }
     public bool IsActive { get; set; } = true;

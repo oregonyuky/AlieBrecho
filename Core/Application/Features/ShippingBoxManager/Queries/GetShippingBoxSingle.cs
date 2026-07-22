@@ -17,6 +17,8 @@ public record GetShippingBoxSingleDto
     public decimal? Weight { get; init; }
     public decimal? InsuranceValue { get; init; }
     public bool IsActive { get; init; }
+    public string? PackageCategoryId { get; init; }
+    public string? PackageCategoryName { get; init; }
     public int CapacityPoints { get; init; }
     public int StockQuantity { get; init; }
     public decimal? MaxWeight { get; init; }
@@ -68,6 +70,7 @@ public class GetShippingBoxSingleHandler : IRequestHandler<GetShippingBoxSingleR
         var query = _context
             .ShippingBox
             .AsNoTracking()
+            .Include(x => x.PackageCategory)
             .AsQueryable();
 
         query = query
@@ -75,7 +78,11 @@ public class GetShippingBoxSingleHandler : IRequestHandler<GetShippingBoxSingleR
 
         var entity = await query.SingleOrDefaultAsync(cancellationToken);
 
-        var dto = _mapper.Map<GetShippingBoxSingleDto>(entity);
+        var dto = entity is null ? null : _mapper.Map<GetShippingBoxSingleDto>(entity) with
+        {
+            PackageCategoryName = entity.PackageCategory?.Name,
+            CapacityPoints = entity.PackageCategory?.CapacityPoints ?? 0
+        };
 
         return new GetShippingBoxSingleResult
         {

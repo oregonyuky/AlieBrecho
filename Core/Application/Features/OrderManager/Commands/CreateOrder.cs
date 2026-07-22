@@ -113,7 +113,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
             PackageWidth = shippingBox.Width,
             PackageHeight = shippingBox.Height,
             PackageWeight = shippingBox.Weight,
-            PackageCapacityPoints = shippingBox.CapacityPoints,
+            PackageCapacityPoints = shippingBox.PackageCategory?.CapacityPoints,
             PackageOccupationPoints = selection.TotalOccupationPoints,
             OrderDate = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
@@ -245,7 +245,8 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
         Height = box.Height,
         Weight = (box.Weight ?? 0m) + productWeight,
         InsuranceValue = box.InsuranceValue,
-        CapacityPoints = box.CapacityPoints,
+        PackageCategoryId = box.PackageCategoryId,
+        PackageCategory = box.PackageCategory,
         StockQuantity = box.StockQuantity,
         MaxWeight = box.MaxWeight,
         IsActive = box.IsActive

@@ -10,14 +10,15 @@ const App = {
             height: null,
             weight: null,
             insuranceValue: null,
-            capacityPoints: 1,
-            stockQuantity: 0,
+            packageCategoryId: '',
+            stockQuantity: 1,
             maxWeight: null,
             isActive: true
         });
 
         const state = Vue.reactive({
             mainData: [],
+            packageCategories: [],
             summary: {
                 total: 0,
                 active: 0,
@@ -49,6 +50,9 @@ const App = {
         const services = {
             getMainData: async () => {
                 return await AxiosManager.get('/ShippingBox/GetShippingBoxList', {});
+            },
+            getPackageCategories: async () => {
+                return await AxiosManager.get('/PackageCategory/GetPackageCategoryList?activeOnly=true', {});
             },
             createMainData: async (data) => {
                 return await AxiosManager.post('/ShippingBox/CreateShippingBox', data);
@@ -86,11 +90,11 @@ const App = {
                     currency: 'BRL'
                 }),
             formatDimensions: (box) => {
+                const height = methods.formatNumber(box?.height);
                 const width = methods.formatNumber(box?.width);
                 const length = methods.formatNumber(box?.length);
-                const height = methods.formatNumber(box?.height);
 
-                return `${width} x ${length} x ${height} cm`;
+                return `${height} x ${width} x ${length} cm`;
             },
             parseUtcDate: (rawDate) => {
                 if (!rawDate) {
@@ -130,10 +134,14 @@ const App = {
                     })
                 };
             },
-            getStatusLabel: (box) => box?.isActive === true ? 'Ativa' : 'Inativa',
-            getStatusClass: (box) => box?.isActive === true
-                ? 'shipping-status--active'
-                : 'shipping-status--inactive',
+            getStatusLabel: (box) => box?.isInUse === true
+                ? 'Em uso'
+                : (box?.isActive === true ? 'Ativa' : 'Inativa'),
+            getStatusClass: (box) => box?.isInUse === true
+                ? 'shipping-status--in-use'
+                : (box?.isActive === true
+                    ? 'shipping-status--active'
+                    : 'shipping-status--inactive'),
             getSortIcon: (field) => {
                 if (state.sort.field !== field) return 'fa-sort';
 
@@ -148,7 +156,11 @@ const App = {
 
                 if (field === 'weight') return Number(box?.weight ?? 0);
                 if (field === 'insuranceValue') return Number(box?.insuranceValue ?? 0);
-                if (field === 'isActive') return box?.isActive === true ? 1 : 0;
+                if (field === 'packageCategoryName') return box?.packageCategoryName ?? '';
+                if (field === 'isActive') {
+                    if (box?.isInUse === true) return 2;
+                    return box?.isActive === true ? 1 : 0;
+                }
 
                 if (field === 'createdAt') {
                     const date = methods.parseUtcDate(box?.createdAt);
@@ -189,7 +201,7 @@ const App = {
                     height: box?.height ?? null,
                     weight: box?.weight ?? null,
                     insuranceValue: box?.insuranceValue ?? null,
-                    capacityPoints: box?.capacityPoints ?? 1,
+                    packageCategoryId: box?.packageCategoryId ?? '',
                     stockQuantity: box?.stockQuantity ?? 0,
                     maxWeight: box?.maxWeight ?? null,
                     isActive: box?.isActive ?? true
@@ -203,7 +215,7 @@ const App = {
                 height: state.height,
                 weight: state.weight,
                 insuranceValue: state.insuranceValue,
-                capacityPoints: state.capacityPoints,
+                packageCategoryId: state.packageCategoryId,
                 stockQuantity: state.stockQuantity,
                 maxWeight: state.maxWeight,
                 isActive: state.isActive
@@ -221,7 +233,7 @@ const App = {
                 if (!state.name?.trim()) {
                     isValid = false;
                 }
-                if (!Number.isInteger(Number(state.capacityPoints)) || Number(state.capacityPoints) <= 0) {
+                if (!state.packageCategoryId) {
                     isValid = false;
                 }
                 if (!Number.isInteger(Number(state.stockQuantity)) || Number(state.stockQuantity) < 0) {
@@ -247,6 +259,7 @@ const App = {
 
             const boxes = state.mainData.filter(box => {
                 const haystack = [
+                    box?.packageCategoryName,
                     methods.formatDimensions(box),
                     methods.formatNumber(box?.weight),
                     methods.formatCurrencyBRL(box?.insuranceValue),
@@ -255,8 +268,9 @@ const App = {
 
                 const matchesSearch = !search || haystack.includes(search);
                 const matchesStatus = !status
-                    || (status === 'active' && box?.isActive === true)
-                    || (status === 'inactive' && box?.isActive !== true);
+                    || (status === 'in-use' && box?.isInUse === true)
+                    || (status === 'active' && box?.isActive === true && box?.isInUse !== true)
+                    || (status === 'inactive' && box?.isActive !== true && box?.isInUse !== true);
 
                 return matchesSearch && matchesStatus;
             });
@@ -354,6 +368,8 @@ const App = {
             await SecurityManager.validateToken();
 
             await methods.populateMainData();
+            const categoryResponse = await services.getPackageCategories();
+            state.packageCategories = categoryResponse?.data?.content?.data ?? [];
             mainModal.create();
 
             mainModalRef.value.addEventListener('hidden.bs.modal', () => {

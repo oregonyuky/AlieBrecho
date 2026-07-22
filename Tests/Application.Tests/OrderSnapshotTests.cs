@@ -38,10 +38,13 @@ public class OrderSnapshotTests
 
         context.Customer.Add(customer);
         context.Product.Add(product);
+        var packageCategory = new PackageCategory { Name = "Caixa P", CapacityPoints = 5, IsActive = true };
+        context.PackageCategory.Add(packageCategory);
         context.ShippingBox.Add(new ShippingBox
         {
             Name = "Caixa teste",
-            CapacityPoints = 5,
+            PackageCategoryId = packageCategory.Id,
+            PackageCategory = packageCategory,
             StockQuantity = 1,
             IsActive = true,
             Width = 20,
