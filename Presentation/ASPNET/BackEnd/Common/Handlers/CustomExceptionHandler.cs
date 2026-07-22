@@ -1,5 +1,6 @@
 ﻿using ASPNET.BackEnd.Common.Models;
 using Microsoft.AspNetCore.Diagnostics;
+using Application.Common;
 
 namespace ASPNET.BackEnd.Common.Handlers;
 
@@ -11,6 +12,7 @@ public class CustomExceptionHandler : IExceptionHandler
     {
         _exceptionHandlers = new()
             {
+                { typeof(ProductUnavailableException), HandleProductUnavailableException },
                 { typeof(Exception), HandleException },
             };
     }
@@ -29,6 +31,18 @@ public class CustomExceptionHandler : IExceptionHandler
             return true;
         }
 
+    }
+
+    private static async Task HandleProductUnavailableException(HttpContext httpContext, Exception ex)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+        httpContext.Response.ContentType = "application/json";
+        await httpContext.Response.WriteAsJsonAsync(new ApiErrorResult
+        {
+            Code = StatusCodes.Status409Conflict,
+            Message = ex.Message,
+            Error = new Error(ex.InnerException?.Message, ex.Source, ex.StackTrace, ex.GetType().Name)
+        });
     }
 
     private async Task HandleException(HttpContext httpContext, Exception ex)

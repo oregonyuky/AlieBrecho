@@ -1,9 +1,13 @@
+using Infrastructure.DataAccessManager.EFCore.Contexts;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Infrastructure.DataAccessManager.EFCore.Migrations;
 
+[DbContext(typeof(DataContext))]
+[Migration("20260718120000_AddOrderDetailProductSnapshot")]
 public partial class AddOrderDetailProductSnapshot : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

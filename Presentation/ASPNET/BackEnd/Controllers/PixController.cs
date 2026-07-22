@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Data;
+using Application.Common;
 using Application.Common.Repositories;
 using Application.Common.Services.MercadoPagoManager;
 using Application.Common.Services;
@@ -221,51 +223,72 @@ public class PixController : ControllerBase
         MercadoPagoPaymentStatusResult mercadoPagoPayment,
         CancellationToken cancellationToken)
     {
-        var originalOrderStatus = order.Status;
-        var originalPaymentStatus = order.Payment?.Status;
-
-        EnsurePayment(order);
-        var payment = order.Payment!;
-        payment.Provider = ProviderName;
-        payment.ProviderTransactionId = mercadoPagoPayment.PaymentId ?? payment.ProviderTransactionId;
-
-        if (IsApprovedStatus(mercadoPagoPayment.Status))
+        try
         {
-            var expectedAmount = Math.Round(order.TotalAmount ?? 0m, 2);
-            var paidAmount = Math.Round(mercadoPagoPayment.TransactionAmount ?? 0m, 2);
-            if (expectedAmount <= 0 || expectedAmount != paidAmount)
+            return await _unitOfWork.ExecuteInTransactionAsync(async () =>
             {
-                throw new InvalidOperationException("Valor recebido no Mercado Pago nao confere com o valor esperado do pedido.");
-            }
+                var originalOrderStatus = order.Status;
+                var originalPaymentStatus = order.Payment?.Status;
 
-            var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
-            order.Status = OrderStatus.Paid;
-            payment.Status = PaymentStatus.Paid;
-            payment.Amount = paidAmount;
-            payment.PaidAt = paidAt;
-            payment.PaymentDateTime = paidAt;
-            EnsurePaymentDetail(payment, "Pix");
-            payment.PaymentDetail!.TransactionId = payment.ProviderTransactionId;
-            payment.PaymentDetail.CapturedAt = paidAt;
+                if (originalOrderStatus == OrderStatus.Paid && IsApprovedStatus(mercadoPagoPayment.Status))
+                {
+                    return false;
+                }
 
-            await MarkProductsUnavailableAsync(order, cancellationToken);
-            await DeductShippingBoxStockAsync(order, cancellationToken);
+                EnsurePayment(order);
+                var payment = order.Payment!;
+                payment.Provider = ProviderName;
+                payment.ProviderTransactionId = mercadoPagoPayment.PaymentId ?? payment.ProviderTransactionId;
+
+                if (IsApprovedStatus(mercadoPagoPayment.Status))
+                {
+                    var expectedAmount = Math.Round(order.TotalAmount ?? 0m, 2);
+                    var paidAmount = Math.Round(mercadoPagoPayment.TransactionAmount ?? 0m, 2);
+                    if (expectedAmount <= 0 || expectedAmount != paidAmount)
+                    {
+                        throw new InvalidOperationException("Valor recebido no Mercado Pago nao confere com o valor esperado do pedido.");
+                    }
+
+                    var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
+                    order.Status = OrderStatus.Paid;
+                    payment.Status = PaymentStatus.Paid;
+                    payment.Amount = paidAmount;
+                    payment.PaidAt = paidAt;
+                    payment.PaymentDateTime = paidAt;
+                    EnsurePaymentDetail(payment, "Pix");
+                    payment.PaymentDetail!.TransactionId = payment.ProviderTransactionId;
+                    payment.PaymentDetail.CapturedAt = paidAt;
+
+                    await MarkProductsUnavailableAsync(order, cancellationToken);
+                    await DeductShippingBoxStockAsync(order, cancellationToken);
+                }
+                else if (IsExpiredOrCancelledStatus(mercadoPagoPayment.Status))
+                {
+                    payment.Status = PaymentStatus.Cancelled;
+                    EnsurePaymentDetail(payment, "Pix");
+                }
+                else
+                {
+                    payment.Status = PaymentStatus.WaitingPayment;
+                    EnsurePaymentDetail(payment, "Pix");
+                }
+
+                _orderRepository.Update(order);
+                await _unitOfWork.SaveAsync(cancellationToken);
+
+                return originalOrderStatus != order.Status || originalPaymentStatus != payment.Status;
+            }, IsolationLevel.Serializable, cancellationToken);
         }
-        else if (IsExpiredOrCancelledStatus(mercadoPagoPayment.Status))
+        catch (DbUpdateConcurrencyException ex)
         {
-            payment.Status = PaymentStatus.Cancelled;
-            EnsurePaymentDetail(payment, "Pix");
+            throw new ProductUnavailableException(
+                "O produto ja foi vendido por outro pagamento. Este pagamento precisa ser analisado para estorno.", ex);
         }
-        else
+        catch (Exception ex) when (IsPaymentConcurrencyFailure(ex))
         {
-            payment.Status = PaymentStatus.WaitingPayment;
-            EnsurePaymentDetail(payment, "Pix");
+            throw new ProductUnavailableException(
+                "O produto ja foi vendido por outro pagamento. Este pagamento precisa ser analisado para estorno.", ex);
         }
-
-        _orderRepository.Update(order);
-        await _unitOfWork.SaveAsync(cancellationToken);
-
-        return originalOrderStatus != order.Status || originalPaymentStatus != payment.Status;
     }
 
     private async Task DeductShippingBoxStockAsync(Order order, CancellationToken cancellationToken)
@@ -333,53 +356,81 @@ public class PixController : ControllerBase
             return null;
         }
 
-        var bag = await _bagRepository.GetQuery()
-            .Include(x => x.Items)
-            .SingleOrDefaultAsync(
-                x => x.Id == mercadoPagoPayment.ExternalReference && !x.IsDeleted,
-                cancellationToken);
-
-        if (bag is null)
+        List<string> unavailableProductIds = [];
+        Bag? bag;
+        try
         {
-            return null;
+            bag = await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                var currentBag = await _bagRepository.GetQuery()
+                    .Include(x => x.Items)
+                    .SingleOrDefaultAsync(
+                        x => x.Id == mercadoPagoPayment.ExternalReference && !x.IsDeleted,
+                        cancellationToken);
+
+                if (currentBag is null)
+                {
+                    return null;
+                }
+
+                if (IsApprovedStatus(mercadoPagoPayment.Status))
+                {
+                    var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
+                    var payableItems = currentBag.Items?
+                        .Where(x => !x.IsDeleted &&
+                            !x.IsPaid &&
+                            x.IsReserved &&
+                            (!x.ReservationExpiresAt.HasValue || x.ReservationExpiresAt.Value >= paidAt))
+                        .ToList() ?? [];
+                    if (payableItems.Count == 0 && currentBag.Items?.Any(x => !x.IsDeleted && x.IsPaid) == true)
+                    {
+                        return currentBag;
+                    }
+
+                    var expectedAmount = Math.Round(payableItems.Sum(x => x.Price * x.Quantity), 2);
+                    var paidAmount = Math.Round(mercadoPagoPayment.TransactionAmount ?? 0m, 2);
+                    if (expectedAmount <= 0 || expectedAmount != paidAmount)
+                    {
+                        throw new InvalidOperationException("Valor recebido no Mercado Pago nao confere com o valor esperado da sacolinha.");
+                    }
+
+                    unavailableProductIds = payableItems
+                        .Where(x => !string.IsNullOrWhiteSpace(x.ProductId))
+                        .Select(x => x.ProductId!)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToList();
+                    await MarkBagProductsUnavailableAsync(unavailableProductIds, cancellationToken);
+
+                    foreach (var item in payableItems)
+                    {
+                        item.IsPaid = true;
+                        item.IsReserved = false;
+                        item.PaidAt = paidAt;
+                        item.ReservationExpiresAt = null;
+                    }
+
+                    currentBag.AllItemsPaid = currentBag.Items?.Where(x => !x.IsDeleted).All(x => x.IsPaid) ?? false;
+                    currentBag.LastInteractionAt = DateTime.UtcNow;
+                    currentBag.UpdatedAtUtc = DateTime.UtcNow;
+                }
+
+                _bagRepository.Update(currentBag);
+                await _unitOfWork.SaveAsync(cancellationToken);
+                return currentBag;
+            }, IsolationLevel.Serializable, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ProductUnavailableException(
+                "O produto ja foi vendido por outro pagamento. Este pagamento precisa ser analisado para estorno.", ex);
+        }
+        catch (Exception ex) when (IsPaymentConcurrencyFailure(ex))
+        {
+            throw new ProductUnavailableException(
+                "O produto ja foi vendido por outro pagamento. Este pagamento precisa ser analisado para estorno.", ex);
         }
 
-        if (IsApprovedStatus(mercadoPagoPayment.Status))
-        {
-            var paidAt = mercadoPagoPayment.DateApproved ?? DateTime.UtcNow;
-            var payableItems = bag.Items?
-                .Where(x => !x.IsDeleted &&
-                    !x.IsPaid &&
-                    x.IsReserved &&
-                    (!x.ReservationExpiresAt.HasValue || x.ReservationExpiresAt.Value >= paidAt))
-                .ToList() ?? [];
-            var expectedAmount = Math.Round(
-                payableItems.Sum(x => x.Price * x.Quantity),
-                2);
-            var paidAmount = Math.Round(mercadoPagoPayment.TransactionAmount ?? 0m, 2);
-            if (expectedAmount > 0 && expectedAmount != paidAmount)
-            {
-                throw new InvalidOperationException("Valor recebido no Mercado Pago nao confere com o valor esperado da sacolinha.");
-            }
-
-            foreach (var item in payableItems)
-            {
-                item.IsPaid = true;
-                item.IsReserved = false;
-                item.PaidAt = paidAt;
-                item.ReservationExpiresAt = null;
-            }
-
-            bag.AllItemsPaid = bag.Items?.Where(x => !x.IsDeleted).All(x => x.IsPaid) ?? false;
-            bag.LastInteractionAt = DateTime.UtcNow;
-            bag.UpdatedAtUtc = DateTime.UtcNow;
-
-            var unavailableProductIds = await MarkBagProductsUnavailableAsync(bag, cancellationToken);
-            await NotifyProductsUnavailableAsync(unavailableProductIds, cancellationToken);
-        }
-
-        _bagRepository.Update(bag);
-        await _unitOfWork.SaveAsync(cancellationToken);
+        await NotifyProductsUnavailableAsync(unavailableProductIds, cancellationToken);
         return bag;
     }
 
@@ -517,22 +568,24 @@ public class PixController : ControllerBase
 
         foreach (var product in products)
         {
+            if (product.ProductAvailable == false)
+            {
+                throw new ProductUnavailableException(
+                    "O produto ja foi vendido por outro pagamento. Este pagamento precisa ser analisado para estorno.");
+            }
+
             product.ProductAvailable = false;
             _productRepository.Update(product);
         }
     }
 
-    private async Task<List<string>> MarkBagProductsUnavailableAsync(Bag bag, CancellationToken cancellationToken)
+    private async Task MarkBagProductsUnavailableAsync(
+        IReadOnlyCollection<string> productIds,
+        CancellationToken cancellationToken)
     {
-        var productIds = bag.Items?
-            .Where(x => !x.IsDeleted && x.IsPaid && !string.IsNullOrWhiteSpace(x.ProductId))
-            .Select(x => x.ProductId!)
-            .Distinct()
-            .ToList() ?? [];
-
         if (productIds.Count == 0)
         {
-            return [];
+            return;
         }
 
         var products = await _productRepository.GetQuery()
@@ -541,15 +594,15 @@ public class PixController : ControllerBase
 
         foreach (var product in products)
         {
+            if (product.ProductAvailable == false)
+            {
+                throw new ProductUnavailableException(
+                    "O produto ja foi vendido por outro pagamento. Este pagamento precisa ser analisado para estorno.");
+            }
+
             product.ProductAvailable = false;
             _productRepository.Update(product);
         }
-
-        return products
-            .Select(x => x.Id)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x!)
-            .ToList();
     }
 
     private async Task NotifyProductsUnavailableAsync(
@@ -574,6 +627,21 @@ public class PixController : ControllerBase
     private static bool IsApprovedStatus(string? status)
     {
         return string.Equals(status, "approved", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsPaymentConcurrencyFailure(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException!)
+        {
+            if (current.Message.Contains("1205", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("deadlock", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("database is locked", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsExpiredOrCancelledStatus(string? status)

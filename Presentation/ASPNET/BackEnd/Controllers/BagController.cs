@@ -1,5 +1,6 @@
 using Application.Features.BagManager.Commands;
 using Application.Features.BagManager.Queries;
+using Application.Common;
 using Application.Common.Repositories;
 using Application.Common.Services.MercadoPagoManager;
 using ASPNET.BackEnd.Common.Base;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Data;
 
 namespace ASPNET.BackEnd.Controllers;
 
@@ -335,75 +337,147 @@ public class BagController : BaseApiController
             return BadRequest("Nenhum item informado para a sacolinha.");
         }
 
-        var bag = await _bagRepository.GetQuery()
-            .Where(x => x.CustomerId == request.CustomerId && x.Status == BagStatus.Active && !x.IsDeleted)
-            .OrderByDescending(x => x.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var isNewBag = bag is null;
-        if (bag is null)
+        CheckoutReservationResult reservation;
+        try
         {
-            var settings = await GetOrCreateBagSettingsAsync(cancellationToken);
-            bag = new Bag
+            reservation = await _unitOfWork.ExecuteInTransactionAsync(async () =>
             {
-                CustomerId = request.CustomerId,
-                Status = BagStatus.Active,
-                CreatedAt = DateTime.UtcNow,
-                ExpirationDate = AddDuration(DateTime.UtcNow, settings.DefaultDurationValue, settings.DefaultDurationUnit),
-                LastInteractionAt = DateTime.UtcNow
-            };
+                var utcNow = DateTime.UtcNow;
+                var bag = await _bagRepository.GetQuery()
+                    .Where(x => x.CustomerId == request.CustomerId && x.Status == BagStatus.Active && !x.IsDeleted)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            await _bagRepository.CreateAsync(bag, cancellationToken);
+                var isNewBag = bag is null;
+                if (bag is null)
+                {
+                    var settings = await GetOrCreateBagSettingsAsync(cancellationToken);
+                    bag = new Bag
+                    {
+                        CustomerId = request.CustomerId,
+                        Status = BagStatus.Active,
+                        CreatedAt = utcNow,
+                        ExpirationDate = AddDuration(utcNow, settings.DefaultDurationValue, settings.DefaultDurationUnit),
+                        LastInteractionAt = utcNow
+                    };
+
+                    await _bagRepository.CreateAsync(bag, cancellationToken);
+                }
+
+                var productIds = request.Items
+                    .Where(x => !string.IsNullOrWhiteSpace(x.ProductId))
+                    .Select(x => x.ProductId!)
+                    .ToList();
+                if (productIds.Count != productIds.Distinct(StringComparer.Ordinal).Count())
+                {
+                    throw new ProductUnavailableException("Este produto ja esta reservado nesta sacolinha.");
+                }
+
+                var expiredReservations = await _bagItemRepository.GetQuery()
+                    .Where(x => productIds.Contains(x.ProductId!) && !x.IsDeleted && !x.IsPaid && x.IsReserved &&
+                        x.ReservationExpiresAt.HasValue && x.ReservationExpiresAt.Value <= utcNow)
+                    .ToListAsync(cancellationToken);
+                if (expiredReservations.Count > 0)
+                {
+                    foreach (var expired in expiredReservations)
+                    {
+                        expired.IsReserved = false;
+                        expired.UpdatedAtUtc = utcNow;
+                    }
+                    await _unitOfWork.SaveAsync(cancellationToken);
+                }
+
+                var checkoutItemsValue = 0m;
+                var checkoutItemsWeight = 0m;
+                var reservedProductIds = new List<string>();
+                foreach (var item in request.Items)
+                {
+                    if (string.IsNullOrWhiteSpace(item.ProductId))
+                    {
+                        continue;
+                    }
+
+                    var product = await _productRepository.GetQuery()
+                        .AsNoTracking()
+                        .SingleOrDefaultAsync(x => x.Id == item.ProductId && !x.IsDeleted, cancellationToken);
+
+                    if (product is null)
+                    {
+                        throw new KeyNotFoundException($"Produto nao encontrado: {item.ProductId}");
+                    }
+
+                    if (product.ProductAvailable == false)
+                    {
+                        throw new ProductUnavailableException();
+                    }
+
+                    var reservedByAnotherBag = await _bagItemRepository.GetQuery()
+                        .AsNoTracking()
+                        .AnyAsync(x => x.ProductId == product.Id && x.BagId != bag.Id && !x.IsDeleted && !x.IsPaid &&
+                            x.IsReserved && (!x.ReservationExpiresAt.HasValue || x.ReservationExpiresAt.Value > utcNow),
+                            cancellationToken);
+                    var reservedByThisBag = await _bagItemRepository.GetQuery()
+                        .AsNoTracking()
+                        .AnyAsync(x => x.ProductId == product.Id && x.BagId == bag.Id && !x.IsDeleted && !x.IsPaid &&
+                            x.IsReserved && (!x.ReservationExpiresAt.HasValue || x.ReservationExpiresAt.Value > utcNow),
+                            cancellationToken);
+                    if (reservedByAnotherBag || reservedByThisBag)
+                    {
+                        throw new ProductUnavailableException(reservedByThisBag
+                            ? "Este produto ja esta reservado nesta sacolinha."
+                            : "Este produto acabou de ser reservado por outro cliente.");
+                    }
+
+                    var quantity = item.Quantity < 1 ? 1 : item.Quantity;
+                    var price = item.UnitPrice ?? product.UnitPrice ?? 0m;
+                    var weight = product.UnitWeight ?? 0m;
+
+                    checkoutItemsValue += price * quantity;
+                    checkoutItemsWeight += weight * quantity;
+                    reservedProductIds.Add(product.Id);
+
+                    await _bagItemRepository.CreateAsync(new BagItem
+                    {
+                        BagId = bag.Id,
+                        ProductId = product.Id,
+                        ProductName = product.Name,
+                        Quantity = quantity,
+                        Price = price,
+                        Weight = weight,
+                        IsPaid = false,
+                        IsReserved = true,
+                        ReservationExpiresAt = utcNow.AddMinutes(30),
+                        AddedAt = utcNow
+                    }, cancellationToken);
+                }
+
+                await ApplyBagTotalsAsync(bag, cancellationToken, checkoutItemsValue, checkoutItemsWeight);
+                bag.LastInteractionAt = utcNow;
+                bag.Notes = request.Notes;
+                bag.UpdatedAtUtc = isNewBag ? bag.UpdatedAtUtc : utcNow;
+
+                await _unitOfWork.SaveAsync(cancellationToken);
+                return new CheckoutReservationResult(bag, isNewBag, checkoutItemsValue, reservedProductIds);
+            }, IsolationLevel.Serializable, cancellationToken);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ProductUnavailableException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (Exception ex) when (IsReservationConcurrencyFailure(ex))
+        {
+            return Conflict("Este produto acabou de ser reservado por outro cliente.");
         }
 
-        var checkoutItemsValue = 0m;
-        var checkoutItemsWeight = 0m;
-        foreach (var item in request.Items)
-        {
-            if (string.IsNullOrWhiteSpace(item.ProductId))
-            {
-                continue;
-            }
-
-            var product = await _productRepository.GetQuery()
-                .AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == item.ProductId && !x.IsDeleted, cancellationToken);
-
-            if (product is null)
-            {
-                return NotFound($"Produto nao encontrado: {item.ProductId}");
-            }
-
-            var quantity = item.Quantity < 1 ? 1 : item.Quantity;
-            var price = item.UnitPrice ?? product.UnitPrice ?? 0m;
-            var weight = product.UnitWeight ?? 0m;
-
-            checkoutItemsValue += price * quantity;
-            checkoutItemsWeight += weight * quantity;
-
-            await _bagItemRepository.CreateAsync(new BagItem
-            {
-                BagId = bag.Id,
-                ProductId = product.Id,
-                ProductName = product.Name,
-                Quantity = quantity,
-                Price = price,
-                Weight = weight,
-                IsPaid = false,
-                IsReserved = true,
-                ReservationExpiresAt = DateTime.UtcNow.AddMinutes(30),
-                AddedAt = DateTime.UtcNow
-            }, cancellationToken);
-        }
-
-        await ApplyBagTotalsAsync(bag, cancellationToken, checkoutItemsValue, checkoutItemsWeight);
-        bag.LastInteractionAt = DateTime.UtcNow;
-        bag.Notes = request.Notes;
-
-        bag.UpdatedAtUtc = isNewBag ? bag.UpdatedAtUtc : DateTime.UtcNow;
-
-        await _unitOfWork.SaveAsync(cancellationToken);
+        var bag = reservation.Bag;
+        var isNewBag = reservation.IsNewBag;
+        var checkoutItemsValue = reservation.CheckoutItemsValue;
         await NotifyBagChangedAsync(isNewBag ? "created" : "checkout-updated", bag.Id, bag.Status.ToString(), cancellationToken);
+        await NotifyProductsReservedAsync(reservation.ProductIds, cancellationToken);
 
         var amount = Math.Round(checkoutItemsValue, 2);
         if (amount <= 0)
@@ -444,6 +518,12 @@ public class BagController : BaseApiController
             }
         });
     }
+
+    private sealed record CheckoutReservationResult(
+        Bag Bag,
+        bool IsNewBag,
+        decimal CheckoutItemsValue,
+        IReadOnlyCollection<string> ProductIds);
 
     [Authorize]
     [HttpPost("FinalizeBag")]
@@ -652,6 +732,45 @@ public class BagController : BaseApiController
                 },
                 cancellationToken);
         }
+    }
+
+    private async Task NotifyProductsReservedAsync(
+        IEnumerable<string> productIds,
+        CancellationToken cancellationToken)
+    {
+        foreach (var productId in productIds.Distinct(StringComparer.Ordinal))
+        {
+            await _catalogNotifications.Clients.All.SendAsync(
+                "ProductChanged",
+                new
+                {
+                    changeType = "reserved",
+                    productId,
+                    productAvailable = false,
+                    reserved = true,
+                    changedAt = DateTime.UtcNow
+                },
+                cancellationToken);
+        }
+    }
+
+    private static bool IsReservationConcurrencyFailure(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException!)
+        {
+            var message = current.Message;
+            if (message.Contains("UX_BagItem_ActiveReservation_ProductId", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("2627", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("1205", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("deadlock", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("database is locked", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static BagSummaryResponse MapBag(Bag bag)

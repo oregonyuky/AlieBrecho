@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Common.Repositories;
 using Application.Common.CQS.Queries;
 using Application.Common.Services;
@@ -6,6 +7,7 @@ using Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Application.Features.OrderManager.Commands;
 
@@ -121,6 +123,8 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         {
             throw new Exception($"Order not found: {request.Id}");
         }
+
+        var wasPaid = entity.Status == OrderStatus.Paid;
 
         // Status
         if (!string.IsNullOrWhiteSpace(request.Status) &&
@@ -304,6 +308,11 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
                     throw new Exception($"Product not found: {item.ProductId}");
                 }
 
+                if (product.ProductAvailable == false)
+                {
+                    throw new ProductUnavailableException("Este produto ja foi vendido e nao pode ser adicionado ao pedido.");
+                }
+
                 var quantity = item.Quantity < 1 ? 1 : item.Quantity;
                 var unitPrice = item.UnitPrice ?? product.UnitPrice ?? 0m;
 
@@ -319,10 +328,30 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
         }
 
         entity.TotalAmount = await CalculateTotalAsync(entity, shippingBox, cancellationToken);
-        await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                if (!wasPaid && entity.Status == OrderStatus.Paid)
+                {
+                    await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
+                }
 
-        _repository.Update(entity);
-        await _unitOfWork.SaveAsync(cancellationToken);
+                _repository.Update(entity);
+                await _unitOfWork.SaveAsync(cancellationToken);
+                return true;
+            }, IsolationLevel.Serializable, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ProductUnavailableException(
+                "Um dos produtos foi vendido por outro pedido enquanto este pedido era salvo.", ex);
+        }
+        catch (Exception ex) when (ProductUnavailableException.IsDatabaseConcurrencyFailure(ex))
+        {
+            throw new ProductUnavailableException(
+                "Um dos produtos foi vendido por outro pedido enquanto este pedido era salvo.", ex);
+        }
 
         return new UpdateOrderResult
         {
@@ -373,6 +402,11 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderRequest, UpdateOrde
 
         foreach (var product in products)
         {
+            if (product.ProductAvailable == false)
+            {
+                throw new ProductUnavailableException("Um dos produtos deste pedido ja foi vendido.");
+            }
+
             product.ProductAvailable = false;
             _productRepository.Update(product);
         }

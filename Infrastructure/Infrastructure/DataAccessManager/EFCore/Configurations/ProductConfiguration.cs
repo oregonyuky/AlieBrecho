@@ -12,6 +12,7 @@ public class ProductConfiguration : BaseEntityConfiguration<Product>
     {
         base.Configure(builder);
 
+        builder.Property(x => x.RowVersion).IsRowVersion();
         builder.Property(x => x.Name).HasMaxLength(NameConsts.MaxLength).IsRequired();
         builder.Property(x => x.MainImageURL).HasMaxLength(PathConsts.MaxLength).IsRequired(false);
         builder.Property(x => x.AltText).HasMaxLength(NameConsts.MaxLength).IsRequired(false);

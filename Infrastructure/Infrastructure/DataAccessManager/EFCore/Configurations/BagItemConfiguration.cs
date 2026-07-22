@@ -10,5 +10,9 @@ public class BagItemConfiguration : IEntityTypeConfiguration<BagItem>
     {
         builder.Property(x => x.Price).HasColumnType("decimal(10,2)");
         builder.Property(x => x.Weight).HasColumnType("decimal(10,3)");
+        builder.HasIndex(x => x.ProductId)
+            .IsUnique()
+            .HasDatabaseName("UX_BagItem_ActiveReservation_ProductId")
+            .HasFilter("[ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1");
     }
 }

@@ -5,6 +5,7 @@ namespace Domain.Entities;
 
 public class Product : BaseEntity
 {
+    public byte[]? RowVersion { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? CategoryID { get; set; }
     public Category? Category { get; set; }

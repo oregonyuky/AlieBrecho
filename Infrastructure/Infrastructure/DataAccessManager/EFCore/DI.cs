@@ -129,8 +129,66 @@ public static class DI
         EnsureContactMessageTable(dataContext);
         EnsureAutomaticPackageSelectionColumns(dataContext);
         EnsureAdminProfilePostCodeColumn(dataContext);
+        EnsureProductConcurrencyAndActiveReservationConstraint(dataContext);
 
         return host;
+    }
+
+    private static void EnsureProductConcurrencyAndActiveReservationConstraint(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlite())
+        {
+            EnsureSqliteColumn(dataContext, "Product", "RowVersion", "BLOB NULL");
+            dataContext.Database.ExecuteSqlRaw("""
+                UPDATE "BagItem"
+                SET "IsReserved" = 0
+                WHERE "IsReserved" = 1
+                  AND ("IsDeleted" = 1 OR "IsPaid" = 1 OR ("ReservationExpiresAt" IS NOT NULL AND "ReservationExpiresAt" <= CURRENT_TIMESTAMP));
+
+                WITH DuplicateReservations AS (
+                    SELECT "Id", ROW_NUMBER() OVER (PARTITION BY "ProductId" ORDER BY "AddedAt", "Id") AS "RowNumber"
+                    FROM "BagItem"
+                    WHERE "ProductId" IS NOT NULL AND "IsDeleted" = 0 AND "IsReserved" = 1
+                )
+                UPDATE "BagItem"
+                SET "IsReserved" = 0
+                WHERE "Id" IN (SELECT "Id" FROM DuplicateReservations WHERE "RowNumber" > 1);
+
+                CREATE UNIQUE INDEX IF NOT EXISTS "UX_BagItem_ActiveReservation_ProductId"
+                ON "BagItem" ("ProductId")
+                WHERE "ProductId" IS NOT NULL AND "IsDeleted" = 0 AND "IsReserved" = 1;
+                """);
+            return;
+        }
+
+        if (!dataContext.Database.IsSqlServer())
+        {
+            return;
+        }
+
+        dataContext.Database.ExecuteSqlRaw("""
+            IF COL_LENGTH('dbo.Product', 'RowVersion') IS NULL
+                ALTER TABLE [Product] ADD [RowVersion] rowversion NOT NULL;
+
+            UPDATE [BagItem]
+            SET [IsReserved] = 0
+            WHERE [IsReserved] = 1
+              AND ([IsDeleted] = 1 OR [IsPaid] = 1 OR ([ReservationExpiresAt] IS NOT NULL AND [ReservationExpiresAt] <= SYSUTCDATETIME()));
+
+            ;WITH DuplicateReservations AS (
+                SELECT [Id], ROW_NUMBER() OVER (PARTITION BY [ProductId] ORDER BY [AddedAt], [Id]) AS [RowNumber]
+                FROM [BagItem]
+                WHERE [ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1
+            )
+            UPDATE [BagItem]
+            SET [IsReserved] = 0
+            WHERE [Id] IN (SELECT [Id] FROM DuplicateReservations WHERE [RowNumber] > 1);
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_BagItem_ActiveReservation_ProductId' AND object_id = OBJECT_ID('dbo.BagItem'))
+                CREATE UNIQUE INDEX [UX_BagItem_ActiveReservation_ProductId]
+                ON [BagItem] ([ProductId])
+                WHERE [ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1;
+            """);
     }
 
     private static void EnsureAdminProfilePostCodeColumn(DataContext dataContext)

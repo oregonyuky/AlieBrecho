@@ -38,6 +38,7 @@ public static class BackEndConfiguration
                 options.JsonSerializerOptions.WriteIndented = true;
             });
         services.AddSignalR();
+        services.AddHostedService<BagReservationExpirationService>();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {

@@ -56,5 +56,41 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new ShippingBoxConfiguration());
         modelBuilder.ApplyConfiguration(new DropConfigConfiguration());
         modelBuilder.ApplyConfiguration(new ContactMessageConfiguration());
+
+        if (Database.IsSqlite())
+        {
+            modelBuilder.Entity<Product>()
+                .Property(x => x.RowVersion)
+                .IsConcurrencyToken()
+                .ValueGeneratedNever();
+        }
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        SetApplicationManagedRowVersions();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        SetApplicationManagedRowVersions();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void SetApplicationManagedRowVersions()
+    {
+        if (!Database.IsSqlite())
+        {
+            return;
+        }
+
+        foreach (var entry in ChangeTracker.Entries<Product>()
+                     .Where(x => x.State is EntityState.Added or EntityState.Modified))
+        {
+            entry.Property(x => x.RowVersion).CurrentValue = Guid.NewGuid().ToByteArray();
+        }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using Application.Common.Repositories;
 using Infrastructure.DataAccessManager.EFCore.Contexts;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Infrastructure.DataAccessManager.EFCore.Repositories;
 
@@ -21,7 +23,15 @@ public class UnitOfWork : IUnitOfWork
         Func<Task<T>> operation,
         CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        return await ExecuteInTransactionAsync(operation, IsolationLevel.ReadCommitted, cancellationToken);
+    }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(
+        Func<Task<T>> operation,
+        IsolationLevel isolationLevel,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
 
         try
         {

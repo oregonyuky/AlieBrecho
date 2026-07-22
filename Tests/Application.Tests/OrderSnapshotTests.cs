@@ -160,6 +160,7 @@ public class OrderSnapshotTests
     {
         public Task SaveAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken = default) => operation();
+        public Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation, System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default) => operation();
         public void Save() { }
     }
 

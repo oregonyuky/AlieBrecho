@@ -1,4 +1,5 @@
 using Application.Common.CQS.Queries;
+using Application.Common;
 using Application.Common.Repositories;
 using Application.Common.Services;
 using Domain.Entities;
@@ -6,6 +7,7 @@ using Domain.Enums;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Application.Features.OrderManager.Commands;
 
@@ -185,6 +187,11 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
                 throw new Exception($"Product not found: {item.ProductId}");
             }
 
+            if (product.ProductAvailable == false)
+            {
+                throw new ProductUnavailableException("Este produto ja foi vendido e nao pode ser adicionado ao pedido.");
+            }
+
             var quantity = item.Quantity < 1 ? 1 : item.Quantity;
             var unitPrice = item.UnitPrice ?? product.UnitPrice ?? 0m;
 
@@ -202,10 +209,26 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
 
         var shippingPackage = CreateShippingPackage(shippingBox, selection.TotalProductWeight);
         entity.TotalAmount = await CalculateTotalAsync(entity, shippingPackage, cancellationToken);
-        await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
-
-        await _repository.CreateAsync(entity, cancellationToken);
-        await _unitOfWork.SaveAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                await MarkProductsUnavailableWhenPaidAsync(entity, cancellationToken);
+                await _repository.CreateAsync(entity, cancellationToken);
+                await _unitOfWork.SaveAsync(cancellationToken);
+                return true;
+            }, IsolationLevel.Serializable, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ProductUnavailableException(
+                "Um dos produtos foi vendido por outro pedido enquanto este pedido era salvo.", ex);
+        }
+        catch (Exception ex) when (ProductUnavailableException.IsDatabaseConcurrencyFailure(ex))
+        {
+            throw new ProductUnavailableException(
+                "Um dos produtos foi vendido por outro pedido enquanto este pedido era salvo.", ex);
+        }
 
         return new CreateOrderResult
         {
@@ -269,6 +292,11 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, CreateOrde
 
         foreach (var product in products)
         {
+            if (product.ProductAvailable == false)
+            {
+                throw new ProductUnavailableException("Um dos produtos deste pedido ja foi vendido.");
+            }
+
             product.ProductAvailable = false;
             _productRepository.Update(product);
         }
