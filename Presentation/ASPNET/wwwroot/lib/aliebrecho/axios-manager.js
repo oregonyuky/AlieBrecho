@@ -27,6 +27,9 @@
         (response) => response,
         async (error) => {
             const originalRequest = error.config;
+            if (!error.response || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+                window.dispatchEvent(new CustomEvent('aliebrecho:network-error'));
+            }
             if (error.response && error.response.status === 498) {
                 if (!isRefreshing) {
                     isRefreshing = true;

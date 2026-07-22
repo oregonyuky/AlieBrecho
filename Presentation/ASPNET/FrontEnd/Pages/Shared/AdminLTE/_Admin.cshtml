@@ -12,6 +12,34 @@
         [v-cloak] {
             display: none !important;
         }
+
+        .network-reconnect {
+            align-items: center;
+            background: rgba(248, 250, 252, .98);
+            display: none;
+            inset: 0;
+            justify-content: center;
+            padding: 24px;
+            position: fixed;
+            text-align: center;
+            z-index: 100000;
+        }
+
+        .network-reconnect.is-visible { display: flex; }
+        .network-reconnect__card { max-width: 440px; }
+        .network-reconnect__spinner {
+            animation: network-spin 1s linear infinite;
+            border: 5px solid #dbeafe;
+            border-radius: 50%;
+            border-top-color: #2563eb;
+            height: 56px;
+            margin: 0 auto 22px;
+            width: 56px;
+        }
+        .network-reconnect__title { color: #111827; font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+        .network-reconnect__message { color: #64748b; font-size: 15px; margin-bottom: 22px; }
+        .network-reconnect__button { border-radius: 9px; font-weight: 700; padding: 10px 20px; }
+        @@keyframes network-spin { to { transform: rotate(360deg); } }
     </style>
 
     @* vue *@
@@ -21,6 +49,14 @@
 </head>
 
 <body class="hold-transition sidebar-mini">
+    <div id="networkReconnect" class="network-reconnect" role="alert" aria-live="assertive" aria-hidden="true">
+        <div class="network-reconnect__card">
+            <div class="network-reconnect__spinner" aria-hidden="true"></div>
+            <div id="networkReconnectTitle" class="network-reconnect__title">Conexão instável</div>
+            <div id="networkReconnectMessage" class="network-reconnect__message">Não foi possível acessar o servidor. Verificando sua conexão...</div>
+            <button id="networkReconnectButton" type="button" class="btn btn-primary network-reconnect__button">Tentar novamente</button>
+        </div>
+    </div>
     <script>
         if (window.matchMedia('(max-width: 991.98px)').matches) {
             document.body.classList.add('sidebar-fully-hidden');
