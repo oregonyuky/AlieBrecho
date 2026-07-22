@@ -27,6 +27,11 @@ public record GetOrderListDto
     public decimal? ShippingBoxHeight { get; init; }
     public decimal? ShippingBoxWeight { get; init; }
     public string? PaymentStatus { get; init; }
+    public string? PaymentId { get; init; }
+    public string? PaymentProvider { get; init; }
+    public string? PixQrCodeBase64 { get; init; }
+    public string? PixQrCode { get; init; }
+    public DateTime? PaymentExpiresAt { get; init; }
     public string? PaymentTypeName { get; init; }
     public string? PaymentMethod { get; init; }
     public string? ShippingRecipientName { get; init; }
@@ -65,6 +70,11 @@ public class GetOrderListProfile : Profile
             .ForMember(dest => dest.ItemCount, opt => opt.MapFrom(src => src.OrderDetails.Where(x => !x.IsDeleted).Sum(x => x.Quantity)))
             .ForMember(dest => dest.ItemsTotal, opt => opt.MapFrom(src => src.OrderDetails.Where(x => !x.IsDeleted).Sum(x => x.TotalPrice ?? ((x.UnitPrice ?? 0m) * x.Quantity))))
             .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.Payment != null && src.Payment.Status != null ? src.Payment.Status.ToString() : null))
+            .ForMember(dest => dest.PaymentId, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.ProviderTransactionId : null))
+            .ForMember(dest => dest.PaymentProvider, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.Provider : null))
+            .ForMember(dest => dest.PixQrCodeBase64, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.PixQrCodeBase64 : null))
+            .ForMember(dest => dest.PixQrCode, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.PixQrCode : null))
+            .ForMember(dest => dest.PaymentExpiresAt, opt => opt.MapFrom(src => src.Payment != null ? src.Payment.ExpiresAt : null))
             .ForMember(dest => dest.PaymentTypeName, opt => opt.MapFrom(src => src.Payment != null && src.Payment.PaymentType != null ? src.Payment.PaymentType.TypeName : null))
             .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.Payment != null && src.Payment.PaymentDetail != null ? src.Payment.PaymentDetail.PaymentMethod : null))
             .ForMember(dest => dest.ShippingCost, opt => opt.MapFrom(src => ShippingCostCalculator.Calculate(src.ShippingBox)))

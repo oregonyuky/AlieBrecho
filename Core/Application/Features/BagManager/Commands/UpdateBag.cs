@@ -82,6 +82,11 @@ public class UpdateBagHandler : IRequestHandler<UpdateBagRequest, UpdateBagResul
 
         if (entity.IsDeleted)
         {
+            entity.CurrentPaymentId = null;
+            entity.CurrentPaymentProvider = null;
+            entity.CurrentPaymentQrCodeBase64 = null;
+            entity.CurrentPaymentQrCode = null;
+            entity.CurrentPaymentExpiresAt = null;
             foreach (var item in entity.Items ?? [])
             {
                 item.IsDeleted = true;

@@ -13,6 +13,9 @@ public class Payment : BaseEntity
     public string? Provider { get; set; }
     public string? CheckoutUrl { get; set; }
     public string? ProviderTransactionId { get; set; }
+    public string? PixQrCodeBase64 { get; set; }
+    public string? PixQrCode { get; set; }
+    public DateTime? ExpiresAt { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? PaymentTypeId { get; set; }
     public PaymentType? PaymentType { get; set; }

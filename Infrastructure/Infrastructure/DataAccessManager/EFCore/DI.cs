@@ -130,8 +130,45 @@ public static class DI
         EnsureAutomaticPackageSelectionColumns(dataContext);
         EnsureAdminProfilePostCodeColumn(dataContext);
         EnsureProductConcurrencyAndActiveReservationConstraint(dataContext);
+        EnsureBagCurrentPaymentColumns(dataContext);
 
         return host;
+    }
+
+    private static void EnsureBagCurrentPaymentColumns(DataContext dataContext)
+    {
+        if (dataContext.Database.IsSqlite())
+        {
+            EnsureSqliteColumn(dataContext, "Bag", "CurrentPaymentId", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Bag", "CurrentPaymentProvider", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Bag", "CurrentPaymentQrCodeBase64", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Bag", "CurrentPaymentQrCode", "TEXT NULL");
+            EnsureSqliteColumn(dataContext, "Bag", "CurrentPaymentExpiresAt", "TEXT NULL");
+            return;
+        }
+
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                IF COL_LENGTH('dbo.Bag', 'CurrentPaymentId') IS NULL ALTER TABLE [Bag] ADD [CurrentPaymentId] nvarchar(200) NULL;
+                IF COL_LENGTH('dbo.Bag', 'CurrentPaymentProvider') IS NULL ALTER TABLE [Bag] ADD [CurrentPaymentProvider] nvarchar(50) NULL;
+                IF COL_LENGTH('dbo.Bag', 'CurrentPaymentQrCodeBase64') IS NULL ALTER TABLE [Bag] ADD [CurrentPaymentQrCodeBase64] nvarchar(max) NULL;
+                IF COL_LENGTH('dbo.Bag', 'CurrentPaymentQrCode') IS NULL ALTER TABLE [Bag] ADD [CurrentPaymentQrCode] nvarchar(max) NULL;
+                IF COL_LENGTH('dbo.Bag', 'CurrentPaymentExpiresAt') IS NULL ALTER TABLE [Bag] ADD [CurrentPaymentExpiresAt] datetime2 NULL;
+                """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                ALTER TABLE "Bag" ADD COLUMN IF NOT EXISTS "CurrentPaymentId" varchar(200) NULL;
+                ALTER TABLE "Bag" ADD COLUMN IF NOT EXISTS "CurrentPaymentProvider" varchar(50) NULL;
+                ALTER TABLE "Bag" ADD COLUMN IF NOT EXISTS "CurrentPaymentQrCodeBase64" text NULL;
+                ALTER TABLE "Bag" ADD COLUMN IF NOT EXISTS "CurrentPaymentQrCode" text NULL;
+                ALTER TABLE "Bag" ADD COLUMN IF NOT EXISTS "CurrentPaymentExpiresAt" timestamp with time zone NULL;
+                """);
+        }
     }
 
     private static void EnsureProductConcurrencyAndActiveReservationConstraint(DataContext dataContext)
@@ -561,6 +598,9 @@ public static class DI
                 "IF COL_LENGTH('dbo.Payment', 'Provider') IS NULL BEGIN ALTER TABLE [Payment] ADD [Provider] nvarchar(100) NULL; END",
                 "IF COL_LENGTH('dbo.Payment', 'CheckoutUrl') IS NULL BEGIN ALTER TABLE [Payment] ADD [CheckoutUrl] nvarchar(max) NULL; END",
                 "IF COL_LENGTH('dbo.Payment', 'ProviderTransactionId') IS NULL BEGIN ALTER TABLE [Payment] ADD [ProviderTransactionId] nvarchar(255) NULL; END",
+                "IF COL_LENGTH('dbo.Payment', 'PixQrCodeBase64') IS NULL BEGIN ALTER TABLE [Payment] ADD [PixQrCodeBase64] nvarchar(max) NULL; END",
+                "IF COL_LENGTH('dbo.Payment', 'PixQrCode') IS NULL BEGIN ALTER TABLE [Payment] ADD [PixQrCode] nvarchar(max) NULL; END",
+                "IF COL_LENGTH('dbo.Payment', 'ExpiresAt') IS NULL BEGIN ALTER TABLE [Payment] ADD [ExpiresAt] datetime2 NULL; END",
                 "IF COL_LENGTH('dbo.Payment', 'PaidAt') IS NULL BEGIN ALTER TABLE [Payment] ADD [PaidAt] datetime2 NULL; END"
             })
             {
@@ -576,6 +616,9 @@ public static class DI
                                                ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "Provider" character varying(100);
                                                ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "CheckoutUrl" text;
                                                ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "ProviderTransactionId" character varying(255);
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "PixQrCodeBase64" text;
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "PixQrCode" text;
+                                               ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "ExpiresAt" timestamp with time zone;
                                                ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "PaidAt" timestamp with time zone;
                                                """);
             return;
@@ -601,6 +644,21 @@ public static class DI
             if (!SqliteColumnExists(dataContext, "Payment", "PaidAt"))
             {
                 dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "PaidAt" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "Payment", "PixQrCodeBase64"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "PixQrCodeBase64" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "Payment", "PixQrCode"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "PixQrCode" TEXT NULL;""");
+            }
+
+            if (!SqliteColumnExists(dataContext, "Payment", "ExpiresAt"))
+            {
+                dataContext.Database.ExecuteSqlRaw("""ALTER TABLE "Payment" ADD COLUMN "ExpiresAt" TEXT NULL;""");
             }
         }
     }

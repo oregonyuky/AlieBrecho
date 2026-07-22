@@ -28,6 +28,12 @@ public class Bag : BaseEntity
 
     public string? Notes { get; set; }
 
+    public string? CurrentPaymentId { get; set; }
+    public string? CurrentPaymentProvider { get; set; }
+    public string? CurrentPaymentQrCodeBase64 { get; set; }
+    public string? CurrentPaymentQrCode { get; set; }
+    public DateTime? CurrentPaymentExpiresAt { get; set; }
+
     public ICollection<BagItem>? Items { get; set; }
     public ICollection<BagExpirationHistory>? ExpirationHistory { get; set; }
 }

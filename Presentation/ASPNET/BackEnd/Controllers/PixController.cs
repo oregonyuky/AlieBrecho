@@ -113,6 +113,9 @@ public class PixController : ControllerBase
         order.Payment.Provider = ProviderName;
         order.Payment.CheckoutUrl = null;
         order.Payment.ProviderTransactionId = payment.PaymentId;
+        order.Payment.PixQrCodeBase64 = payment.QrCodeBase64;
+        order.Payment.PixQrCode = payment.QrCode;
+        order.Payment.ExpiresAt = payment.DateOfExpiration ?? expiration;
         order.Payment.Amount = amount;
         order.Payment.Description = string.IsNullOrWhiteSpace(request.Description)
             ? order.Payment.Description
@@ -172,9 +175,11 @@ public class PixController : ControllerBase
         {
             PaymentId = payment.PaymentId,
             Status = payment.Status,
-            StatusDetail = payment.StatusDetail,
-            Expiracao = payment.DateOfExpiration,
-            OrderStatus = order.Status.ToString()
+                StatusDetail = payment.StatusDetail,
+                Expiracao = payment.DateOfExpiration,
+                QrCodeBase64 = payment.QrCodeBase64,
+                QrCode = payment.QrCode,
+                OrderStatus = order.Status.ToString()
         });
     }
 
@@ -239,6 +244,9 @@ public class PixController : ControllerBase
                 var payment = order.Payment!;
                 payment.Provider = ProviderName;
                 payment.ProviderTransactionId = mercadoPagoPayment.PaymentId ?? payment.ProviderTransactionId;
+                payment.ExpiresAt = mercadoPagoPayment.DateOfExpiration ?? payment.ExpiresAt;
+                payment.PixQrCodeBase64 = mercadoPagoPayment.QrCodeBase64 ?? payment.PixQrCodeBase64;
+                payment.PixQrCode = mercadoPagoPayment.QrCode ?? payment.PixQrCode;
 
                 if (IsApprovedStatus(mercadoPagoPayment.Status))
                 {
@@ -412,6 +420,11 @@ public class PixController : ControllerBase
                     currentBag.AllItemsPaid = currentBag.Items?.Where(x => !x.IsDeleted).All(x => x.IsPaid) ?? false;
                     currentBag.LastInteractionAt = DateTime.UtcNow;
                     currentBag.UpdatedAtUtc = DateTime.UtcNow;
+                    ClearCurrentBagPayment(currentBag);
+                }
+                else if (IsExpiredOrCancelledStatus(mercadoPagoPayment.Status))
+                {
+                    ClearCurrentBagPayment(currentBag);
                 }
 
                 _bagRepository.Update(currentBag);
@@ -432,6 +445,15 @@ public class PixController : ControllerBase
 
         await NotifyProductsUnavailableAsync(unavailableProductIds, cancellationToken);
         return bag;
+    }
+
+    private static void ClearCurrentBagPayment(Bag bag)
+    {
+        bag.CurrentPaymentId = null;
+        bag.CurrentPaymentProvider = null;
+        bag.CurrentPaymentQrCodeBase64 = null;
+        bag.CurrentPaymentQrCode = null;
+        bag.CurrentPaymentExpiresAt = null;
     }
 
     private async Task<Order?> GetOrderAsync(string orderId, CancellationToken cancellationToken)
@@ -728,5 +750,7 @@ public sealed record PixPaymentStatusResponse
     public string? Status { get; init; }
     public string? StatusDetail { get; init; }
     public DateTime? Expiracao { get; init; }
+    public string? QrCodeBase64 { get; init; }
+    public string? QrCode { get; init; }
     public string? OrderStatus { get; init; }
 }

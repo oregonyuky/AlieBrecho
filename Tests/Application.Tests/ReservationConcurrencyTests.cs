@@ -3,6 +3,7 @@ using Application.Common.Repositories;
 using Application.Common.Services.MercadoPagoManager;
 using ASPNET.BackEnd.Controllers;
 using ASPNET.BackEnd.Hubs;
+using ASPNET.BackEnd.Common.Models;
 using Domain.Entities;
 using Infrastructure.DataAccessManager.EFCore.Contexts;
 using Infrastructure.DataAccessManager.EFCore.Repositories;
@@ -56,6 +57,15 @@ public class ReservationConcurrencyTests
 
             await using var verification = CreateContext(connectionString);
             Assert.Equal(1, await verification.BagItem.CountAsync(x => x.ProductId == "product-1" && x.IsReserved));
+            var activeBag = await verification.Bag.AsNoTracking().SingleAsync();
+            var activeBagResult = await CreateController(verification, "unused")
+                .GetActiveBagAsync(CancellationToken.None, activeBag.CustomerId!);
+            var ok = Assert.IsType<OkObjectResult>(activeBagResult.Result);
+            var payload = Assert.IsType<ApiSuccessResult<GetActiveBagResult>>(ok.Value);
+            Assert.NotNull(payload.Content?.Data);
+            Assert.True(payload.Content.Data.ItemCount > 0);
+            Assert.False(string.IsNullOrWhiteSpace(payload.Content.Data.CurrentPaymentId));
+            Assert.False(string.IsNullOrWhiteSpace(payload.Content.Data.CurrentPaymentQrCodeBase64));
         }
         finally
         {
@@ -103,6 +113,9 @@ public class ReservationConcurrencyTests
             await using var verification = CreateContext(connectionString);
             Assert.Equal(1, await verification.BagItem.CountAsync(x => x.ProductId == "product-1" && x.IsPaid));
             Assert.False((await verification.Product.SingleAsync(x => x.Id == "product-1")).ProductAvailable);
+            var paidBag = await verification.Bag.SingleAsync(x => x.Items!.Any(item => item.IsPaid));
+            Assert.Null(paidBag.CurrentPaymentId);
+            Assert.Null(paidBag.CurrentPaymentQrCodeBase64);
         }
         finally
         {
@@ -146,6 +159,8 @@ public class ReservationConcurrencyTests
                 "ReservationExpiresAt" TEXT NULL,
                 "AddedAt" TEXT NOT NULL
             );
+            CREATE TABLE "Bag" ("Id" TEXT NOT NULL PRIMARY KEY);
+            CREATE TABLE "Payment" ("Id" TEXT NOT NULL PRIMARY KEY);
             CREATE TABLE "__EFMigrationsHistory" (
                 "MigrationId" TEXT NOT NULL PRIMARY KEY,
                 "ProductVersion" TEXT NOT NULL
@@ -162,6 +177,15 @@ public class ReservationConcurrencyTests
         var indexes = await context.Database.SqlQueryRaw<string>(
             "SELECT name AS Value FROM pragma_index_list('BagItem')").ToListAsync();
         Assert.Contains("UX_BagItem_ActiveReservation_ProductId", indexes);
+        var bagColumns = await context.Database.SqlQueryRaw<string>(
+            "SELECT name AS Value FROM pragma_table_info('Bag')").ToListAsync();
+        Assert.Contains("CurrentPaymentId", bagColumns);
+        Assert.Contains("CurrentPaymentExpiresAt", bagColumns);
+        var paymentColumns = await context.Database.SqlQueryRaw<string>(
+            "SELECT name AS Value FROM pragma_table_info('Payment')").ToListAsync();
+        Assert.Contains("PixQrCodeBase64", paymentColumns);
+        Assert.Contains("PixQrCode", paymentColumns);
+        Assert.Contains("ExpiresAt", paymentColumns);
     }
 
     private static CommandContext CreateContext(string connectionString)
@@ -229,6 +253,11 @@ public class ReservationConcurrencyTests
         CustomerId = customerId,
         ExpirationDate = DateTime.UtcNow.AddMinutes(30),
         TotalItemsValue = 10m,
+        CurrentPaymentId = $"payment-{bagId}",
+        CurrentPaymentProvider = "MercadoPago",
+        CurrentPaymentQrCodeBase64 = "qr-base64",
+        CurrentPaymentQrCode = "qr-code",
+        CurrentPaymentExpiresAt = DateTime.UtcNow.AddMinutes(30),
         Items =
         [
             new BagItem
@@ -266,6 +295,6 @@ public class ReservationConcurrencyTests
 
         public Task<MercadoPagoPaymentStatusResult> GetPaymentAsync(string id, CancellationToken cancellationToken) =>
             Task.FromResult(new MercadoPagoPaymentStatusResult(
-                paymentId, "approved", null, bagId, 10m, DateTime.UtcNow, DateTime.UtcNow.AddMinutes(30)));
+                paymentId, "approved", null, bagId, 10m, DateTime.UtcNow, DateTime.UtcNow.AddMinutes(30), null, null));
     }
 }

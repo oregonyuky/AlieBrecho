@@ -244,11 +244,15 @@ public class BagController : BaseApiController
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var summary = bag is null
+            ? null
+            : await MapBagAsync(bag, cancellationToken);
+
         return Ok(new ApiSuccessResult<GetActiveBagResult>
         {
             Code = StatusCodes.Status200OK,
             Message = $"Success executing {nameof(GetActiveBagAsync)}",
-            Content = new GetActiveBagResult { Data = bag is null ? null : MapBag(bag) }
+            Content = new GetActiveBagResult { Data = summary }
         });
     }
 
@@ -503,6 +507,14 @@ public class BagController : BaseApiController
                 Payer = payer
             },
             cancellationToken);
+
+        bag.CurrentPaymentId = payment.PaymentId;
+        bag.CurrentPaymentProvider = "MercadoPago";
+        bag.CurrentPaymentQrCodeBase64 = payment.QrCodeBase64;
+        bag.CurrentPaymentQrCode = payment.QrCode;
+        bag.CurrentPaymentExpiresAt = payment.DateOfExpiration ?? expiration;
+        _bagRepository.Update(bag);
+        await _unitOfWork.SaveAsync(cancellationToken);
 
         return Ok(new ApiSuccessResult<CheckoutBagResponse>
         {
@@ -773,18 +785,63 @@ public class BagController : BaseApiController
         return false;
     }
 
-    private static BagSummaryResponse MapBag(Bag bag)
+    private async Task<BagSummaryResponse> MapBagAsync(Bag bag, CancellationToken cancellationToken)
     {
+        var utcNow = DateTime.UtcNow;
+        var items = (bag.Items ?? [])
+            .Where(x => !x.IsDeleted)
+            .ToList();
+        var productIds = items
+            .Where(x => !string.IsNullOrWhiteSpace(x.ProductId))
+            .Select(x => x.ProductId!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var productImages = await _productRepository.GetQuery()
+            .AsNoTracking()
+            .Where(x => productIds.Contains(x.Id))
+            .Select(x => new { x.Id, ImageUrl = x.MainImageURL ?? x.Picture1 })
+            .ToDictionaryAsync(x => x.Id, x => x.ImageUrl, cancellationToken);
+        var paidItemCount = items.Where(x => x.IsPaid).Sum(x => x.Quantity);
+        var pendingItemCount = items
+            .Where(x => !x.IsPaid && x.IsReserved &&
+                (!x.ReservationExpiresAt.HasValue || x.ReservationExpiresAt.Value > utcNow))
+            .Sum(x => x.Quantity);
+        var hasExpiredReservation = pendingItemCount == 0 && items.Any(x =>
+            !x.IsPaid && x.ReservationExpiresAt.HasValue && x.ReservationExpiresAt.Value <= utcNow);
+        var paymentIsOpen = !bag.AllItemsPaid
+            && !string.IsNullOrWhiteSpace(bag.CurrentPaymentId)
+            && (!bag.CurrentPaymentExpiresAt.HasValue || bag.CurrentPaymentExpiresAt.Value > utcNow);
+
         return new BagSummaryResponse
         {
             Id = bag.Id,
-            Status = bag.Status.ToString(),
+            Status = hasExpiredReservation ? "ReservationExpired" : bag.Status.ToString(),
             ExpirationDate = bag.ExpirationDate,
             TotalItemsValue = bag.TotalItemsValue,
             ShippingCost = bag.ShippingCost,
-            ItemCount = bag.Items?
-                .Where(x => !x.IsDeleted && x.IsPaid)
-                .Sum(x => x.Quantity) ?? 0
+            ItemCount = paidItemCount + pendingItemCount,
+            PaidItemCount = paidItemCount,
+            PendingItemCount = pendingItemCount,
+            Items = items.Select(item => new BagItemSummaryResponse
+            {
+                ProductId = item.ProductId,
+                ProductName = item.ProductName,
+                ProductImageUrl = !string.IsNullOrWhiteSpace(item.ProductId)
+                    && productImages.TryGetValue(item.ProductId, out var imageUrl)
+                        ? imageUrl
+                        : null,
+                Quantity = item.Quantity,
+                Price = item.Price,
+                IsPaid = item.IsPaid,
+                IsReserved = item.IsReserved,
+                ReservationExpiresAt = item.ReservationExpiresAt,
+                PaidAt = item.PaidAt
+            }).ToList(),
+            CurrentPaymentId = paymentIsOpen ? bag.CurrentPaymentId : null,
+            CurrentPaymentProvider = paymentIsOpen ? bag.CurrentPaymentProvider : null,
+            CurrentPaymentQrCodeBase64 = paymentIsOpen ? bag.CurrentPaymentQrCodeBase64 : null,
+            CurrentPaymentQrCode = paymentIsOpen ? bag.CurrentPaymentQrCode : null,
+            CurrentPaymentExpiresAt = paymentIsOpen ? bag.CurrentPaymentExpiresAt : null
         };
     }
 
@@ -855,6 +912,27 @@ public sealed record BagSummaryResponse
     public decimal TotalItemsValue { get; init; }
     public decimal? ShippingCost { get; init; }
     public int ItemCount { get; init; }
+    public int PaidItemCount { get; init; }
+    public int PendingItemCount { get; init; }
+    public List<BagItemSummaryResponse> Items { get; init; } = [];
+    public string? CurrentPaymentId { get; init; }
+    public string? CurrentPaymentProvider { get; init; }
+    public string? CurrentPaymentQrCodeBase64 { get; init; }
+    public string? CurrentPaymentQrCode { get; init; }
+    public DateTime? CurrentPaymentExpiresAt { get; init; }
+}
+
+public sealed record BagItemSummaryResponse
+{
+    public string? ProductId { get; init; }
+    public string? ProductName { get; init; }
+    public string? ProductImageUrl { get; init; }
+    public int Quantity { get; init; }
+    public decimal Price { get; init; }
+    public bool IsPaid { get; init; }
+    public bool IsReserved { get; init; }
+    public DateTime? ReservationExpiresAt { get; init; }
+    public DateTime? PaidAt { get; init; }
 }
 
 public sealed record BagPurchaseHistoryResponse

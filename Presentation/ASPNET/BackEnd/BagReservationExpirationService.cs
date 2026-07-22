@@ -48,6 +48,7 @@ public sealed class BagReservationExpirationService : BackgroundService
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
         var bagItemRepository = scope.ServiceProvider.GetRequiredService<ICommandRepository<BagItem>>();
+        var bagRepository = scope.ServiceProvider.GetRequiredService<ICommandRepository<Bag>>();
         var productRepository = scope.ServiceProvider.GetRequiredService<ICommandRepository<Product>>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var utcNow = DateTime.UtcNow;
@@ -65,6 +66,24 @@ public sealed class BagReservationExpirationService : BackgroundService
         {
             item.IsReserved = false;
             item.UpdatedAtUtc = utcNow;
+        }
+
+        var bagIds = expiredItems
+            .Where(x => !string.IsNullOrWhiteSpace(x.BagId))
+            .Select(x => x.BagId!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var bags = await bagRepository.GetQuery()
+            .Where(x => bagIds.Contains(x.Id) && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+        foreach (var bag in bags)
+        {
+            bag.CurrentPaymentId = null;
+            bag.CurrentPaymentProvider = null;
+            bag.CurrentPaymentQrCodeBase64 = null;
+            bag.CurrentPaymentQrCode = null;
+            bag.CurrentPaymentExpiresAt = null;
+            bag.UpdatedAtUtc = utcNow;
         }
 
         await unitOfWork.SaveAsync(cancellationToken);

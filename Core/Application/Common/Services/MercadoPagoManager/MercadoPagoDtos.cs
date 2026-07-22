@@ -47,7 +47,9 @@ public sealed record MercadoPagoPaymentStatusResult(
     string? ExternalReference,
     decimal? TransactionAmount,
     DateTime? DateApproved,
-    DateTime? DateOfExpiration);
+    DateTime? DateOfExpiration,
+    string? QrCodeBase64,
+    string? QrCode);
 
 public sealed record MercadoPagoCreatePaymentResponse
 {

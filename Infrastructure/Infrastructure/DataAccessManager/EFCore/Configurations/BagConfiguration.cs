@@ -12,6 +12,8 @@ public class BagConfiguration : IEntityTypeConfiguration<Bag>
         builder.Property(x => x.TotalItemsValue).HasColumnType("decimal(10,2)");
         builder.Property(x => x.ShippingCost).HasColumnType("decimal(10,2)");
         builder.Property(x => x.TotalWeight).HasColumnType("decimal(10,3)");
+        builder.Property(x => x.CurrentPaymentId).HasMaxLength(200);
+        builder.Property(x => x.CurrentPaymentProvider).HasMaxLength(50);
         builder.HasMany(x => x.Items).WithOne().HasForeignKey(x => x.BagId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(x => x.ExpirationHistory).WithOne(x => x.Bag).HasForeignKey(x => x.BagId).OnDelete(DeleteBehavior.Cascade);
     }

@@ -108,7 +108,11 @@ public sealed class MercadoPagoService : IMercadoPagoService
             payment.ExternalReference,
             payment.TransactionAmount,
             payment.DateApproved,
-            payment.DateOfExpiration);
+            payment.DateOfExpiration,
+            payment.PointOfInteraction?.TransactionData?.QrCodeBase64
+                ?? ExtractString(body, "point_of_interaction", "transaction_data", "qr_code_base64"),
+            payment.PointOfInteraction?.TransactionData?.QrCode
+                ?? ExtractString(body, "point_of_interaction", "transaction_data", "qr_code"));
     }
 
     private void ConfigureClient()

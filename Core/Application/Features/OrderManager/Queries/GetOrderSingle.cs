@@ -28,6 +28,11 @@ public record PaymentDto
     public string? Status { get; init; }
     public DateTime? PaymentDateTime { get; init; }
     public decimal? Amount { get; init; }
+    public string? Provider { get; init; }
+    public string? ProviderTransactionId { get; init; }
+    public string? PixQrCodeBase64 { get; init; }
+    public string? PixQrCode { get; init; }
+    public DateTime? ExpiresAt { get; init; }
     public string? PaymentTypeId { get; init; }
     public string? PaymentTypeName { get; init; }
     public PaymentDetailDto? PaymentDetail { get; init; }
