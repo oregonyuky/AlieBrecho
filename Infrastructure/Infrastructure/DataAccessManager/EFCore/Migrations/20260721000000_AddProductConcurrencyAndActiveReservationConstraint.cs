@@ -29,6 +29,22 @@ public partial class AddProductConcurrencyAndActiveReservationConstraint : Migra
                   AND ([IsDeleted] = 1 OR [IsPaid] = 1 OR ([ReservationExpiresAt] IS NOT NULL AND [ReservationExpiresAt] <= SYSUTCDATETIME()));
                 """);
         }
+        else if (ActiveProvider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+        {
+            migrationBuilder.AddColumn<byte[]>(
+                name: "RowVersion",
+                table: "Product",
+                type: "bytea",
+                nullable: false,
+                defaultValue: Array.Empty<byte>());
+
+            migrationBuilder.Sql("""
+                UPDATE "BagItem"
+                SET "IsReserved" = FALSE
+                WHERE "IsReserved"
+                  AND ("IsDeleted" OR "IsPaid" OR ("ReservationExpiresAt" IS NOT NULL AND "ReservationExpiresAt" <= CURRENT_TIMESTAMP));
+                """);
+        }
         else
         {
             migrationBuilder.AddColumn<byte[]>(
@@ -45,23 +61,45 @@ public partial class AddProductConcurrencyAndActiveReservationConstraint : Migra
                 """);
         }
 
-        migrationBuilder.Sql("""
-            WITH DuplicateReservations AS (
-                SELECT "Id", ROW_NUMBER() OVER (PARTITION BY "ProductId" ORDER BY "AddedAt", "Id") AS "RowNumber"
-                FROM "BagItem"
-                WHERE "ProductId" IS NOT NULL AND "IsDeleted" = 0 AND "IsReserved" = 1
-            )
-            UPDATE "BagItem"
-            SET "IsReserved" = 0
-            WHERE "Id" IN (SELECT "Id" FROM DuplicateReservations WHERE "RowNumber" > 1);
-            """);
+        if (ActiveProvider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+        {
+            migrationBuilder.Sql("""
+                WITH "DuplicateReservations" AS (
+                    SELECT "Id", ROW_NUMBER() OVER (PARTITION BY "ProductId" ORDER BY "AddedAt", "Id") AS "RowNumber"
+                    FROM "BagItem"
+                    WHERE "ProductId" IS NOT NULL AND NOT "IsDeleted" AND "IsReserved"
+                )
+                UPDATE "BagItem"
+                SET "IsReserved" = FALSE
+                WHERE "Id" IN (SELECT "Id" FROM "DuplicateReservations" WHERE "RowNumber" > 1);
+                """);
+        }
+        else
+        {
+            migrationBuilder.Sql("""
+                WITH DuplicateReservations AS (
+                    SELECT "Id", ROW_NUMBER() OVER (PARTITION BY "ProductId" ORDER BY "AddedAt", "Id") AS "RowNumber"
+                    FROM "BagItem"
+                    WHERE "ProductId" IS NOT NULL AND "IsDeleted" = 0 AND "IsReserved" = 1
+                )
+                UPDATE "BagItem"
+                SET "IsReserved" = 0
+                WHERE "Id" IN (SELECT "Id" FROM DuplicateReservations WHERE "RowNumber" > 1);
+                """);
+        }
+
+        var indexFilter = ActiveProvider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase)
+            ? "\"ProductId\" IS NOT NULL AND NOT \"IsDeleted\" AND \"IsReserved\""
+            : ActiveProvider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase)
+                ? "\"ProductId\" IS NOT NULL AND \"IsDeleted\" = 0 AND \"IsReserved\" = 1"
+                : "[ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1";
 
         migrationBuilder.CreateIndex(
             name: "UX_BagItem_ActiveReservation_ProductId",
             table: "BagItem",
             column: "ProductId",
             unique: true,
-            filter: "[ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1");
+            filter: indexFilter);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)

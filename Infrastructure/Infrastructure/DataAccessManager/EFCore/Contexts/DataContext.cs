@@ -59,7 +59,19 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
         modelBuilder.ApplyConfiguration(new DropConfigConfiguration());
         modelBuilder.ApplyConfiguration(new ContactMessageConfiguration());
 
-        if (Database.IsSqlite())
+        var activeReservationFilter = Database.IsNpgsql()
+            ? "\"ProductId\" IS NOT NULL AND NOT \"IsDeleted\" AND \"IsReserved\""
+            : Database.IsSqlite()
+                ? "\"ProductId\" IS NOT NULL AND \"IsDeleted\" = 0 AND \"IsReserved\" = 1"
+                : "[ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1";
+
+        modelBuilder.Entity<BagItem>()
+            .HasIndex(x => x.ProductId)
+            .IsUnique()
+            .HasDatabaseName("UX_BagItem_ActiveReservation_ProductId")
+            .HasFilter(activeReservationFilter);
+
+        if (!Database.IsSqlServer())
         {
             modelBuilder.Entity<Product>()
                 .Property(x => x.RowVersion)
@@ -84,7 +96,7 @@ public class DataContext : IdentityDbContext<ApplicationUser>, IEntityDbSet
 
     private void SetApplicationManagedRowVersions()
     {
-        if (!Database.IsSqlite())
+        if (Database.IsSqlServer())
         {
             return;
         }

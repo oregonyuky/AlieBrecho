@@ -656,6 +656,8 @@ public class PixController : ControllerBase
         for (var current = exception; current is not null; current = current.InnerException!)
         {
             if (current.Message.Contains("1205", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("40001", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("40P01", StringComparison.OrdinalIgnoreCase)
                 || current.Message.Contains("deadlock", StringComparison.OrdinalIgnoreCase)
                 || current.Message.Contains("database is locked", StringComparison.OrdinalIgnoreCase))
             {

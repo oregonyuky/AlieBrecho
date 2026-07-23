@@ -21,6 +21,7 @@ public static class DI
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         var databaseProvider = configuration["DatabaseProvider"];
+        var enableSensitiveDataLogging = configuration.GetValue<bool>("EnableSensitiveDataLogging");
 
         // Register Context
         switch (databaseProvider)
@@ -48,51 +49,51 @@ public static class DI
                 services.AddDbContext<DataContext>(options =>
                     options.UseSqlServer(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 services.AddDbContext<CommandContext>(options =>
                     options.UseSqlServer(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 services.AddDbContext<QueryContext>(options =>
                     options.UseSqlServer(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 break;
             case "PostgreSQL":
                 services.AddDbContext<DataContext>(options =>
                     options.UseNpgsql(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 services.AddDbContext<CommandContext>(options =>
                     options.UseNpgsql(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 services.AddDbContext<QueryContext>(options =>
                     options.UseNpgsql(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 break;
             case "Sqlite":
                 services.AddDbContext<DataContext>(options =>
                     options.UseSqlite(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 services.AddDbContext<CommandContext>(options =>
                     options.UseSqlite(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 services.AddDbContext<QueryContext>(options =>
                     options.UseSqlite(connectionString)
                     .LogTo(Log.Information, LogLevel.Information)
-                    .EnableSensitiveDataLogging()
+                    .EnableSensitiveDataLogging(enableSensitiveDataLogging)
                 );
                 break;
         }
@@ -265,6 +266,36 @@ public static class DI
                 CREATE UNIQUE INDEX IF NOT EXISTS "UX_BagItem_ActiveReservation_ProductId"
                 ON "BagItem" ("ProductId")
                 WHERE "ProductId" IS NOT NULL AND "IsDeleted" = 0 AND "IsReserved" = 1;
+                """);
+            return;
+        }
+
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "RowVersion" bytea NULL;
+                UPDATE "Product"
+                SET "RowVersion" = decode(md5(random()::text || clock_timestamp()::text), 'hex')
+                WHERE "RowVersion" IS NULL;
+                ALTER TABLE "Product" ALTER COLUMN "RowVersion" SET NOT NULL;
+
+                UPDATE "BagItem"
+                SET "IsReserved" = FALSE
+                WHERE "IsReserved"
+                  AND ("IsDeleted" OR "IsPaid" OR ("ReservationExpiresAt" IS NOT NULL AND "ReservationExpiresAt" <= CURRENT_TIMESTAMP));
+
+                WITH "DuplicateReservations" AS (
+                    SELECT "Id", ROW_NUMBER() OVER (PARTITION BY "ProductId" ORDER BY "AddedAt", "Id") AS "RowNumber"
+                    FROM "BagItem"
+                    WHERE "ProductId" IS NOT NULL AND NOT "IsDeleted" AND "IsReserved"
+                )
+                UPDATE "BagItem"
+                SET "IsReserved" = FALSE
+                WHERE "Id" IN (SELECT "Id" FROM "DuplicateReservations" WHERE "RowNumber" > 1);
+
+                CREATE UNIQUE INDEX IF NOT EXISTS "UX_BagItem_ActiveReservation_ProductId"
+                ON "BagItem" ("ProductId")
+                WHERE "ProductId" IS NOT NULL AND NOT "IsDeleted" AND "IsReserved";
                 """);
             return;
         }

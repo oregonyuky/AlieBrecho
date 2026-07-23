@@ -775,6 +775,9 @@ public class BagController : BaseApiController
                 || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("2627", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("1205", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("23505", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("40001", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("40P01", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("deadlock", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("database is locked", StringComparison.OrdinalIgnoreCase))
             {

@@ -11,7 +11,6 @@ public partial class AddAdminProfilePostCode : Migration
         migrationBuilder.AddColumn<string>(
             name: "PostCode",
             table: "AspNetUsers",
-            type: "nvarchar(20)",
             maxLength: 20,
             nullable: true);
     }

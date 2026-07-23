@@ -137,7 +137,7 @@ public class ReservationConcurrencyTests
         var index = context.Model.FindEntityType(typeof(BagItem))!.GetIndexes()
             .Single(x => x.GetDatabaseName() == "UX_BagItem_ActiveReservation_ProductId");
         Assert.True(index.IsUnique);
-        Assert.Equal("[ProductId] IS NOT NULL AND [IsDeleted] = 0 AND [IsReserved] = 1", index.GetFilter());
+        Assert.Equal("\"ProductId\" IS NOT NULL AND \"IsDeleted\" = 0 AND \"IsReserved\" = 1", index.GetFilter());
     }
 
     [Fact]
