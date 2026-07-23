@@ -117,12 +117,15 @@ public static class DI
                 .RequireClaim("identityType", "User"));
             options.AddPolicy("CustomerOnly", policy => policy
                 .RequireAuthenticatedUser()
-                .RequireClaim("identityType", "Customer"));
+                .RequireAssertion(context =>
+                    context.User.HasClaim("identityType", "Customer") ||
+                    context.User.IsInRole("Customer")));
             options.AddPolicy("UserOrCustomer", policy => policy
                 .RequireAuthenticatedUser()
                 .RequireAssertion(context =>
                     context.User.HasClaim("identityType", "User") ||
-                    context.User.HasClaim("identityType", "Customer")));
+                    context.User.HasClaim("identityType", "Customer") ||
+                    context.User.IsInRole("Customer")));
             options.DefaultPolicy = options.GetPolicy("UserOnly")
                 ?? new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
         });
