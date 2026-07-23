@@ -153,7 +153,8 @@ public sealed class GoogleAuthenticationService(
             UserId = customer.Id,
             Email = customer.EmailAddress,
             FirstName = nameParts.FirstOrDefault(),
-            LastName = nameParts.Length <= 1 ? null : string.Join(' ', nameParts.Skip(1))
+            LastName = nameParts.Length <= 1 ? null : string.Join(' ', nameParts.Skip(1)),
+            PictureUrl = payload.Picture
         };
     }
 

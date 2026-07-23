@@ -117,4 +117,16 @@ static void ConfigureEnvironmentSecrets(WebApplicationBuilder builder)
     {
         builder.Configuration["Jwt:Key"] = jwtKey;
     }
+
+    var adminGoogleClientId = Environment.GetEnvironmentVariable("ADMIN_CLIENT_ID");
+    if (!string.IsNullOrWhiteSpace(adminGoogleClientId))
+    {
+        builder.Configuration["Google:Admin:ClientId"] = adminGoogleClientId.Trim();
+    }
+
+    var customerGoogleClientId = Environment.GetEnvironmentVariable("CUSTOMER_CLIENT_ID");
+    if (!string.IsNullOrWhiteSpace(customerGoogleClientId))
+    {
+        builder.Configuration["Google:Customer:ClientId"] = customerGoogleClientId.Trim();
+    }
 }
