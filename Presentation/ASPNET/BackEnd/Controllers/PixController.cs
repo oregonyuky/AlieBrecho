@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace ASPNET.BackEnd.Controllers;
 
@@ -72,6 +73,15 @@ public class PixController : ControllerBase
         if (order is null)
         {
             return NotFound("Pedido nao encontrado.");
+        }
+
+        if (IsCustomerIdentity() &&
+            !string.Equals(
+                order.CustomerId,
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
+                StringComparison.Ordinal))
+        {
+            return Forbid();
         }
 
         if (order.Status == OrderStatus.Paid || order.Payment?.Status == PaymentStatus.Paid)
@@ -466,6 +476,12 @@ public class PixController : ControllerBase
             .Include(x => x.OrderDetails)
                 .ThenInclude(x => x.Product)
             .SingleOrDefaultAsync(x => x.Id == orderId && !x.IsDeleted, cancellationToken);
+    }
+
+    private bool IsCustomerIdentity()
+    {
+        return User.HasClaim("identityType", "Customer") ||
+            User.IsInRole("Customer");
     }
 
     private async Task<Order?> GetOrderByPaymentIdAsync(string paymentId, CancellationToken cancellationToken)
