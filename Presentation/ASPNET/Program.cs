@@ -9,6 +9,7 @@ LoadEnvironmentVariables();
 
 var builder = WebApplication.CreateBuilder(args);
 
+ConfigureEnvironmentSecrets(builder);
 ConfigureRailway(builder);
 
 //>>> Create Logs folder for Serilog
@@ -107,4 +108,13 @@ static void ConfigureRailway(WebApplicationBuilder builder)
 
     builder.Configuration["DatabaseProvider"] = "PostgreSQL";
     builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString.ConnectionString;
+}
+
+static void ConfigureEnvironmentSecrets(WebApplicationBuilder builder)
+{
+    var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
+    if (!string.IsNullOrWhiteSpace(jwtKey))
+    {
+        builder.Configuration["Jwt:Key"] = jwtKey;
+    }
 }
