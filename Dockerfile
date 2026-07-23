@@ -1,0 +1,33 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY Core/Domain/Domain.csproj Core/Domain/
+COPY Core/Application/Application.csproj Core/Application/
+COPY Infrastructure/Infrastructure/Infrastructure.csproj Infrastructure/Infrastructure/
+COPY Presentation/ASPNET/ASPNET.csproj Presentation/ASPNET/
+RUN dotnet restore Presentation/ASPNET/ASPNET.csproj
+
+COPY Core/ Core/
+COPY Infrastructure/ Infrastructure/
+COPY Presentation/ Presentation/
+RUN dotnet publish Presentation/ASPNET/ASPNET.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+RUN mkdir -p /app/wwwroot/app_data/images \
+        /app/wwwroot/app_data/docs \
+        /app/wwwroot/app_data/logs \
+        /app/wwwroot/app_data/dataprotection-keys \
+    && chown -R "$APP_UID:$APP_UID" /app/wwwroot/app_data
+
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_EnableDiagnostics=0
+EXPOSE 8080
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "ASPNET.dll"]
