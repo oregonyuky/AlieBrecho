@@ -8,6 +8,7 @@ using Infrastructure.MelhorEnvioManager;
 using Infrastructure.MercadoPagoManager;
 using Infrastructure.SecurityManager.AspNetIdentity;
 using Infrastructure.SecurityManager.Tokens;
+using Infrastructure.SecurityManager.Google;
 using Infrastructure.SeedManager;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,7 @@ public static class DependencyInjection
         services.RegisterToken(configuration);
         //>>> Security Manager
         services.RegisterSecurityManager(configuration);
+        services.AddGoogleAuthentication(configuration);
         //>>> System Seed Manager
         services.RegisterSystemSeedManager(configuration);
         //>>> Demo Seed Manager

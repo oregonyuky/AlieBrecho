@@ -43,6 +43,7 @@ public class TokenService : ITokenService, ICustomerTokenService
             new Claim("FirstName", user.FirstName ?? ""),
             new Claim("LastName", user.LastName ?? ""),
             new Claim("CompanyName", user.LastName ?? ""),
+            new Claim("identityType", "User"),
         };
 
         if (userClaims != null)
@@ -79,7 +80,8 @@ public class TokenService : ITokenService, ICustomerTokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("FirstName", nameParts.FirstOrDefault() ?? ""),
             new Claim("LastName", nameParts.Length <= 1 ? "" : string.Join(' ', nameParts.Skip(1))),
-            new Claim(ClaimTypes.Role, "Customer")
+            new Claim(ClaimTypes.Role, "Customer"),
+            new Claim("identityType", "Customer")
         };
 
         var key = GetSymmetricSecurityKey();

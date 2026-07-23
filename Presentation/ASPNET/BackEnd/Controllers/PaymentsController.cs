@@ -43,7 +43,7 @@ public class PaymentsController : ControllerBase
         _orderNotifications = orderNotifications;
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpPost("checkout")]
     public async Task<ActionResult<InfinitePayCheckoutResult>> CreateCheckoutAsync(
         InfinitePayCheckoutRequest request,

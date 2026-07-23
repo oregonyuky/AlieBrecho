@@ -22,6 +22,7 @@ public class Customer : BaseEntity
     public string? TwitterX { get; set; }
     public string? TikTok { get; set; }
     public string? PasswordHash { get; set; }
+    public string? GoogleProviderUserId { get; set; }
     public string? CustomerStatus { get; set; } = "Active";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

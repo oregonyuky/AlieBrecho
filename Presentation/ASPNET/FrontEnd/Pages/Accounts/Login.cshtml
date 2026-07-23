@@ -1,6 +1,8 @@
 ﻿@page
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Entrar";
+    var googleAdminClientId = Configuration["Google:Admin:ClientId"];
 }
 
 <div id="app" class="container-fluid" v-cloak>
@@ -66,12 +68,10 @@
 
         <div class="social-auth-links text-center mb-3">
             <p>- OU -</p>
-            <a href="#" class="btn btn-block btn-primary">
-                <i class="fab fa-facebook mr-2"></i> Entrar usando Facebook
-            </a>
-            <a href="#" class="btn btn-block btn-danger">
-                <i class="fab fa-google-plus mr-2"></i> Entrar usando Google+
-            </a>
+            @if (!string.IsNullOrWhiteSpace(googleAdminClientId))
+            {
+                <div id="googleAdminButton" class="d-flex justify-content-center"></div>
+            }
         </div>
         <!-- /.social-auth-links -->
 
@@ -87,5 +87,12 @@
 
 
 @section scripts {
+    @if (!string.IsNullOrWhiteSpace(googleAdminClientId))
+    {
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <script>
+            window.googleAdminClientId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(googleAdminClientId));
+        </script>
+    }
     <script type ="module" src="~/FrontEnd/Pages/Accounts/Login.cshtml.js"></script>
 }

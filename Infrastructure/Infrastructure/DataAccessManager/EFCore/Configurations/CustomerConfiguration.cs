@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Infrastructure.DataAccessManager.EFCore.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using static Domain.Common.Constants;
 
@@ -29,11 +30,15 @@ public class CustomerConfiguration : BaseEntityConfiguration<Customer>
         builder.Property(x => x.TwitterX).HasMaxLength(NameConsts.MaxLength).IsRequired(false);
         builder.Property(x => x.TikTok).HasMaxLength(NameConsts.MaxLength).IsRequired(false);
         builder.Property(x => x.PasswordHash).HasMaxLength(512).IsRequired(false);
+        builder.Property(x => x.GoogleProviderUserId).HasMaxLength(255).IsRequired(false);
         builder.Property(x => x.CustomerStatus).HasMaxLength(NameConsts.MaxLength).IsRequired(false);
         builder.Property(x => x.CreatedAt).IsRequired();
 
         builder.HasIndex(e => e.Name);
         builder.HasIndex(e => e.Cpf);
         builder.HasIndex(e => e.EmailAddress);
+        builder.HasIndex(e => e.GoogleProviderUserId)
+            .IsUnique()
+            .HasFilter("\"GoogleProviderUserId\" IS NOT NULL");
     }
 }

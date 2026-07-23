@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Infrastructure.SecurityManager.Tokens;
 
@@ -109,6 +110,22 @@ public static class DI
         services.AddTransient<ITokenService, TokenService>();
         services.AddTransient<ICustomerTokenService, TokenService>();
         services.AddScoped<TokenSettings>();
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("UserOnly", policy => policy
+                .RequireAuthenticatedUser()
+                .RequireClaim("identityType", "User"));
+            options.AddPolicy("CustomerOnly", policy => policy
+                .RequireAuthenticatedUser()
+                .RequireClaim("identityType", "Customer"));
+            options.AddPolicy("UserOrCustomer", policy => policy
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context =>
+                    context.User.HasClaim("identityType", "User") ||
+                    context.User.HasClaim("identityType", "Customer")));
+            options.DefaultPolicy = options.GetPolicy("UserOnly")
+                ?? new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+        });
 
         return services;
     }

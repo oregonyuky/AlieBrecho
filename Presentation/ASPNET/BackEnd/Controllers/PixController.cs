@@ -57,7 +57,7 @@ public class PixController : ControllerBase
         _catalogNotifications = catalogNotifications;
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpPost("criar-pagamento")]
     public async Task<ActionResult<PixCreatePaymentResponse>> CreatePaymentAsync(
         PixCreatePaymentRequest request,
@@ -136,7 +136,7 @@ public class PixController : ControllerBase
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpGet("status/{paymentId}")]
     public async Task<ActionResult<PixPaymentStatusResponse>> GetStatusAsync(
         string paymentId,

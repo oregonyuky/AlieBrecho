@@ -25,6 +25,10 @@ AspNetIdentity__DefaultAdmin__Email=<email-do-admin>
 AspNetIdentity__DefaultAdmin__Password=<senha-forte>
 AspNetIdentity__DefaultAdmin__PostCode=<cep-da-loja>
 IsDemoVersion=false
+Google__Admin__ClientId=<oauth-client-id-do-painel>.apps.googleusercontent.com
+Google__Customer__ClientId=<oauth-client-id-da-loja>.apps.googleusercontent.com
+Cors__AllowedOrigins__0=https://<dominio-publico-do-painel>
+Cors__AllowedOrigins__1=https://<dominio-publico-da-loja>
 ```
 
 O nome `Postgres` na referência deve ser igual ao nome do serviço de banco no Railway. `DatabaseProvider` é explicitado por clareza, embora a presença de `DATABASE_URL` já selecione PostgreSQL no aplicativo.

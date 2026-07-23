@@ -117,6 +117,7 @@ public static class DI
         var dataContext = serviceProvider.GetRequiredService<DataContext>();
         dataContext.Database.EnsureCreated(); // Ensure database is created (development only)
         EnsureCustomerTable(dataContext);
+        EnsureCustomerGoogleIdentity(dataContext);
         EnsureOrderMelhorEnvioCartColumns(dataContext);
         EnsureOrderDetailSnapshotColumns(dataContext);
         EnsurePaidOrderProductsUnavailable(dataContext);
@@ -135,6 +136,48 @@ public static class DI
         EnsureBagCurrentPaymentColumns(dataContext);
 
         return host;
+    }
+
+    private static void EnsureCustomerGoogleIdentity(DataContext dataContext)
+    {
+        if (dataContext.Database.IsNpgsql())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                ALTER TABLE "Customer"
+                ADD COLUMN IF NOT EXISTS "GoogleProviderUserId" varchar(255) NULL;
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Customer_GoogleProviderUserId"
+                ON "Customer" ("GoogleProviderUserId")
+                WHERE "GoogleProviderUserId" IS NOT NULL;
+                """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlServer())
+        {
+            dataContext.Database.ExecuteSqlRaw("""
+                IF COL_LENGTH('dbo.Customer', 'GoogleProviderUserId') IS NULL
+                    ALTER TABLE [Customer] ADD [GoogleProviderUserId] nvarchar(255) NULL;
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE name = 'IX_Customer_GoogleProviderUserId'
+                      AND object_id = OBJECT_ID('dbo.Customer')
+                )
+                    CREATE UNIQUE INDEX [IX_Customer_GoogleProviderUserId]
+                    ON [Customer] ([GoogleProviderUserId])
+                    WHERE [GoogleProviderUserId] IS NOT NULL;
+                """);
+            return;
+        }
+
+        if (dataContext.Database.IsSqlite())
+        {
+            EnsureSqliteColumn(dataContext, "Customer", "GoogleProviderUserId", "TEXT NULL");
+            dataContext.Database.ExecuteSqlRaw("""
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Customer_GoogleProviderUserId"
+                ON "Customer" ("GoogleProviderUserId")
+                WHERE "GoogleProviderUserId" IS NOT NULL;
+                """);
+        }
     }
 
     private static void EnsurePackageCategories(DataContext dataContext)

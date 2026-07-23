@@ -22,7 +22,7 @@ public class OrderController : BaseApiController
         _orderNotifications = orderNotifications;
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpPost("CreateOrder")]
     public async Task<ActionResult<ApiSuccessResult<CreateOrderResult>>> CreateOrderAsync(
         CreateOrderRequest request,
@@ -61,7 +61,7 @@ public class OrderController : BaseApiController
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpGet("GetOrderSingle")]
     public async Task<ActionResult<ApiSuccessResult<GetOrderSingleResult>>> GetOrderSingleAsync(
         CancellationToken cancellationToken,

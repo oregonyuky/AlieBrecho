@@ -26,10 +26,24 @@ public static class BackEndConfiguration
         services.AddHttpContextAccessor();
         services.AddCors(opt =>
         {
-            opt.AddDefaultPolicy(builder => builder
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader());
+            var allowedOrigins = configuration
+                .GetSection("Cors:AllowedOrigins")
+                .Get<string[]>()
+                ?.Where(origin => !string.IsNullOrWhiteSpace(origin))
+                .Select(origin => origin.TrimEnd('/'))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray() ?? [];
+
+            opt.AddDefaultPolicy(policy =>
+            {
+                if (allowedOrigins.Length > 0)
+                {
+                    policy.WithOrigins(allowedOrigins)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                }
+            });
         });
         services.AddControllers()
             .AddJsonOptions(options =>

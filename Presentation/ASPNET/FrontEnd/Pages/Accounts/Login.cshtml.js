@@ -90,3 +90,39 @@
 };
 
 Vue.createApp(App).mount('#app');
+
+const initializeGoogleLogin = () => {
+    if (!window.googleAdminClientId || !window.google?.accounts?.id) {
+        return;
+    }
+
+    google.accounts.id.initialize({
+        client_id: window.googleAdminClientId,
+        callback: async response => {
+            try {
+                const result = await AxiosManager.post('/auth/user/google', {
+                    credential: response.credential
+                });
+                if (result.data.code !== 200 || !result.data.content?.data?.accessToken) {
+                    throw new Error(result.data.message || 'Acesso administrativo não autorizado.');
+                }
+
+                StorageManager.saveLoginResult(result.data);
+                window.location.href = '/Profiles/MyProfile';
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Acesso negado',
+                    text: error.response?.data?.message || error.message ||
+                        'Este e-mail não está cadastrado no painel.'
+                });
+            }
+        }
+    });
+    google.accounts.id.renderButton(
+        document.getElementById('googleAdminButton'),
+        { theme: 'outline', size: 'large', text: 'continue_with', width: 320 }
+    );
+};
+
+window.addEventListener('load', initializeGoogleLogin);

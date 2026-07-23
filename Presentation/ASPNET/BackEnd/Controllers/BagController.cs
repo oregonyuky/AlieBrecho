@@ -187,7 +187,7 @@ public class BagController : BaseApiController
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpGet("GetBagSingle")]
     public async Task<ActionResult<ApiSuccessResult<GetBagSingleResult>>> GetBagSingleAsync(
         CancellationToken cancellationToken,
@@ -256,7 +256,7 @@ public class BagController : BaseApiController
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpGet("GetPurchaseHistory")]
     public async Task<ActionResult<ApiSuccessResult<List<BagPurchaseHistoryResponse>>>> GetPurchaseHistoryAsync(
         [FromQuery] string customerId,
@@ -325,7 +325,7 @@ public class BagController : BaseApiController
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpPost("CheckoutBag")]
     public async Task<ActionResult<ApiSuccessResult<CheckoutBagResponse>>> CheckoutBagAsync(
         CheckoutBagRequest request,
@@ -537,7 +537,7 @@ public class BagController : BaseApiController
         decimal CheckoutItemsValue,
         IReadOnlyCollection<string> ProductIds);
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpPost("FinalizeBag")]
     public async Task<ActionResult<ApiSuccessResult<FinalizeBagResponse>>> FinalizeBagAsync(
         FinalizeBagRequest request,
