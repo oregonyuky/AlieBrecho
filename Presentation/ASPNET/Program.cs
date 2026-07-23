@@ -78,6 +78,8 @@ static void ConfigureRailway(WebApplicationBuilder builder)
     var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     if (string.IsNullOrWhiteSpace(databaseUrl))
     {
+        builder.Configuration["DatabaseProvider"] = "Sqlite";
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = "Data Source=app.db";
         return;
     }
 
