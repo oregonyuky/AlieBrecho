@@ -51,7 +51,7 @@ public class UpdateCategoryHandler : IRequestHandler<UpdateCategoryRequest, Upda
             throw new Exception($"Entity not found: {request.Id}");
         }
 
-        entity.Name = request.Name;
+        entity.Name = request.Name!;
         entity.Description = request.Description;
         entity.PackageOccupationPoints = request.PackageOccupationPoints;
 

@@ -79,7 +79,7 @@ public class PixController : ControllerBase
             !string.Equals(
                 order.CustomerId,
                 User.FindFirstValue(ClaimTypes.NameIdentifier),
-                StringComparison.Ordinal))
+                StringComparison.OrdinalIgnoreCase))
         {
             return Forbid();
         }

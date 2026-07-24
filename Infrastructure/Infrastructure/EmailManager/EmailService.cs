@@ -21,8 +21,15 @@ public class EmailService : IEmailService
     {
         try
         {
+            var host = GetRequiredSetting(_smtpSettings.Host, nameof(SmtpSettings.Host));
+            var userName = GetRequiredSetting(_smtpSettings.UserName, nameof(SmtpSettings.UserName));
+            var password = GetRequiredSetting(_smtpSettings.Password, nameof(SmtpSettings.Password));
+            var fromAddress = string.IsNullOrWhiteSpace(_smtpSettings.FromAddress)
+                ? userName
+                : _smtpSettings.FromAddress;
+
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("noreply", _smtpSettings.UserName));
+            message.From.Add(new MailboxAddress(_smtpSettings.FromName ?? "noreply", fromAddress));
             message.To.Add(new MailboxAddress(email, email));
             message.Subject = subject;
 
@@ -35,8 +42,8 @@ public class EmailService : IEmailService
 
             using (var client = new MailKit.Net.Smtp.SmtpClient())
             {
-                await client.ConnectAsync(_smtpSettings.Host, _smtpSettings.Port, true);
-                await client.AuthenticateAsync(_smtpSettings.UserName, _smtpSettings.Password);
+                await client.ConnectAsync(host, _smtpSettings.Port, true);
+                await client.AuthenticateAsync(userName, password);
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
             }
@@ -45,5 +52,12 @@ public class EmailService : IEmailService
         {
             _logger.LogError(ex, "Failed to send email.");
         }
+    }
+
+    private static string GetRequiredSetting(string? value, string settingName)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? throw new InvalidOperationException($"SMTP setting '{settingName}' is required.")
+            : value;
     }
 }

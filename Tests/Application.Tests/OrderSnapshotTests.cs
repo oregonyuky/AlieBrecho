@@ -8,6 +8,7 @@ using Domain.Entities;
 using Infrastructure.DataAccessManager.EFCore.Contexts;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Application.Tests;
@@ -90,7 +91,9 @@ public class OrderSnapshotTests
     [Fact]
     public void GetOrderListMapsItemsFromSnapshotWithLegacyFallback()
     {
-        var mapper = new MapperConfiguration(config => config.AddProfile<GetOrderListProfile>())
+        var mapper = new MapperConfiguration(
+                config => config.AddProfile<GetOrderListProfile>(),
+                NullLoggerFactory.Instance)
             .CreateMapper();
 
         var snapshotOrder = new Order

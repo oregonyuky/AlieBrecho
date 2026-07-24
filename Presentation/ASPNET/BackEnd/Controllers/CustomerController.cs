@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace ASPNET.BackEnd.Controllers;
 
@@ -55,12 +56,17 @@ public class CustomerController : BaseApiController
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpPost("UpdateCustomer")]
     public async Task<ActionResult<ApiSuccessResult<UpdateCustomerResult>>> UpdateCustomerAsync(
         UpdateCustomerRequest request,
         CancellationToken cancellationToken)
     {
+        if (IsCustomerIdentity() && !IsCurrentCustomer(request.Id))
+        {
+            return Forbid();
+        }
+
         var response = await _sender.Send(request, cancellationToken);
         await NotifyCustomerChangedAsync("updated", response.Data?.Id, cancellationToken);
 
@@ -89,13 +95,18 @@ public class CustomerController : BaseApiController
         });
     }
 
-    [Authorize]
+    [Authorize(Policy = "UserOrCustomer")]
     [HttpGet("GetCustomerSingle")]
     public async Task<ActionResult<ApiSuccessResult<GetCustomerSingleResult>>> GetCustomerSingleAsync(
         CancellationToken cancellationToken,
         [FromQuery] string id
         )
     {
+        if (IsCustomerIdentity() && !IsCurrentCustomer(id))
+        {
+            return Forbid();
+        }
+
         var request = new GetCustomerSingleRequest { Id = id };
         var response = await _sender.Send(request, cancellationToken);
 
@@ -134,5 +145,20 @@ public class CustomerController : BaseApiController
             "CustomerChanged",
             new { changeType, customerId, changedAt = DateTime.UtcNow },
             cancellationToken);
+    }
+
+    private bool IsCustomerIdentity()
+    {
+        return User.HasClaim("identityType", "Customer") ||
+            User.IsInRole("Customer");
+    }
+
+    private bool IsCurrentCustomer(string? customerId)
+    {
+        return !string.IsNullOrWhiteSpace(customerId) &&
+            string.Equals(
+                customerId,
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
+                StringComparison.OrdinalIgnoreCase);
     }
 }

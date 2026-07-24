@@ -457,7 +457,9 @@ public static class DI
     {
         if (!SqliteColumnExists(context, table, column))
         {
+#pragma warning disable EF1002 // Identifiers and definitions come exclusively from constant migration calls above.
             context.Database.ExecuteSqlRaw($"ALTER TABLE \"{table}\" ADD COLUMN \"{column}\" {definition};");
+#pragma warning restore EF1002
         }
     }
 
