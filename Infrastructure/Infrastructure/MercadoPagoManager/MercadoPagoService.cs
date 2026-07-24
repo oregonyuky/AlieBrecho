@@ -87,7 +87,7 @@ public sealed class MercadoPagoService : IMercadoPagoService
             payment.Status,
             qrCodeBase64,
             qrCode,
-            payment.DateOfExpiration,
+            NormalizeToUtc(payment.DateOfExpiration),
             payment.TransactionAmount);
     }
 
@@ -107,8 +107,8 @@ public sealed class MercadoPagoService : IMercadoPagoService
             payment.StatusDetail,
             payment.ExternalReference,
             payment.TransactionAmount,
-            payment.DateApproved,
-            payment.DateOfExpiration,
+            NormalizeToUtc(payment.DateApproved),
+            NormalizeToUtc(payment.DateOfExpiration),
             payment.PointOfInteraction?.TransactionData?.QrCodeBase64
                 ?? ExtractString(body, "point_of_interaction", "transaction_data", "qr_code_base64"),
             payment.PointOfInteraction?.TransactionData?.QrCode
@@ -177,5 +177,20 @@ public sealed class MercadoPagoService : IMercadoPagoService
             : new DateTimeOffset(DateTime.SpecifyKind(date.Value, DateTimeKind.Unspecified), TimeSpan.FromHours(-3));
 
         return offset.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture);
+    }
+
+    private static DateTime? NormalizeToUtc(DateTime? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        return value.Value.Kind switch
+        {
+            DateTimeKind.Utc => value.Value,
+            DateTimeKind.Local => value.Value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+        };
     }
 }
