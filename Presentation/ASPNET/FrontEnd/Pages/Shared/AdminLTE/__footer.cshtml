@@ -2,11 +2,15 @@
     var companyName = "companyName";
     var companyWeb = "companyWeb";
     var year = DateTime.Now.Year;
+    var configuredFrontLink = Environment.GetEnvironmentVariable("LINK_FRONT");
+    var frontLink = string.IsNullOrWhiteSpace(configuredFrontLink)
+        ? "https://store.aliebrecho.com"
+        : configuredFrontLink.Trim();
 }
 <footer class="main-footer">
     <div class="float-right d-none d-sm-block">
-        <!--/*** Este aplicativo é gratuito desde que você mantenha o crédito do autor do rodapé. Se você deseja usar o aplicativo sem o crédito do autor, você pode comprar a Licença de Remoção de Crédito em "https://store.aliebrecho.com". Obrigado pelo seu apoio. ***/-->
-        <b>Desenvolvido Por:</b> <a href="https://store.aliebrecho.com">https://store.aliebrecho.com</a>
+        <b>Desenvolvido Por:</b>
+        <a href="@frontLink" target="_blank" rel="noopener noreferrer">@frontLink</a>
     </div>
     <small id="footerContent">
         &copy; @year <a href="@companyWeb">@companyName</a>, Todos os direitos reservados.

@@ -734,6 +734,220 @@
     }
 </style>
 
+<style>
+    /* Shared mobile representation for administrative data grids. */
+    @@media (max-width: 767.98px) {
+        .content-wrapper {
+            padding: 0.75rem !important;
+        }
+
+        .admin-mobile-card-table {
+            background: transparent !important;
+            border: 0 !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+        .admin-mobile-card-table thead {
+            border: 0;
+            clip: rect(0 0 0 0);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            position: absolute;
+            white-space: nowrap;
+            width: 1px;
+        }
+
+        .admin-mobile-card-table tbody {
+            display: grid;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .admin-mobile-card-table tbody tr {
+            background: #fff !important;
+            border: 1px solid #e1e5ea !important;
+            border-radius: 14px;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, .05);
+            display: block;
+            padding: .7rem .9rem;
+            width: 100%;
+        }
+
+        .admin-mobile-card-table tbody tr:hover,
+        .admin-mobile-card-table tbody tr:hover td {
+            background: #fff !important;
+        }
+
+        .admin-mobile-card-table tbody td {
+            align-items: start;
+            background: transparent !important;
+            border: 0 !important;
+            color: #374151;
+            display: grid;
+            font-size: .86rem;
+            gap: .75rem;
+            grid-template-columns: minmax(88px, .42fr) minmax(0, 1fr);
+            min-height: 38px;
+            padding: .55rem 0 !important;
+            text-align: right !important;
+            white-space: normal !important;
+            width: 100% !important;
+        }
+
+        .admin-mobile-card-table tbody td::before {
+            color: #6b7280;
+            content: attr(data-mobile-label);
+            font-size: .78rem;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .admin-mobile-card-table tbody td > * {
+            justify-self: end;
+            max-width: 100%;
+        }
+
+        .admin-mobile-card-table .admin-mobile-card-primary,
+        .e-grid.admin-mobile-card-grid .admin-mobile-card-primary {
+            border-bottom: 1px solid #edf0f3 !important;
+            color: #111827;
+            font-size: 1rem;
+            font-weight: 800;
+            margin-bottom: .2rem;
+            padding-bottom: .75rem !important;
+        }
+
+        .admin-mobile-card-table tbody td[colspan] {
+            display: block;
+            min-height: 76px;
+            padding: 1.5rem 1rem !important;
+            text-align: center !important;
+        }
+
+        .admin-mobile-card-table tbody td[colspan]::before {
+            display: none;
+        }
+
+        .admin-mobile-card-table .admin-mobile-card-actions {
+            align-items: center;
+            border-top: 1px solid #edf0f3 !important;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            justify-content: flex-end;
+            margin-top: .3rem;
+            min-height: 56px;
+            padding-top: .75rem !important;
+        }
+
+        .admin-mobile-card-table .admin-mobile-card-actions::before {
+            content: none;
+        }
+
+        .admin-mobile-card-table button,
+        .admin-mobile-card-table .btn,
+        .admin-mobile-card-table a.btn {
+            align-items: center;
+            border-radius: 10px;
+            display: inline-flex;
+            justify-content: center;
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        .table-responsive:has(> .admin-mobile-card-table) {
+            overflow: visible !important;
+        }
+
+        .e-grid.admin-mobile-card-grid {
+            background: transparent;
+            border: 0;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-gridheader {
+            display: none;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-gridcontent,
+        .e-grid.admin-mobile-card-grid .e-content {
+            background: transparent;
+            overflow: visible !important;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-gridcontent table {
+            background: transparent;
+            display: block;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-gridcontent tbody {
+            display: grid;
+            gap: .75rem;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-row {
+            background: #fff !important;
+            border: 1px solid #e1e5ea;
+            border-radius: 14px;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, .05);
+            display: block;
+            padding: .7rem .9rem;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-rowcell {
+            align-items: start;
+            background: transparent !important;
+            border: 0 !important;
+            display: grid;
+            gap: .75rem;
+            grid-template-columns: minmax(88px, .42fr) minmax(0, 1fr);
+            min-height: 38px;
+            padding: .55rem 0 !important;
+            text-align: right !important;
+            white-space: normal !important;
+            width: 100% !important;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-rowcell::before {
+            color: #6b7280;
+            content: attr(data-mobile-label);
+            font-size: .78rem;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-rowcell > * {
+            justify-self: end;
+            max-width: 100%;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-toolbar {
+            border: 1px solid #e1e5ea;
+            border-radius: 12px;
+            margin-bottom: .75rem;
+            min-height: 48px;
+            overflow-x: auto;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-toolbar .e-tbar-btn {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        .e-grid.admin-mobile-card-grid .e-gridpager {
+            background: #fff;
+            border: 1px solid #e1e5ea;
+            border-radius: 12px;
+            margin-top: .75rem;
+            overflow-x: auto;
+        }
+    }
+</style>
+
 
 @* smaller form *@
 <style>

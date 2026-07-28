@@ -101,6 +101,11 @@ const App = {
                 field: 'orderDate',
                 direction: 'desc'
             },
+            mobileFilters: {
+                isOpen: false,
+                search: '',
+                status: ''
+            },
             pagination: {
                 page: 1,
                 pageSize: 30
@@ -697,6 +702,15 @@ const App = {
             },
             getOrderTimelineCurrent: (order) => getOrderTimelineCurrent(order),
             getOrderTimelineSteps: (order) => getOrderTimelineSteps(order),
+            getOrderStatusBadgeClass: (order) => {
+                const status = getOrderTimelineCurrent(order)?.key;
+
+                if (status === 'Cancelled') return 'order-status-badge--danger';
+                if (status === 'Pending') return 'order-status-badge--warning';
+                if (status === 'Paid' || status === 'Delivered') return 'order-status-badge--success';
+
+                return 'order-status-badge--info';
+            },
             getOrderTimelineTitle: (order) => {
                 const current = getOrderTimelineCurrent(order);
                 const steps = getOrderTimelineSteps(order)
@@ -1480,10 +1494,38 @@ const App = {
             }
         };
 
+        const filteredOrders = Vue.computed(() => {
+            const search = String(state.mobileFilters.search || '').trim().toLocaleLowerCase('pt-BR');
+            const status = state.mobileFilters.status;
+
+            return state.mainData.filter(order => {
+                if (status && order?.status !== status) {
+                    return false;
+                }
+
+                if (!search) {
+                    return true;
+                }
+
+                const searchableText = [
+                    order?.customerName,
+                    order?.id,
+                    order?.orderNumber,
+                    order?.shippingPostCode,
+                    methods.getPaymentMethodLabel(order)
+                ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLocaleLowerCase('pt-BR');
+
+                return searchableText.includes(search);
+            });
+        });
+
         const sortedOrders = Vue.computed(() => {
             const direction = state.sort.direction === 'desc' ? -1 : 1;
 
-            return [...state.mainData].sort((first, second) => {
+            return [...filteredOrders.value].sort((first, second) => {
                 const firstValue = methods.getSortValue(first, state.sort.field);
                 const secondValue = methods.getSortValue(second, state.sort.field);
 
@@ -1527,6 +1569,15 @@ const App = {
             },
             handleNextPage: () => {
                 state.pagination.page = Math.min(state.pagination.page + 1, totalPages.value);
+            },
+            handleMobileFilterChange: () => {
+                state.pagination.page = 1;
+            },
+            handleClearMobileFilters: () => {
+                state.mobileFilters.search = '';
+                state.mobileFilters.status = '';
+                state.mobileFilters.isOpen = false;
+                state.pagination.page = 1;
             },
             handleNew: () => {
                 resetForm();
@@ -1724,6 +1775,7 @@ const App = {
             state,
             mainModalRef,
             labelModalRef,
+            filteredOrders,
             sortedOrders,
             pagedOrders,
             totalPages,

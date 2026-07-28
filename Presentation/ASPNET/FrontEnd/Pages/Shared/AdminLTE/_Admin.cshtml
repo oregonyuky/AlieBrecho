@@ -13,6 +13,62 @@
             display: none !important;
         }
 
+        .page-loading {
+            align-items: center;
+            background: rgba(17, 24, 39, .42);
+            display: flex;
+            inset: 0;
+            justify-content: center;
+            padding: 24px;
+            position: fixed;
+            z-index: 100001;
+        }
+
+        .page-loading[hidden] {
+            display: none;
+        }
+
+        .page-loading__card {
+            align-items: center;
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, .08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .22);
+            color: #4b5563;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 156px;
+            padding: 28px 36px 24px;
+            width: 172px;
+        }
+
+        .page-loading__spinner {
+            animation: page-loading-spin .8s linear infinite;
+            border: 4px solid transparent;
+            border-bottom-color: #1565c0;
+            border-radius: 50%;
+            border-right-color: #1565c0;
+            height: 42px;
+            margin-bottom: 18px;
+            width: 42px;
+        }
+
+        .page-loading__text {
+            font-size: 14px;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        @@keyframes page-loading-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .page-loading__spinner {
+                animation-duration: 1.5s;
+            }
+        }
+
         .network-reconnect {
             align-items: center;
             background: rgba(248, 250, 252, .98);
@@ -49,6 +105,16 @@
 </head>
 
 <body class="hold-transition sidebar-mini">
+    <div id="pageLoading"
+         class="page-loading"
+         role="status"
+         aria-live="polite"
+         aria-label="Página carregando">
+        <div class="page-loading__card">
+            <div class="page-loading__spinner" aria-hidden="true"></div>
+            <p class="page-loading__text">Carregando...</p>
+        </div>
+    </div>
     <div id="networkReconnect" class="network-reconnect" role="alert" aria-live="assertive" aria-hidden="true">
         <div class="network-reconnect__card">
             <div class="network-reconnect__spinner" aria-hidden="true"></div>
@@ -58,6 +124,55 @@
         </div>
     </div>
     <script>
+        (function () {
+            const loading = document.getElementById('pageLoading');
+
+            window.PageLoading = {
+                show: function () {
+                    if (!loading) return;
+                    loading.hidden = false;
+                    loading.setAttribute('aria-hidden', 'false');
+                },
+                hide: function () {
+                    if (!loading) return;
+                    loading.hidden = true;
+                    loading.setAttribute('aria-hidden', 'true');
+                }
+            };
+
+            window.addEventListener('load', window.PageLoading.hide);
+            window.addEventListener('pageshow', window.PageLoading.hide);
+
+            document.addEventListener('click', function (event) {
+                if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+                    return;
+                }
+
+                const link = event.target.closest('a[href]');
+                if (!link || link.target === '_blank' || link.hasAttribute('download')) {
+                    return;
+                }
+
+                const href = link.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('#') || href.startsWith('javascript:')) {
+                    return;
+                }
+
+                const destination = new URL(link.href, window.location.href);
+                if (destination.origin !== window.location.origin) {
+                    return;
+                }
+
+                window.PageLoading.show();
+            });
+
+            document.addEventListener('submit', function (event) {
+                if (!event.defaultPrevented) {
+                    window.PageLoading.show();
+                }
+            });
+        })();
+
         if (window.matchMedia('(max-width: 991.98px)').matches) {
             document.body.classList.add('sidebar-fully-hidden');
         }

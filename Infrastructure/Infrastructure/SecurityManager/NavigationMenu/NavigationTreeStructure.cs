@@ -24,6 +24,11 @@ public static class NavigationTreeStructure
                     "URL": "/ShippingBoxes/ShippingBox",
                     "Name": "Caixas de Envio",
                     "IsModule": false
+                },
+                {
+                    "URL": "/PackageCategories/PackageCategory",
+                    "Name": "Categorias de Embalagem",
+                    "IsModule": false
                 }
             ]
         },
@@ -124,11 +129,6 @@ public static class NavigationTreeStructure
             "Name": "Site",
             "IsModule": true,
             "Children": [
-                {
-                    "URL": "/PackageCategories/PackageCategory",
-                    "Name": "Categorias de Embalagem",
-                    "IsModule": false
-                },
                 {
                     "URL": "/Site/SiteSettings",
                     "Name": "Imagem da Página Inicial",

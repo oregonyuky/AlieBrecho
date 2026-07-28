@@ -104,6 +104,64 @@
                 return menuData;
             }
 
+            function flattenSingleChildSections(menuData) {
+                let result = menuData.map(item => ({ ...item }));
+                let hasChanges = true;
+
+                while (hasChanges) {
+                    hasChanges = false;
+                    const childrenByParent = new Map();
+
+                    result.forEach(item => {
+                        if (!item.pid) {
+                            return;
+                        }
+
+                        const children = childrenByParent.get(item.pid) || [];
+                        children.push(item);
+                        childrenByParent.set(item.pid, children);
+                    });
+
+                    const singleChildParents = new Map();
+                    result.forEach(item => {
+                        const children = childrenByParent.get(item.id) || [];
+                        if (item.hasChild && children.length === 1) {
+                            singleChildParents.set(item.id, {
+                                parentId: item.pid || null,
+                                childId: children[0].id
+                            });
+                        }
+                    });
+
+                    if (singleChildParents.size === 0) {
+                        break;
+                    }
+
+                    result = result
+                        .filter(item => !singleChildParents.has(item.id))
+                        .map(item => {
+                            const flattenedParent = item.pid
+                                ? singleChildParents.get(item.pid)
+                                : null;
+
+                            if (!flattenedParent || flattenedParent.childId !== item.id) {
+                                return item;
+                            }
+
+                            return {
+                                ...item,
+                                pid: flattenedParent.parentId,
+                                hasChild: false,
+                                expanded: false
+                            };
+                        });
+
+                    hasChanges = true;
+                }
+
+                return result;
+            }
+
             const menuIconByName = {
                 'Caixa de Papelão': 'fas fa-box-open',
                 'Caixas de Envio': 'fas fa-shipping-fast',
@@ -166,7 +224,8 @@
             const userRoles = StorageManager.getUserRoles();
             let menuData = StorageManager.getMenuNavigation();
             const filteredMenu = filterMenu(menuData, userRoles);
-            menuData = addMenuIcons(updateMenuSelection(filteredMenu, firstSegment));
+            const flattenedMenu = flattenSingleChildSections(filteredMenu);
+            menuData = addMenuIcons(updateMenuSelection(flattenedMenu, firstSegment));
 
             const mainMenu = new ej.navigations.TreeView({
                 fullRowNavigable: true,
