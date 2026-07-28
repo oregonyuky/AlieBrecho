@@ -158,6 +158,7 @@
     }
 
     .customer-contact-item img {
+        flex: 0 0 16px;
         height: 16px;
         object-fit: contain;
         width: 16px;
@@ -412,6 +413,29 @@
         .customer-table {
             min-width: 1100px;
         }
+
+        .customer-contact-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .customer-contact-list .customer-contact-item {
+            align-items: flex-start;
+            display: flex;
+            flex: 0 0 auto;
+            min-width: 0;
+            white-space: normal;
+            width: 100%;
+        }
+
+        .customer-contact-list .customer-contact-item span {
+            display: block;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
     }
 </style>
 
@@ -488,18 +512,20 @@
                 <tr v-for="customer in filteredCustomers" v-bind:key="customer.id">
                     <td><span class="customer-table__name">{{ customer.name }}</span></td>
                     <td>{{ customer.cpf || '-' }}</td>
-                    <td>
-                        <div class="customer-contact-item">
-                            <img src="~/whatsapp.png" alt="WhatsApp" />
-                            <span>{{ customer.phoneNumber || '-' }}</span>
-                        </div>
-                        <div class="customer-contact-item">
-                            <img src="~/gmail.png" alt="E-mail" />
-                            <span>{{ customer.emailAddress || '-' }}</span>
-                        </div>
-                        <div class="customer-contact-item">
-                            <img src="~/instagram.png" alt="Instagram" />
-                            <span>{{ customer.instagram || '-' }}</span>
+                    <td class="customer-table__contact">
+                        <div class="customer-contact-list">
+                            <div class="customer-contact-item">
+                                <img src="~/whatsapp.png" alt="WhatsApp" />
+                                <span>{{ customer.phoneNumber || '-' }}</span>
+                            </div>
+                            <div class="customer-contact-item">
+                                <img src="~/gmail.png" alt="E-mail" />
+                                <span>{{ customer.emailAddress || '-' }}</span>
+                            </div>
+                            <div class="customer-contact-item">
+                                <img src="~/instagram.png" alt="Instagram" />
+                                <span>{{ customer.instagram || '-' }}</span>
+                            </div>
                         </div>
                     </td>
                     <td>
