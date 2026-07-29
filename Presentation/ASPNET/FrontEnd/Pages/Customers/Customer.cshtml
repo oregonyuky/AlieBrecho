@@ -415,23 +415,26 @@
         }
 
         .customer-contact-list {
+            align-items: center;
             display: flex;
             flex-direction: column;
             gap: 6px;
+            text-align: center;
         }
 
         .customer-contact-list .customer-contact-item {
-            align-items: flex-start;
+            align-items: center;
             display: flex;
             flex: 0 0 auto;
+            justify-content: center;
             min-width: 0;
             white-space: normal;
-            width: 100%;
+            width: fit-content;
         }
 
         .customer-contact-list .customer-contact-item span {
             display: block;
-            flex: 1 1 auto;
+            flex: 0 1 auto;
             min-width: 0;
             overflow-wrap: anywhere;
             word-break: normal;

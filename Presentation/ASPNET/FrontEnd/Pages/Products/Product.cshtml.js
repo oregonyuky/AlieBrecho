@@ -69,7 +69,6 @@ const App = {
         });
 
         const mainGridRef = Vue.ref(null);
-        const productTableCardRef = Vue.ref(null);
         const mainModalRef = Vue.ref(null);
         const nameRef = Vue.ref(null);
         const mainImageFileRef = Vue.ref(null);
@@ -784,12 +783,6 @@ const App = {
                 state.sort.field = field;
                 state.sort.direction = 'asc';
             },
-            scrollProductsDown: () => {
-                productTableCardRef.value?.scrollBy({
-                    top: Math.max(productTableCardRef.value.clientHeight * 0.85, 220),
-                    behavior: 'smooth'
-                });
-            },
             handleNew: () => {
                 state.deleteMode = false;
                 state.mainTitle = 'Adicionar Produto';
@@ -978,7 +971,6 @@ const App = {
         return {
             state,
             mainGridRef,
-            productTableCardRef,
             mainModalRef,
             nameRef,
             mainImageFileRef,

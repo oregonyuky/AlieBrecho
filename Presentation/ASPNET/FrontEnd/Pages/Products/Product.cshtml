@@ -116,27 +116,21 @@
         background: #ffffff;
         border: 1px solid #e1e5ea;
         border-radius: 14px;
-        max-height: calc(100vh - 390px);
         min-height: 260px;
-        overflow: auto;
-        scrollbar-color: #b8c0cc #f3f4f6;
-        scrollbar-width: thin;
+        overflow: visible;
     }
 
-    .product-table-card::-webkit-scrollbar,
     .product-modal .modal-body::-webkit-scrollbar {
         height: 10px;
         width: 10px;
     }
 
-    .product-table-card::-webkit-scrollbar-thumb,
     .product-modal .modal-body::-webkit-scrollbar-thumb {
         background: #b8c0cc;
         border: 2px solid #f3f4f6;
         border-radius: 999px;
     }
 
-    .product-table-card::-webkit-scrollbar-track,
     .product-modal .modal-body::-webkit-scrollbar-track {
         background: #f3f4f6;
     }
@@ -313,20 +307,6 @@
         color: #9ca3af !important;
         padding: 34px 22px !important;
         text-align: center;
-    }
-
-    .product-scroll-indicator {
-        align-items: center;
-        background: #ffffff;
-        border: 1px solid #e1e5ea;
-        border-radius: 999px;
-        box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
-        color: #4b5563;
-        display: flex;
-        height: 38px;
-        justify-content: center;
-        margin: 18px auto 0;
-        width: 38px;
     }
 
     .product-modal {
@@ -547,8 +527,7 @@
         }
 
         .product-table-card {
-            max-height: calc(100vh - 360px);
-            overflow-x: auto;
+            overflow: visible;
         }
 
         .product-table {
@@ -611,7 +590,7 @@
         </select>
     </section>
 
-    <section class="product-table-card" ref="productTableCardRef">
+    <section class="product-table-card">
         <table class="product-table">
             <thead>
                 <tr>
@@ -711,10 +690,6 @@
             </tbody>
         </table>
     </section>
-
-    <button type="button" class="product-scroll-indicator" aria-label="Rolar para mais produtos" v-on:click="handler.scrollProductsDown">
-        <i class="fa fa-chevron-down" aria-hidden="true"></i>
-    </button>
 
     <div class="modal fade" ref="mainModalRef" id="MainModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-xl">
