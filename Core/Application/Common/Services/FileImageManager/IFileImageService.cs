@@ -6,6 +6,7 @@ public interface IFileImageService
         string? docExtension,
         byte[]? fileData,
         long? size,
+        string? contentType,
         string? description = "",
         string? createdById = "",
         CancellationToken cancellationToken = default);

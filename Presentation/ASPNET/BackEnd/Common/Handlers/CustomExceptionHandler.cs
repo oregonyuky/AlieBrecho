@@ -7,9 +7,11 @@ namespace ASPNET.BackEnd.Common.Handlers;
 public class CustomExceptionHandler : IExceptionHandler
 {
     private readonly Dictionary<Type, Func<HttpContext, Exception, Task>> _exceptionHandlers;
+    private readonly ILogger<CustomExceptionHandler> _logger;
 
-    public CustomExceptionHandler()
+    public CustomExceptionHandler(ILogger<CustomExceptionHandler> logger)
     {
+        _logger = logger;
         _exceptionHandlers = new()
             {
                 { typeof(ProductUnavailableException), HandleProductUnavailableException },
@@ -47,17 +49,23 @@ public class CustomExceptionHandler : IExceptionHandler
 
     private async Task HandleException(HttpContext httpContext, Exception ex)
     {
+        _logger.LogError(ex, "Erro não tratado ao processar {Method} {Path}.",
+            httpContext.Request.Method,
+            httpContext.Request.Path);
+
         var statusCode = httpContext.Response.StatusCode != 200
             ? httpContext.Response.StatusCode
             : StatusCodes.Status500InternalServerError;
 
-        var errorMessage = ex.Message;
+        var errorMessage = ex is InvalidOperationException
+            ? ex.Message
+            : "Ocorreu um erro interno. Tente novamente mais tarde.";
 
         var result = new ApiErrorResult
         {
             Code = statusCode,
-            Message = $"Exception: {errorMessage}",
-            Error = new Error(ex.InnerException?.Message, ex.Source, ex.StackTrace, ex.GetType().Name)
+            Message = errorMessage,
+            Error = null
         };
 
         httpContext.Response.StatusCode = statusCode;

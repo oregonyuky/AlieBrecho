@@ -22,7 +22,18 @@ public class FileImageController : BaseApiController
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest("Invalid file.");
+            return BadRequest("Selecione uma imagem válida.");
+        }
+
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest("A imagem deve ter no máximo 5 MB.");
+        }
+
+        var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest("Formato inválido. Envie uma imagem JPEG, PNG ou WebP.");
         }
 
         using (var memoryStream = new MemoryStream())
@@ -36,7 +47,8 @@ public class FileImageController : BaseApiController
                 OriginalFileName = file.FileName,
                 Extension = extension,
                 Data = fileData,
-                Size = fileData.Length
+                Size = fileData.Length,
+                ContentType = file.ContentType
             };
 
             var result = await _sender.Send(command, cancellationToken);

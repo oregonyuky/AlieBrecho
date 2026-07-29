@@ -9,7 +9,10 @@ public static class DI
     public static IServiceCollection RegisterFileImageManager(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<FileImageSettings>(configuration.GetSection("FileImageManager"));
-        services.AddTransient<IFileImageService, FileImageService>();
+        services.AddHttpClient<IFileImageService, FileImageService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         return services;
     }

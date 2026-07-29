@@ -129,4 +129,11 @@ static void ConfigureEnvironmentSecrets(WebApplicationBuilder builder)
     {
         builder.Configuration["Google:Customer:ClientId"] = customerGoogleClientId.Trim();
     }
+
+    builder.Configuration["FileImageManager:SupabaseUrl"] =
+        Environment.GetEnvironmentVariable("SUPABASE_URL") ?? string.Empty;
+    builder.Configuration["FileImageManager:SupabaseServiceRoleKey"] =
+        Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY") ?? string.Empty;
+    builder.Configuration["FileImageManager:SupabaseStorageBucket"] =
+        Environment.GetEnvironmentVariable("SUPABASE_STORAGE_BUCKET") ?? "products";
 }

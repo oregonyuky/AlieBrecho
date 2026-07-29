@@ -1,4 +1,5 @@
 using Application.Common.Repositories;
+using Application.Common.Services.FileImageManager;
 using Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -61,14 +62,17 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductRequest, Update
 {
     private readonly ICommandRepository<Product> _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFileImageService _fileImageService;
 
     public UpdateProductHandler(
         ICommandRepository<Product> repository,
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork,
+        IFileImageService fileImageService
         )
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _fileImageService = fileImageService;
     }
 
     public async Task<UpdateProductResult> Handle(UpdateProductRequest request, CancellationToken cancellationToken)
@@ -82,6 +86,14 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductRequest, Update
         {
             throw new Exception($"Entity not found: {request.Id}");
         }
+
+        var previousImages = new[]
+        {
+            entity.MainImageURL, entity.Picture1, entity.Picture2, entity.Picture3, entity.Picture4
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Select(x => x!.Trim())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         entity.Name = request.Name ?? string.Empty;
         entity.CategoryID = request.CategoryID;
@@ -120,6 +132,19 @@ public class UpdateProductHandler : IRequestHandler<UpdateProductRequest, Update
 
         _repository.Update(entity);
         await _unitOfWork.SaveAsync(cancellationToken);
+
+        var currentImages = new[]
+        {
+            entity.MainImageURL, entity.Picture1, entity.Picture2, entity.Picture3, entity.Picture4
+        }
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Select(x => x!.Trim())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var replacedImage in previousImages.Except(currentImages, StringComparer.OrdinalIgnoreCase))
+        {
+            await _fileImageService.DeleteAsync(replacedImage, cancellationToken);
+        }
 
         return new UpdateProductResult
         {

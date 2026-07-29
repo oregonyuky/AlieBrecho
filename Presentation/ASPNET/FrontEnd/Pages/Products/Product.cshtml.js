@@ -505,7 +505,9 @@ const App = {
                 state.mainData = data.map(item => ({
                     ...item,
                     imageURL: item?.mainImageURL
-                        ? '/api/FileImage/GetImage?imageName=' + item.mainImageURL
+                        ? (item.mainImageURL.startsWith('http://') || item.mainImageURL.startsWith('https://')
+                            ? item.mainImageURL
+                            : '/api/FileImage/GetImage?imageName=' + encodeURIComponent(item.mainImageURL))
                         : '/noimage.png'
                 }));
 

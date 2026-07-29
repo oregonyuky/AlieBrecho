@@ -4,6 +4,8 @@ obj/
 *.csproj.lscache
 *.Development.json
 *.env
+.env
+.env.*
 Migrations/
 !Infrastructure/Infrastructure/DataAccessManager/EFCore/Migrations/
 !Infrastructure/Infrastructure/DataAccessManager/EFCore/Migrations/*.cs

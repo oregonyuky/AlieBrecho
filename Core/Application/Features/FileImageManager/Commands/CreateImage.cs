@@ -15,6 +15,7 @@ public class CreateImageRequest : IRequest<CreateImageResult>
     public string? Extension { get; init; }
     public byte[]? Data { get; init; }
     public long? Size { get; init; }
+    public string? ContentType { get; init; }
     public string? CreatedById { get; init; }
     public string? Description { get; init; }
 }
@@ -53,6 +54,7 @@ public class CreateImageHandler : IRequestHandler<CreateImageRequest, CreateImag
             request.Extension,
             request.Data,
             request.Size,
+            request.ContentType,
             request.Description,
             request.CreatedById,
             cancellationToken);
